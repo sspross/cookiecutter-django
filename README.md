@@ -6,4 +6,4 @@
 
 ## Create new Django Project from this template
 
-`cookiecutter https://github.com/sspross/cookiecutter_django`
+`cookiecutter git@github.com:sspross/cookiecutter_django.git`
