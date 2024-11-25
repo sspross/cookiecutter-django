@@ -1,27 +1,9 @@
 # Django Project Template
 
-## How to use
+## Requirements
 
-```
-cookiecutter django_tmpl/
-cd <project-slug>
-git init
-git add --all
-git commit -m "Initial setup from django project template"
-```
+`pip install "cookiecutter>=1.7.0"`
 
-Follow instructions in project README.md file.
+## Create new Django Project from this template
 
-## VS Code
-
-### User `settings.json`
-
-```
-{
-    "explorer.confirmDelete": false,
-    "explorer.confirmDragAndDrop": false,
-    "files.trimTrailingWhitespace": true,
-    "files.insertFinalNewline": true
-}
-```
-
+`cookiecutter django_tmpl/`

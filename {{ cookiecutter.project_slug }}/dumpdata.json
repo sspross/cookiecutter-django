@@ -1,0 +1,20 @@
+[
+    {
+        "model": "auth.user",
+        "pk": 1,
+        "fields": {
+            "password": "pbkdf2_sha256$870000$WcEeEiDFBklAxXqOunZkQV$uvmdWfcftCp15cHSRo4Hv9DBvRrKpP41ReNg4i5zShE=",
+            "last_login": null,
+            "is_superuser": true,
+            "username": "sspross",
+            "first_name": "",
+            "last_name": "",
+            "email": "silvan@spross.ch",
+            "is_staff": true,
+            "is_active": true,
+            "date_joined": "2024-11-25T11:18:30.859Z",
+            "groups": [],
+            "user_permissions": []
+        }
+    }
+]
