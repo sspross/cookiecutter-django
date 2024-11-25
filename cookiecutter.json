@@ -1,0 +1,7 @@
+{
+    "project_name": "Cookiecutter Website Simple",
+    "project_slug": "cookiecutter_website_simple",
+    "_copy_without_render": [
+        "*.jinja"
+    ]
+}

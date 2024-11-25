@@ -1,0 +1,2 @@
+web: bash web.sh
+release: bash release.sh

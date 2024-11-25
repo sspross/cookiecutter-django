@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "01-a-web-1-0-application"
+version = "0.1.0"
+description = ""
+authors = ["Silvan Spross <silvan.spross@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+django = "^5.1.2"
+django-jinja = "^2.11.0"
+whitenoise = "^6.8.2"
+gunicorn = "^23.0.0"
+django-environ = "^0.11.2"
+psycopg2 = "^2.9.10"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"

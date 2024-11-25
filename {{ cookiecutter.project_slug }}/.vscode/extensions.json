@@ -1,0 +1,11 @@
+{
+    "recommendations": [
+        "samuelcolvin.jinjahtml",
+        "batisteo.vscode-django",
+        "ms-python.vscode-pylance",
+        "ms-python.python",
+        "ms-python.debugpy",
+        "charliermarsh.ruff",
+        "ms-vscode.sublime-keybindings",
+    ]
+}

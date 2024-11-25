@@ -1,0 +1,24 @@
+{
+  // PYTHON
+  "python.terminal.activateEnvironment": false,
+  "[python]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    },
+    "editor.defaultFormatter": "charliermarsh.ruff"
+  },
+  "files.exclude": {
+    "**/*.pyc": true,
+    "**/__pycache__": true
+  },
+
+  // JINJA
+  "files.associations": {
+    "*.jinja": "jinja-html"
+  },
+  "emmet.includeLanguages": {
+    "jinja-html": "html"
+  },
+}
