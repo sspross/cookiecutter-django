@@ -1,6 +1,6 @@
 {
-    "project_name": "Cookiecutter Website Simple",
-    "project_slug": "cookiecutter_website_simple",
+    "project_name": "Django Website",
+    "project_slug": "django_website",
     "_copy_without_render": [
         "*.jinja"
     ]

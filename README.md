@@ -6,4 +6,4 @@
 
 ## Create new Django Project from this template
 
-`cookiecutter django_tmpl/`
+`cookiecutter https://github.com/sspross/cookiecutter_django`
