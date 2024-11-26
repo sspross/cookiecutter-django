@@ -1,6 +1,10 @@
 {
     "project_name": "Django Website",
     "project_slug": "django_website",
+    "author_name": "Silvan Spross",
+    "author_email": "silvan.spross@gmail.com",
+    "django_username": "sspross",
+    "django_password": "bondens",
     "_copy_without_render": [
         "*.jinja"
     ]

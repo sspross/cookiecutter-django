@@ -1,8 +1,8 @@
 [tool.poetry]
-name = "01-a-web-1-0-application"
+name = "{{ cookiecutter.project_slug }}"
 version = "0.1.0"
 description = ""
-authors = ["Silvan Spross <silvan.spross@gmail.com>"]
+authors = ["{{ cookiecutter.author_name }} <{{ cookiecutter.author_email }}>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
