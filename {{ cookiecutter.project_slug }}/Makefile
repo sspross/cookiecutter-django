@@ -2,6 +2,10 @@ db.recreate:
 	dropdb --if-exists --force {{ cookiecutter.project_slug }}
 	createdb {{ cookiecutter.project_slug }}
 
+db.initialize:
+	poetry run python manage.py migrate
+	poetry run python manage.py loaddata dumpdata.json
+
 db.snapshot:
 	dropdb --if-exists {{ cookiecutter.project_slug }}_snapshot
 	createdb -O postgres -T {{ cookiecutter.project_slug }} {{ cookiecutter.project_slug }}_snapshot
