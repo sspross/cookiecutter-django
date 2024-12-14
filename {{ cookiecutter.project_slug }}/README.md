@@ -15,7 +15,7 @@
 ## Deployment
 
 1. Push Repo on GitHub
-1. Add Application to Appliku: https://app.appliku.com/dashboard/team/private/applications
+1. Add Application, e.g. `{{ cookiecutter.project_slug }}` to Appliku: https://app.appliku.com/dashboard/team/private/applications
 1. Add Postgres Database to new Application
 1. Open Application Settings > Volumes:
     1. Container path: `/volumes/media`
@@ -31,9 +31,8 @@
     1. Dockerfile context path: `../`
     1. Save changes
 1. Open Application Settings > Environment Variables and add:
-    1. ALLOWED_HOSTS (e.g. )
-    1. CSRF_TRUSTED_ORIGINS
-    1. SECRET_KEY
+    1. ALLOWED_HOSTS (e.g. `{{ cookiecutter.project_slug }}.applikuapp.com`)
+    1. CSRF_TRUSTED_ORIGINS (e.g. `https://{{ cookiecutter.project_slug }}.applikuapp.com`)
+    1. SECRET_KEY (`python -c "import random, string; print(''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(50)))"`)
     1. DATABASE_URL (should already be there)
     1. Save and deploy
-1.
