@@ -1,23 +1,22 @@
-[tool.poetry]
+[project]
 name = "{{ cookiecutter.project_slug }}"
 version = "0.1.0"
 description = ""
-authors = ["{{ cookiecutter.author_name }} <{{ cookiecutter.author_email }}>"]
 readme = "README.md"
+authors = [{name = "{{ cookiecutter.author_name }}", email = "{{ cookiecutter.author_email }}"}]
+requires-python = ">=3.11,<4.0"
+dependencies = [
+	"django >=5.1.2, <6.0.0",
+	"django-jinja >=2.11.0",
+	"whitenoise >=6.8.2",
+	"django-environ >=0.11.2",
+	"psycopg2 >=2.9.10",
+]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-django = "^5.1.2"
-django-jinja = "^2.11.0"
-whitenoise = "^6.8.2"
-gunicorn = "^23.0.0"
-django-environ = "^0.11.2"
-psycopg2 = "^2.9.10"
+[dependency-groups]
+prod = [
+	"gunicorn >=23.0.0, <24.0.0",
+]
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
-[tool.pyright]
-venvPath = "."
-venv = ".venv"
+[tool.uv]
+default-groups = []

@@ -3,8 +3,8 @@ db.recreate:
 	createdb {{ cookiecutter.project_slug }}
 
 db.initialize:
-	poetry run python manage.py migrate
-	poetry run python manage.py loaddata dumpdata.json
+	uv run python manage.py migrate
+	uv run python manage.py loaddata dumpdata.json
 
 db.snapshot:
 	dropdb --if-exists {{ cookiecutter.project_slug }}_snapshot
