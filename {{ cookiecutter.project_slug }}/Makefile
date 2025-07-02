@@ -1,3 +1,12 @@
+test:
+	uv run pytest
+
+lint:
+	uv run ruff check .
+
+format:
+	uv run ruff format .
+
 db.recreate:
 	dropdb --if-exists --force {{ cookiecutter.project_slug }}
 	createdb {{ cookiecutter.project_slug }}

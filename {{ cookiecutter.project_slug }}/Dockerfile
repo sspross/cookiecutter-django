@@ -2,44 +2,47 @@
 # https://appliku.com/post/using-custom-dockerfile-appliku
 
 # ----------------------------------------------------------------------------
-# Django app
+# Django app with uv package manager
 # ----------------------------------------------------------------------------
-FROM python:3.11
-SHELL ["/bin/bash", "-c"]
+FROM python:3.12-slim
 
-# Needed for django's compilemessages
-RUN apt-get update && apt-get install -y gettext \
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:0.5.10 /uv /usr/local/bin/uv
+
+# Set up working directory
 WORKDIR /code/
 
 # Allow statements and log messages to immediately appear in the container logs
-ENV PYTHONUNBUFFERED True
+ENV PYTHONUNBUFFERED=1 \
+    UV_SYSTEM_PYTHON=1 \
+    UV_COMPILE_BYTECODE=1
 
-# Install static part of python modules
-RUN pip install poetry
-RUN poetry config virtualenvs.in-project true
+# Copy dependency files
 COPY /code/pyproject.toml /code/
-COPY /code/poetry.lock /code/
-RUN poetry install --only main --no-root
+COPY /code/uv.lock /code/
 
-# Copy over compiled client
-# COPY --from=builder /code/dist /code/dist
+# Install dependencies
+RUN uv sync --frozen --no-dev
 
-# Copy source
+# Copy source code
 COPY /code/ /code/
 COPY /env/ /env/
 
 # MUST have an .env file
 RUN touch /code/.env
 
-# Collect static files and i18n
-RUN source /env/envs_export.sh && export && cd /code/ && \
-    poetry run python ./manage.py collectstatic
-RUN source /env/envs_export.sh && export && cd /code/ && \
-    poetry run python manage.py compilemessages --locale=de --locale=fr --locale=it
+# Collect static files
+RUN --mount=type=bind,source=/env/envs_export.sh,target=/env/envs_export.sh \
+    bash -c "source /env/envs_export.sh && cd /code/ && uv run python manage.py collectstatic --noinput"
 
-RUN useradd -ms /bin/bash code
+# Create non-root user
+RUN useradd -ms /bin/bash code && \
+    chown -R code:code /code
 
 USER code
 
