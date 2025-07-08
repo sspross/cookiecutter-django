@@ -35,11 +35,9 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        working-directory: backend
         run: uv sync
 
       - name: Run tests
-        working-directory: backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
         run: uv run pytest -v
