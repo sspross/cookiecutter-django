@@ -2,6 +2,7 @@
 
 - `uv sync`
 - `uv run pre-commit install`
+- `uv run playwright install chromium`
 - `make db.recreate`
 - `make db.initialize`
 

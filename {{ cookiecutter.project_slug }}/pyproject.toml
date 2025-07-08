@@ -25,6 +25,8 @@ dev = [
 	"factory-boy >=3.3.1",
 	"django-debug-toolbar >=4.4.6",
 	"pre-commit>=4.2.0",
+	"playwright>=1.53.0",
+	"pytest-playwright>=0.7.0",
 ]
 
 [tool.ruff]
@@ -46,3 +48,6 @@ select = [
 DJANGO_SETTINGS_MODULE = "core.settings"
 python_files = ["test_*.py", "*_test.py", "tests.py"]
 addopts = "-v --tb=short"
+markers = [
+     "browser: marks tests as browser tests using Playwright",
+]
