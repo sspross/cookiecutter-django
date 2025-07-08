@@ -1,6 +1,7 @@
 ## Setup
 
 - `uv sync`
+- `uv run pre-commit install`
 - `make db.recreate`
 - `make db.initialize`
 
