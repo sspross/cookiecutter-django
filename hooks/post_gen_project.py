@@ -31,9 +31,7 @@ def main():
 
 def _create_django_secret_key():
     return "".join(
-        random.SystemRandom().choice(
-            string.ascii_letters + string.digits
-        )
+        random.SystemRandom().choice(string.ascii_letters + string.digits)
         for _ in range(50)
     )
 
@@ -41,7 +39,7 @@ def _create_django_secret_key():
 def _create_django_password(password, secret_key):
     settings.configure(
         PASSWORD_HASHERS=[
-            'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+            "django.contrib.auth.hashers.PBKDF2PasswordHasher",
         ]
     )
     return make_password(password, salt=secret_key)
@@ -57,20 +55,22 @@ def _print_instructions(project_slug):
     click.secho("\t2. Put project under version control", fg="blue")
     click.secho("\t   git init", fg="cyan")
     click.secho("\t   git add --all", fg="cyan")
-    click.secho('\t   git commit -m "Initial setup from django project template"', fg="cyan")
+    click.secho(
+        '\t   git commit -m "Initial setup from django project template"', fg="cyan"
+    )
     click.echo()
-    click.secho("\t3. Open VS Code and follow instructions in project README:", fg="blue")
+    click.secho("\t3. Follow instructions in project README:", fg="blue")
     click.secho("\t   code .", fg="cyan")
     click.echo()
 
 
 def _replace_in_file(file_path, string_to_replace, replacement_string):
-    with open(file_path, 'r') as file:
+    with open(file_path, "r") as file:
         content = file.read()
 
     updated_content = content.replace(string_to_replace, replacement_string)
 
-    with open(file_path, 'w') as file:
+    with open(file_path, "w") as file:
         file.write(updated_content)
 
 
