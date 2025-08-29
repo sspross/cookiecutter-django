@@ -13,3 +13,7 @@ Use this single command to create a new project from this template:
 ```bash
 uv run --with cookiecutter --with django python -m cookiecutter git@github.com:sspross/cookiecutter_django.git
 ```
+
+#### Working on template
+
+- Cleaning up `uv run pre-commit run --all-files`
