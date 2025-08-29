@@ -1,0 +1,35 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>
+      {% block title %}
+      {% endblock title %}
+    </title>
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="{% static 'dist/styles.css' %}" />
+    <!-- Inter web font from Bunny.net (GDPR compliant) -->
+    <link rel="preconnect" href="https://fonts.bunny.net" />
+    <link href="https://fonts.bunny.net/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+          rel="stylesheet" />
+    <!-- Alpine.js + Focus plugin -->
+    <script defer
+            src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.x.x/dist/cdn.min.js"></script>
+    <script defer
+            src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Alpine.js x-cloak -->
+    <style>
+      [x-cloak] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body class="antialiased">
+    {% block body %}
+    {% endblock body %}
+    {% block extra_js %}
+    {% endblock extra_js %}
+  </body>
+</html>
