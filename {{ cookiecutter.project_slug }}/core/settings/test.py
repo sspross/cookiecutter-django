@@ -1,37 +1,21 @@
-"""
-Test-specific settings for {{ cookiecutter.project_name }}.
-"""
+import environ
 
-from .base import *  # noqa: F403, F401
+from .base import *  # noqa: F403
 
-# Override settings for testing
-DEBUG = True
+# Override env with test defaults before importing base
+env = environ.Env(
+    SECRET_KEY=(str, "test-secret-key-for-testing-only"),
+    DEBUG=(bool, True),
+    ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
+    CSRF_TRUSTED_ORIGINS=(list, ["http://localhost", "http://127.0.0.1"]),
+)
 
-# Use a faster password hasher for tests
-PASSWORD_HASHERS = [
-    "django.contrib.auth.hashers.MD5PasswordHasher",
-]
-
-# Use in-memory cache for tests
-CACHES = {
+# Use standard static files storage for tests to avoid manifest requirements
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
     "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-    }
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
 }
-
-# Disable migrations during tests for speed
-class DisableMigrations:
-    def __contains__(self, item):
-        return True
-
-    def __getitem__(self, item):
-        return None
-
-
-# Uncomment to disable migrations during tests (speeds up test runs)
-# MIGRATION_MODULES = DisableMigrations()
-
-# Allow async database operations in tests
-# Required for Playwright tests with async event loops
-import os
-os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
