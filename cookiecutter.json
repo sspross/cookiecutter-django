@@ -6,6 +6,6 @@
     "django_username": "sspross",
     "django_password": "bondens",
     "_copy_without_render": [
-        "*.jinja"
+        "*.html"
     ]
 }
