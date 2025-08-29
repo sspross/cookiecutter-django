@@ -1,50 +1,48 @@
-# For appliku.com usage only. For more details about why /code/ and /env/ see
-# https://appliku.com/post/using-custom-dockerfile-appliku
+FROM python:3.11-slim
 
-# ----------------------------------------------------------------------------
-# Django app with uv package manager
-# ----------------------------------------------------------------------------
-FROM python:3.12-slim
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_SYSTEM_PYTHON=1
 
-# Install system dependencies
+# Install system dependencies including Node.js for Tailwind
 RUN apt-get update && apt-get install -y \
-    git \
+    build-essential \
+    libpq-dev \
+    curl \
+    nodejs \
+    npm \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv
-COPY --from=ghcr.io/astral-sh/uv:0.5.10 /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Set up working directory
-WORKDIR /code/
-
-# Allow statements and log messages to immediately appear in the container logs
-ENV PYTHONUNBUFFERED=1 \
-    UV_SYSTEM_PYTHON=1 \
-    UV_COMPILE_BYTECODE=1
+# Set working directory
+WORKDIR /app
 
 # Copy dependency files
-COPY /code/pyproject.toml /code/
-COPY /code/uv.lock /code/
+COPY pyproject.toml uv.lock ./
 
-# Install dependencies
-RUN uv sync --frozen --no-dev
+# Install dependencies including prod group
+RUN uv sync --frozen --no-group dev --group prod
 
-# Copy source code
-COPY /code/ /code/
-COPY /env/ /env/
+# Copy project code
+COPY . .
 
-# MUST have an .env file
-RUN touch /code/.env
+# Copy .env file if it exists
+COPY .env.example .env
+
+# Install Javascript and CSS dependencies
+RUN make frontend.install
+RUN make frontend.build
 
 # Collect static files
-RUN --mount=type=bind,source=/env/envs_export.sh,target=/env/envs_export.sh \
-    bash -c "source /env/envs_export.sh && cd /code/ && uv run python manage.py collectstatic --noinput"
+RUN uv run python manage.py collectstatic --noinput
 
-# Create non-root user
-RUN useradd -ms /bin/bash code && \
-    chown -R code:code /code
+# Remove .env file to use docker-compose env variables
+RUN rm -f .env
 
-USER code
-
-# Fix dubious ownership in repository warning
-RUN git config --global --add safe.directory /code
+# Run the application
+EXPOSE 8000
+CMD ["uv", "run", "gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
