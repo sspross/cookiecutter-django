@@ -5,10 +5,12 @@
 - `uv run playwright install chromium`
 - `make db.recreate`
 - `make db.initialize`
+- `make frontend.install`
 
 ## Work
 
 - `uv run python manage.py runserver`
+- `make frontend.dev`
 
 ## Add your own app(s)
 

@@ -60,7 +60,6 @@ def _print_instructions(project_slug):
     )
     click.echo()
     click.secho("\t3. Follow instructions in project README:", fg="blue")
-    click.secho("\t   code .", fg="cyan")
     click.echo()
 
 

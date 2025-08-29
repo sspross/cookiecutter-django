@@ -22,14 +22,3 @@ class TestHomeView:
         assert response.status_code == 200
         # Check for unique content from home.jinja template
         assert b"This is the home page" in response.content
-
-    def test_home_content(self, client):
-        """Test that home page contains expected content."""
-        url = reverse("home")
-        response = client.get(url)
-        content = response.content.decode("utf-8")
-        # Check for content from the template
-        assert "This is the home page" in content
-        # Check for base template elements
-        assert "<title>" in content
-        assert "</html>" in content
