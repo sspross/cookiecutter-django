@@ -16,19 +16,29 @@
 
 - `uv run python manage.py startapp xyz`
 
-## Deployment
+## Stage Deployment
 
-
-### Bring your own server
+### Docker with Caddy
 
 #### Install
 
+- `uv add fabric`
 - Adjust `TARGET_SERVER` and `TARGET_DIR` in `fabfile.py`
 - Clone project manually to the `TARGET_DIR` on `TARGET_SERVER`
+- Choose an unused port in `docker-compose.yml`, e.g. `"8123:8000"`
+- Add `{{ cookiecutter.project_slug }}.intra.sspross.ch` to `ALLOWED_HOSTS` in `docker-compose.yml`
+- Add proxy rule to intra Caddy `~/projects/caddy-intra/Caddyfile`:
+```
+{{ cookiecutter.project_slug }}.intra.sspross.ch {
+    reverse_proxy http://smini.tail9af27c.ts.net:8123
+}
+```
+- Restart intra Caddy `docker compose down && docker compose up -d`
 
 #### Deploy
 
-- Run `fab deploy` and if needed `fab migrate`
+- Run `uv run fab deploy` and if needed `uv run fab migrate`
+- Visit https://{{ cookiecutter.project_slug }}.intra.sspross.ch
 
 ### Appliku (outdated)
 

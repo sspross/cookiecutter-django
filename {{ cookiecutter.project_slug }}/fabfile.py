@@ -2,7 +2,7 @@ import getpass
 
 from fabric import Connection, task
 
-TARGET_SERVER = "user@your.server"
+TARGET_SERVER = "admin@smini.tail9af27c.ts.net"
 TARGET_DIR = "~/projects/{{ cookiecutter.project_slug }}"
 
 passphrase = getpass.getpass("Enter SSH key passphrase: ")
