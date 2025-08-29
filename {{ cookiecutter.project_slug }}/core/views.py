@@ -20,10 +20,12 @@ NAVITEMS = [
     Navitem(name="about", label="About"),
 ]
 
+PROJECT_NAME = "{{ cookiecutter.project_slug }}"
+
 
 def home(request: HttpRequest):
-    return render(request, "home.html", {"navitems": NAVITEMS})
+    return render(request, "home.html", {"navitems": NAVITEMS, "project_name": PROJECT_NAME})
 
 
 def about(request: HttpRequest):
-    return render(request, "about.html", {"navitems": NAVITEMS})
+    return render(request, "about.html", {"navitems": NAVITEMS, "project_name": PROJECT_NAME})

@@ -3,136 +3,14 @@
 {% block title %}About{% endblock title %}
 
 {% block content %}
-<div class="space-y-8">
+<div class="space-y-6">
   <div>
     <h2 class="text-3xl font-bold tracking-tight text-gray-900">
-      About {{ cookiecutter.project_name }}
+      About {{ project_name }}
     </h2>
     <p class="mt-4 text-lg text-gray-600">
-      A modern Django application template with best practices and cutting-edge technologies.
+      This is the about page
     </p>
-  </div>
-
-  <div class="prose prose-lg max-w-none text-gray-700">
-    <h3 class="text-xl font-semibold text-gray-900 mb-4">Built with Modern Technologies</h3>
-    
-    <div class="grid gap-4 mb-8">
-      <div class="flex items-start gap-3">
-        <svg class="hi-mini hi-check-circle inline-block size-6 text-green-500 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-        </svg>
-        <div>
-          <strong class="font-semibold text-gray-900">Django {% now "Y" %}</strong> - The web framework for perfectionists with deadlines, featuring robust security, scalability, and rapid development.
-        </div>
-      </div>
-      
-      <div class="flex items-start gap-3">
-        <svg class="hi-mini hi-check-circle inline-block size-6 text-green-500 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-        </svg>
-        <div>
-          <strong class="font-semibold text-gray-900">Tailwind CSS v4</strong> - Utility-first CSS framework with JIT compilation for optimal performance and file size.
-        </div>
-      </div>
-      
-      <div class="flex items-start gap-3">
-        <svg class="hi-mini hi-check-circle inline-block size-6 text-green-500 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-        </svg>
-        <div>
-          <strong class="font-semibold text-gray-900">Alpine.js</strong> - Lightweight framework for composing behavior directly in your markup.
-        </div>
-      </div>
-      
-      <div class="flex items-start gap-3">
-        <svg class="hi-mini hi-check-circle inline-block size-6 text-green-500 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-        </svg>
-        <div>
-          <strong class="font-semibold text-gray-900">Chart.js</strong> - Simple yet flexible JavaScript charting for designers and developers.
-        </div>
-      </div>
-      
-      <div class="flex items-start gap-3">
-        <svg class="hi-mini hi-check-circle inline-block size-6 text-green-500 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-        </svg>
-        <div>
-          <strong class="font-semibold text-gray-900">PostgreSQL</strong> - Advanced open-source relational database with full ACID compliance.
-        </div>
-      </div>
-      
-      <div class="flex items-start gap-3">
-        <svg class="hi-mini hi-check-circle inline-block size-6 text-green-500 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-        </svg>
-        <div>
-          <strong class="font-semibold text-gray-900">Docker Compose</strong> - Containerized development environment for consistency across teams.
-        </div>
-      </div>
-      
-      <div class="flex items-start gap-3">
-        <svg class="hi-mini hi-check-circle inline-block size-6 text-green-500 mt-0.5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
-        </svg>
-        <div>
-          <strong class="font-semibold text-gray-900">GitHub Actions</strong> - Automated CI/CD pipelines for testing and deployment.
-        </div>
-      </div>
-    </div>
-
-    <h3 class="text-xl font-semibold text-gray-900 mb-4">Development Features</h3>
-    
-    <div class="bg-gray-50 rounded-lg p-6 mb-8">
-      <ul class="space-y-2">
-        <li class="flex items-center gap-2">
-          <svg class="hi-mini hi-arrow-right inline-block size-4 text-purple-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
-          </svg>
-          <span>Modular settings structure for different environments</span>
-        </li>
-        <li class="flex items-center gap-2">
-          <svg class="hi-mini hi-arrow-right inline-block size-4 text-purple-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
-          </svg>
-          <span>Pre-configured GitHub Actions workflows</span>
-        </li>
-        <li class="flex items-center gap-2">
-          <svg class="hi-mini hi-arrow-right inline-block size-4 text-purple-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
-          </svg>
-          <span>Frontend build pipeline with PostCSS</span>
-        </li>
-        <li class="flex items-center gap-2">
-          <svg class="hi-mini hi-arrow-right inline-block size-4 text-purple-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
-          </svg>
-          <span>WhiteNoise for static file serving</span>
-        </li>
-        <li class="flex items-center gap-2">
-          <svg class="hi-mini hi-arrow-right inline-block size-4 text-purple-500 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
-          </svg>
-          <span>Enhanced Makefile with common commands</span>
-        </li>
-      </ul>
-    </div>
-
-    <h3 class="text-xl font-semibold text-gray-900 mb-4">Getting Started</h3>
-    
-    <div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
-      <p class="text-gray-700 mb-4">
-        Follow the README instructions to set up your development environment. The project includes everything you need to start building your application immediately.
-      </p>
-      <div class="space-y-2 font-mono text-sm bg-white rounded p-4 border border-purple-100">
-        <div class="text-gray-600"># Clone the repository</div>
-        <div>git clone &lt;your-repo-url&gt;</div>
-        <div class="text-gray-600 mt-3"># Set up the environment</div>
-        <div>make install</div>
-        <div class="text-gray-600 mt-3"># Run the development server</div>
-        <div>make dev</div>
-      </div>
-    </div>
   </div>
 </div>
 {% endblock content %}

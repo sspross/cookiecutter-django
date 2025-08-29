@@ -6,106 +6,11 @@
 <div class="space-y-6">
   <div>
     <h2 class="text-3xl font-bold tracking-tight text-gray-900">
-      Welcome to {{ cookiecutter.project_name }}
+      Welcome to {{ project_name }}
     </h2>
     <p class="mt-4 text-lg text-gray-600">
-      Your modern Django application built with best practices
+      This is the home page
     </p>
-  </div>
-
-  <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-    <!-- Feature Card 1 -->
-    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div class="flex items-center mb-3">
-        <svg class="hi-mini hi-sparkles inline-block size-6 text-purple-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
-        </svg>
-        <h3 class="ml-2 text-lg font-semibold text-gray-900">Tailwind CSS v4</h3>
-      </div>
-      <p class="text-gray-600">
-        Modern utility-first CSS framework with excellent developer experience and production-ready optimizations.
-      </p>
-    </div>
-
-    <!-- Feature Card 2 -->
-    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div class="flex items-center mb-3">
-        <svg class="hi-mini hi-bolt inline-block size-6 text-indigo-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path d="M11.983 1.907a.75.75 0 00-1.292-.657l-8.5 9.5A.75.75 0 002.75 12h6.572l-1.305 6.093a.75.75 0 001.292.657l8.5-9.5A.75.75 0 0017.25 8h-6.572l1.305-6.093z" />
-        </svg>
-        <h3 class="ml-2 text-lg font-semibold text-gray-900">Alpine.js</h3>
-      </div>
-      <p class="text-gray-600">
-        Lightweight framework for composing JavaScript behavior directly in your markup with minimal overhead.
-      </p>
-    </div>
-
-    <!-- Feature Card 3 -->
-    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div class="flex items-center mb-3">
-        <svg class="hi-mini hi-chart-bar inline-block size-6 text-teal-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path d="M15.5 2A1.5 1.5 0 0014 3.5v13a1.5 1.5 0 001.5 1.5h1a1.5 1.5 0 001.5-1.5v-13A1.5 1.5 0 0016.5 2h-1zM8.5 6A1.5 1.5 0 007 7.5v9A1.5 1.5 0 008.5 18h1a1.5 1.5 0 001.5-1.5v-9A1.5 1.5 0 009.5 6h-1zM1.5 10A1.5 1.5 0 000 11.5v5A1.5 1.5 0 001.5 18h1A1.5 1.5 0 004 16.5v-5A1.5 1.5 0 002.5 10h-1z" />
-        </svg>
-        <h3 class="ml-2 text-lg font-semibold text-gray-900">Chart.js</h3>
-      </div>
-      <p class="text-gray-600">
-        Simple yet flexible JavaScript charting library for designers and developers to create beautiful visualizations.
-      </p>
-    </div>
-
-    <!-- Feature Card 4 -->
-    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div class="flex items-center mb-3">
-        <svg class="hi-mini hi-server-stack inline-block size-6 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fill-rule="evenodd" d="M2 4.25A2.25 2.25 0 014.25 2h11.5A2.25 2.25 0 0118 4.25v8.5A2.25 2.25 0 0115.75 15h-3.105a3.501 3.501 0 001.1 1.677A.75.75 0 0113.26 18H6.74a.75.75 0 01-.484-1.323A3.501 3.501 0 007.355 15H4.25A2.25 2.25 0 012 12.75v-8.5zm1.5 0a.75.75 0 01.75-.75h11.5a.75.75 0 01.75.75v7.5a.75.75 0 01-.75.75H4.25a.75.75 0 01-.75-.75v-7.5z" clip-rule="evenodd" />
-        </svg>
-        <h3 class="ml-2 text-lg font-semibold text-gray-900">PostgreSQL</h3>
-      </div>
-      <p class="text-gray-600">
-        Powerful, open source object-relational database system with over 35 years of active development.
-      </p>
-    </div>
-
-    <!-- Feature Card 5 -->
-    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div class="flex items-center mb-3">
-        <svg class="hi-mini hi-cube inline-block size-6 text-blue-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fill-rule="evenodd" d="M2.232 12.207a.75.75 0 011.06.025l3.958 4.146V6.375a5.375 5.375 0 0110.75 0V9.25a.75.75 0 01-1.5 0V6.375a3.875 3.875 0 00-7.75 0v10.003l3.957-4.146a.75.75 0 011.085 1.036l-5.25 5.5a.75.75 0 01-1.085 0l-5.25-5.5a.75.75 0 01.025-1.06z" clip-rule="evenodd" />
-        </svg>
-        <h3 class="ml-2 text-lg font-semibold text-gray-900">Docker Compose</h3>
-      </div>
-      <p class="text-gray-600">
-        Define and run multi-container Docker applications with a simple YAML file for development environments.
-      </p>
-    </div>
-
-    <!-- Feature Card 6 -->
-    <div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
-      <div class="flex items-center mb-3">
-        <svg class="hi-mini hi-beaker inline-block size-6 text-orange-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fill-rule="evenodd" d="M8.5 3.528v4.644c0 .729-.29 1.428-.805 1.944l-1.217 1.216a8.75 8.75 0 013.55.621l.502.201a7.25 7.25 0 004.178.365l-2.403-2.403a2.75 2.75 0 01-.805-1.944V3.528a40.205 40.205 0 00-3 0zm4.5.707l.25.25a.75.75 0 11-1.06 1.06l-.25-.25a.75.75 0 011.06-1.06zm-7.25 1.25a.75.75 0 10-1.06-1.06l-.25.25a.75.75 0 001.06 1.06l.25-.25zM6.663 8.01A.75.75 0 007 8.75a.75.75 0 10.738-1.278 39.557 39.557 0 00-.39-3.114A1.5 1.5 0 018.83 2.5h2.34a1.5 1.5 0 011.481 1.858 39.894 39.894 0 00-.39 3.114.75.75 0 10.737 1.278A41.385 41.385 0 0113.41 5.5a3 3 0 00-2.96-3.714H9.55a3 3 0 00-2.961 3.714 41.07 41.07 0 01.034.255zm10.545 3.698a8.75 8.75 0 00-3.983-.67l1.236-1.236a4.25 4.25 0 001.244-3V3.528a1.5 1.5 0 00-1.5-1.5h-.465a41.202 41.202 0 00-7.469 0H5.806a1.5 1.5 0 00-1.5 1.5v3.274c0 1.138.445 2.23 1.244 3l1.237 1.237a8.75 8.75 0 00-3.983.669 1.374 1.374 0 00-.74 1.774c.44 1.316.234 2.764.234 3.518 0 1.243 1.007 2.25 2.25 2.25h10.904a2.25 2.25 0 002.25-2.25c0-.753-.206-2.201.234-3.518a1.374 1.374 0 00-.74-1.774z" clip-rule="evenodd" />
-        </svg>
-        <h3 class="ml-2 text-lg font-semibold text-gray-900">GitHub Actions</h3>
-      </div>
-      <p class="text-gray-600">
-        Automate your workflow from idea to production with CI/CD that works with your repository.
-      </p>
-    </div>
-  </div>
-
-  <div class="mt-8 rounded-lg bg-gray-50 p-6">
-    <h3 class="text-lg font-semibold text-gray-900 mb-2">Getting Started</h3>
-    <p class="text-gray-600 mb-4">
-      This project is configured with everything you need to start building your application.
-    </p>
-    <div class="flex gap-4">
-      <a href="/about/" class="inline-flex items-center justify-center gap-2 rounded-lg border border-purple-700 bg-purple-700 px-4 py-2 text-sm leading-5 font-semibold text-white hover:border-purple-600 hover:bg-purple-600 hover:text-white focus:ring-3 focus:ring-purple-400/90 active:border-purple-700 active:bg-purple-700">
-        Learn More
-        <svg class="hi-mini hi-arrow-right inline-block size-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-          <path fill-rule="evenodd" d="M3 10a.75.75 0 01.75-.75h10.638L10.23 5.29a.75.75 0 111.04-1.08l5.5 5.25a.75.75 0 010 1.08l-5.5 5.25a.75.75 0 11-1.04-1.08l4.158-3.96H3.75A.75.75 0 013 10z" clip-rule="evenodd" />
-        </svg>
-      </a>
-    </div>
   </div>
 </div>
 {% endblock content %}

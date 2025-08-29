@@ -9,14 +9,18 @@
 
 ## Work
 
+- Start frontend watcher first: `make frontend.dev`
 - `uv run python manage.py runserver`
-- `make frontend.dev`
 
 ## Add your own app(s)
 
 - `uv run python manage.py startapp xyz`
 
 ## Deployment
+
+
+
+### Appliku (outdated)
 
 1. Push Repo on GitHub
 1. Add Application, e.g. `{{ cookiecutter.project_slug }}` to Appliku: https://app.appliku.com/dashboard/team/private/applications
