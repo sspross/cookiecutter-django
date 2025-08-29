@@ -1,33 +1,15 @@
 {% extends "page.html" %}
 
-{% block page_title %}About{% endblock page_title %}
+{% block title %}About{% endblock title %}
 
 {% block content %}
 <div class="space-y-6">
   <div>
-    <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
-      About
-    </h1>
+    <h2 class="text-3xl font-bold tracking-tight text-gray-900">
+      About {{ project_name }}
+    </h2>
     <p class="mt-4 text-lg text-gray-600">
       This is the about page
-    </p>
-  </div>
-
-  <div class="prose prose-lg max-w-none">
-    <h2>Features</h2>
-    <ul>
-      <li>Django {{ '{% now "Y" %}' }} with best practices</li>
-      <li>Tailwind CSS v4 for styling</li>
-      <li>Alpine.js for interactivity</li>
-      <li>Chart.js for data visualization</li>
-      <li>PostgreSQL database support</li>
-      <li>Docker Compose for development</li>
-      <li>GitHub Actions for CI/CD</li>
-    </ul>
-
-    <h2>Getting Started</h2>
-    <p>
-      Follow the README instructions to set up your development environment and start building your application.
     </p>
   </div>
 </div>
