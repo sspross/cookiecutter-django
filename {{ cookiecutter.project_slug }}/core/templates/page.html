@@ -1,14 +1,41 @@
-{% extends "base.html" %}
+{% extends "_base.html" %}
 
-{% block title %}Page - {{ cookiecutter.project_name }}{% endblock title %}
+{% block title %}{% block page_title %}{{ cookiecutter.project_name }}{% endblock page_title %}{% endblock title %}
 
 {% block body %}
 <div class="min-h-screen bg-gray-50">
-  <div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold text-gray-900 mb-4">{{ title }}</h1>
-    <div class="prose prose-lg">
-      {{ content|safe }}
+  <!-- Navigation -->
+  <nav class="bg-white shadow">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="flex h-16 justify-between">
+        <div class="flex">
+          <div class="flex flex-shrink-0 items-center">
+            <a href="/" class="text-xl font-bold text-gray-900">{{ cookiecutter.project_name }}</a>
+          </div>
+          <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+            <a href="/" class="inline-flex items-center border-b-2 border-indigo-500 px-1 pt-1 text-sm font-medium text-gray-900">Home</a>
+            <a href="/about/" class="inline-flex items-center border-b-2 border-transparent px-1 pt-1 text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">About</a>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main>
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {% block content %}
+      {% endblock content %}
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white mt-auto">
+    <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <p class="text-center text-sm text-gray-500">
+        © {% now "Y" %} {{ cookiecutter.project_name }}. All rights reserved.
+      </p>
+    </div>
+  </footer>
 </div>
 {% endblock body %}

@@ -1,12 +1,42 @@
-{% extends "base.html" %}
+{% extends "page.html" %}
 
-{% block title %}Home - {{ cookiecutter.project_name }}{% endblock title %}
+{% block page_title %}Home - {{ cookiecutter.project_name }}{% endblock page_title %}
 
-{% block body %}
-<div class="min-h-screen bg-gray-50">
-  <div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold text-gray-900 mb-4">Welcome to {{ cookiecutter.project_name }}</h1>
-    <p class="text-lg text-gray-600">Your Django project is up and running with Tailwind CSS!</p>
+{% block content %}
+<div class="space-y-6">
+  <div>
+    <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+      Welcome to {{ cookiecutter.project_name }}
+    </h1>
+    <p class="mt-4 text-lg text-gray-600">
+      Your Django project is up and running with Tailwind CSS v4!
+    </p>
+  </div>
+
+  <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <!-- Feature Card 1 -->
+    <div class="rounded-lg bg-white p-6 shadow">
+      <h3 class="text-lg font-semibold text-gray-900">Tailwind CSS v4</h3>
+      <p class="mt-2 text-gray-600">
+        Modern utility-first CSS framework with excellent developer experience.
+      </p>
+    </div>
+
+    <!-- Feature Card 2 -->
+    <div class="rounded-lg bg-white p-6 shadow">
+      <h3 class="text-lg font-semibold text-gray-900">Alpine.js</h3>
+      <p class="mt-2 text-gray-600">
+        Lightweight framework for composing JavaScript behavior in your markup.
+      </p>
+    </div>
+
+    <!-- Feature Card 3 -->
+    <div class="rounded-lg bg-white p-6 shadow">
+      <h3 class="text-lg font-semibold text-gray-900">Chart.js</h3>
+      <p class="mt-2 text-gray-600">
+        Simple yet flexible JavaScript charting library for data visualization.
+      </p>
+    </div>
   </div>
 </div>
-{% endblock body %}
+{% endblock content %}

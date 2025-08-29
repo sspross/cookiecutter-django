@@ -3,14 +3,18 @@
   "version": "0.1.0",
   "description": "",
   "scripts": {
-    "build": "npm run build:clean && npm run build:tailwind",
+    "build": "npm run build:clean && npm run build:tailwind && npm run build:chart",
     "build:clean": "rimraf ../static/dist",
     "build:tailwind": "cross-env NODE_ENV=production postcss ./src/styles.css -o ../static/dist/styles.css --minify",
+    "build:chart": "cp node_modules/chart.js/dist/chart.umd.min.js ../static/dist/chart.min.js && cp node_modules/chart.js/dist/chart.umd.min.js.map ../static/dist/chart.umd.min.js.map",
     "dev": "cross-env NODE_ENV=development postcss ./src/styles.css -o ../static/dist/styles.css --watch"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
+  "dependencies": {
+    "chart.js": "^4.4.7"
+  },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/postcss": "^4.1.11",
