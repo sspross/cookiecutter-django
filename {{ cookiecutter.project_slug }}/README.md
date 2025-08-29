@@ -19,6 +19,16 @@
 ## Deployment
 
 
+### Bring your own server
+
+#### Install
+
+- Adjust `TARGET_SERVER` and `TARGET_DIR` in `fabfile.py`
+- Clone project manually to the `TARGET_DIR` on `TARGET_SERVER`
+
+#### Deploy
+
+- Run `fab deploy` and if needed `fab migrate`
 
 ### Appliku (outdated)
 
