@@ -5,3 +5,7 @@ db.sqlite3
 __pycache__/
 staticfiles/
 media/
+
+# Frontend build artifacts
+core/static/dist/
+core/frontend/node_modules/

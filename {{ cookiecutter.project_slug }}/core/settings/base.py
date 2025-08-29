@@ -45,7 +45,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django_jinja",
     "core",
 ]
 
@@ -63,12 +62,6 @@ MIDDLEWARE = [
 ROOT_URLCONF = "core.urls"
 
 TEMPLATES = [
-    {
-        "BACKEND": "django_jinja.jinja2.Jinja2",
-        "DIRS": [],
-        "APP_DIRS": True,
-        "OPTIONS": {},
-    },
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [],

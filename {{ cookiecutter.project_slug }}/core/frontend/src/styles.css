@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+/*
+In most projects, Tailwind CSS v4 will automatically detect your
+source files containing the Tailwind classes. If not, then be
+sure to point to them manually as follows:
+*/
+@source "../../**/*.html";
+
+/* Plugins */
+@plugin '@tailwindcss/forms';
+@plugin '@tailwindcss/typography';
+
+/* Class based dark mode */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Enable hover on mobile */
+@custom-variant hover (&:hover);
+
+/* Tailkit configuration */
+@theme {
+  /* Fonts */
+  --default-font-family: "Inter";
+
+  /* Spacing */
+  --spacing-8xl: 90rem;
+  --spacing-9xl: 105rem;
+  --spacing-10xl: 120rem;
+
+  /* Animations */
+  --animate-spin-slow: spin-slow 8s linear infinite;
+
+  @keyframes spin-slow {
+    100% {
+      transform: rotate(-360deg);
+    }
+  }
+}

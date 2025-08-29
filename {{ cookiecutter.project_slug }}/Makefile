@@ -22,3 +22,12 @@ db.snapshot:
 db.restore:
 	dropdb --if-exists {{ cookiecutter.project_slug }}
 	createdb -O postgres -T {{ cookiecutter.project_slug }}_snapshot {{ cookiecutter.project_slug }}
+
+frontend.install:
+	cd core/frontend && npm install
+
+frontend.build:
+	cd core/frontend && npm run build
+
+frontend.dev:
+	cd core/frontend && npm run dev
