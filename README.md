@@ -2,9 +2,14 @@
 
 ## Requirements
 
-`pip install "cookiecutter>=1.7.0"`
-`pip install "django>=5.1.2"`
+Install uv if you haven't already:
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
 ## Create new Django Project from this template
 
-`cookiecutter git@github.com:sspross/cookiecutter_django.git`
+Use this single command to create a new project from this template:
+```bash
+uv run --with cookiecutter cookiecutter git@github.com:sspross/cookiecutter_django.git
+```
