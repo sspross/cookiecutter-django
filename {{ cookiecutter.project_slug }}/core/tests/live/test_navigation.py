@@ -28,6 +28,4 @@ class TestBrowserNavigation(StaticLiveServerWithArtifactsOnErrorTestCase):
         # Verify the about page content is loaded
         expect(page).to_have_title("About")
         # Use the visible main element
-        expect(page.locator("main").last).to_contain_text(
-            "This is the about page"
-        )
+        expect(page.locator("main").last).to_contain_text("This is the about page")
