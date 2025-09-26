@@ -1,6 +1,14 @@
 {% extends "page.html" %}
+{% load django_vite %}
 
 {% block title %}About{% endblock title %}
+
+{% block extra_head %}
+    {% vite_hmr_client %}
+    {% vite_react_refresh %}
+    {% vite_asset 'js/test.js' %}
+    {% vite_asset 'js/widget/main.jsx' %}
+{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
@@ -11,6 +19,7 @@
     <p class="mt-4 text-lg text-gray-600">
       This is the about page
     </p>
+    <div id="widget"></div>
   </div>
 </div>
 {% endblock content %}

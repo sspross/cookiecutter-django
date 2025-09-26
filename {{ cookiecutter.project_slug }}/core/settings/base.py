@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_vite",
     "core",
 ]
 
@@ -141,3 +142,11 @@ STORAGES = {
 
 MEDIA_ROOT = env.str("MEDIA_ROOT", default=str(BASE_DIR / "media"))  # type: ignore
 MEDIA_URL = env.str("MEDIA_URL", default="media/")  # type: ignore
+
+# Keep in sync with vite.config.mjs
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": DEBUG,
+        "static_url_prefix": "dist/js",
+    },
+}

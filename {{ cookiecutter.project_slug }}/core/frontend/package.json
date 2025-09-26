@@ -3,28 +3,41 @@
   "version": "0.1.0",
   "description": "",
   "scripts": {
-    "build": "npm run build:clean && npm run build:tailwind && npm run build:chart",
+    "build": "npm run build:clean && npm run build:tailwind && npm run build:chart && npm run build:vite",
     "build:clean": "rimraf ../static/dist",
     "build:tailwind": "cross-env NODE_ENV=production postcss ./src/styles.css -o ../static/dist/styles.css --minify",
     "build:chart": "cp node_modules/chart.js/dist/chart.umd.min.js ../static/dist/chart.min.js && cp node_modules/chart.js/dist/chart.umd.min.js.map ../static/dist/chart.umd.min.js.map",
-    "dev": "cross-env NODE_ENV=development postcss ./src/styles.css -o ../static/dist/styles.css --watch"
+    "build:vite": "vite build",
+    "dev": "concurrently \"npm run dev:tailwind\" \"npm run dev:vite\"",
+    "dev:tailwind": "cross-env NODE_ENV=development postcss ./src/styles.css -o ../static/dist/styles.css --watch",
+    "dev:vite": "vite",
+    "lint": "eslint ./src/js/"
   },
-  "keywords": [],
-  "author": "",
-  "license": "MIT",
   "dependencies": {
-    "chart.js": "^4.4.7"
+    "chart.js": "^4.4.7",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/postcss": "^4.1.11",
     "@tailwindcss/typography": "^0.5.16",
+    "@eslint/js": "^9.33.0",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.0",
+    "eslint": "^9.33.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
     "postcss": "^8.5.6",
     "postcss-cli": "^11.0.1",
     "postcss-nested": "^7.0.2",
     "postcss-simple-vars": "^7.0.1",
     "rimraf": "^6.0.1",
-    "tailwindcss": "^4.1.11"
+    "tailwindcss": "^4.1.11",
+    "vite": "^7.1.5"
   }
 }

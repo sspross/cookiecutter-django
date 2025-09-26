@@ -1,5 +1,5 @@
 test:
-	uv run pytest
+	uv run pytest -v
 
 lint:
 	uv run ruff check .
@@ -28,6 +28,9 @@ frontend.install:
 
 frontend.build:
 	cd core/frontend && npm run build
+
+frontend.lint:
+	cd core/frontend && npm run lint
 
 frontend.dev:
 	cd core/frontend && npm run dev

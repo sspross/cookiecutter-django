@@ -19,7 +19,7 @@ services:
     restart: always
     environment:
       DATABASE_URL: postgresql://{{ cookiecutter.project_slug }}_user:{{ cookiecutter.project_slug }}_password@db:5432/{{ cookiecutter.project_slug }}_db
-      DEBUG: "True"
+      DEBUG: "False"
       SECRET_KEY: development-secret-key-please-change-in-production
       ALLOWED_HOSTS: localhost,127.0.0.1
     ports:

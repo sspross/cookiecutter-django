@@ -40,6 +40,15 @@ jobs:
       - name: Install Playwright browsers
         run: uv run playwright install chromium
 
+      - name: Install Javascript and CSS dependencies
+        run: make frontend.install && make frontend.build
+
+      - name: Collect static files
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+          SECRET_KEY: "test-secret-key-for-ci"
+        run: uv run python manage.py collectstatic --noinput
+
       - name: Run tests
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
