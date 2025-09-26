@@ -1,3 +1,5 @@
+from playwright.sync_api import expect
+
 from core.tests.utils import StaticLiveServerWithArtifactsOnErrorTestCase
 
 
