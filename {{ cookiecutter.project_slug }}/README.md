@@ -40,7 +40,7 @@
 - Run `uv run fab deploy` and if needed `uv run fab migrate`
 - Visit https://{{ cookiecutter.project_slug }}.intra.sspross.ch
 
-### Appliku (outdated)
+### Appliku
 
 1. Push Repo on GitHub
 1. Add Application, e.g. `{{ cookiecutter.project_slug }}` to Appliku: https://app.appliku.com/dashboard/team/private/applications
@@ -55,8 +55,7 @@
     1. Add `release`: `bash release.sh`
 1. Open Application Settings > Build Settings:
     1. Base Docker Image: `Dockerfile from the codebase`
-    1. Dockerfile path: `./code/Dockerfile`
-    1. Dockerfile context path: `../`
+    1. Dockerfile path: `Dockerfile`
     1. Save changes
 1. Open Application Settings > Environment Variables and add:
     1. ALLOWED_HOSTS (e.g. `{{ cookiecutter.project_slug }}.applikuapp.com`)

@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
-poetry run ./manage.py migrate
-poetry run ./manage.py loaddata dumpdata.json
+uv run ./manage.py migrate
+uv run ./manage.py loaddata dumpdata.json

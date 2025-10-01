@@ -27,4 +27,4 @@ set -e
 # - If the bottleneck is I/O, consider a different python programming paradigm.
 # - If the bottleneck is CPU, consider using more cores and adjusting the workers value.
 #
-poetry run gunicorn --timeout 120 --workers 5 core.wsgi --log-file -
+uv run gunicorn --timeout 120 --workers 5 core.wsgi --log-file -
