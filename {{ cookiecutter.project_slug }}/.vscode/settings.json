@@ -13,12 +13,4 @@
     "**/*.pyc": true,
     "**/__pycache__": true
   },
-
-  // JINJA
-  "files.associations": {
-    "*.jinja": "jinja-html"
-  },
-  "emmet.includeLanguages": {
-    "jinja-html": "html"
-  },
 }
