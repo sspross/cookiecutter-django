@@ -27,4 +27,3 @@ class TestWidgetFunctionality(StaticLiveServerWithArtifactsOnErrorTestCase):
         # Click and verify count is 3
         button.click()
         expect(button).to_contain_text("count is 3")
-        
