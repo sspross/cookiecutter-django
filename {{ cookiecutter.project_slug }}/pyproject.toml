@@ -4,10 +4,10 @@ version = "0.1.0"
 description = ""
 readme = "README.md"
 authors = [{name = "{{ cookiecutter.author_name }}", email = "{{ cookiecutter.author_email }}"}]
-requires-python = ">=3.11,<4.0"
+requires-python = ">=3.12,<4.0"
 dependencies = [
-	"django >=5.1.2, <6.0.0",
-	"whitenoise >=6.8.2",
+	"django >=6.0.1, <7.0.0",
+	"whitenoise >=6.11.0",
 	"django-environ >=0.11.2",
 	"psycopg2 >=2.9.10",
 	"django-vite>=3.1.0",
@@ -15,18 +15,18 @@ dependencies = [
 
 [dependency-groups]
 prod = [
-	"gunicorn >=23.0.0, <24.0.0",
+	"gunicorn >=24.1.1, <25.0.0",
 ]
 dev = [
-	"ruff >=0.8.4",
-	"pytest >=8.3.4",
+	"ruff >=0.14.14",
+	"pytest >=9.0.0",
 	"pytest-django >=4.9.0",
 	"pytest-cov >=6.0.0",
 	"factory-boy >=3.3.1",
-	"django-debug-toolbar >=4.4.6",
+	"django-debug-toolbar >=5.0.1",
 	"pre-commit>=4.2.0",
-	"playwright>=1.53.0",
-	"pytest-playwright>=0.7.0",
+	"playwright>=1.57.0",
+	"pytest-playwright>=0.7.2",
 ]
 
 [tool.ruff]
