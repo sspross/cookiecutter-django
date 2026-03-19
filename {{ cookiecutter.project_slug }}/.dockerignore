@@ -1,0 +1,34 @@
+# Version control
+.git/
+.github/
+
+# Virtual environment (prevents local .venv from shadowing container's system packages)
+.venv/
+
+# Environment files
+.env
+
+# IDE/editor
+.vscode/
+.idea/
+.DS_Store
+
+# Python caches
+__pycache__/
+*.pyc
+.ruff_cache/
+
+# Local database
+db.sqlite3
+
+# Build artifacts (rebuilt during docker build)
+staticfiles/
+core/static/dist/
+core/frontend/node_modules/
+
+# Test and media files
+test_artifacts/
+media/
+
+# Dev tooling config
+.pre-commit-config.yaml
