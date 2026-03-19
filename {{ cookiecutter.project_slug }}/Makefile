@@ -1,8 +1,17 @@
 test:
-	uv run pytest -v
+	@echo "pytest running..."; \
+	output=$$(uv run pytest 2>&1); \
+	status=$$?; \
+	if [ $$status -eq 0 ]; then \
+		echo "$$output" | tail -n 1; \
+	else \
+		echo "$$output"; \
+		exit $$status; \
+	fi
 
 lint:
 	uv run ruff check .
+	uv run tach check
 
 format:
 	uv run ruff format .

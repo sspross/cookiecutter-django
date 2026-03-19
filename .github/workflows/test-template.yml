@@ -1,11 +1,11 @@
-name: pre-commit
+name: test-template
 
 on:
   pull_request:
     branches: [ main ]
 
 jobs:
-  pre-commit:
+  test-template:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -13,8 +13,9 @@ jobs:
         with:
           python-version: '3.13'
       - uses: astral-sh/setup-uv@v5
-      - run: uv sync --frozen
-      - uses: pre-commit/action@v3.0.1
-      - uses: pre-commit/action@v3.0.1
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
-          extra_args: --hook-stage manual --all-files
+          node-version: '22'
+      - name: Generate and test project
+        run: make test

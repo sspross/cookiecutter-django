@@ -30,3 +30,20 @@ repos:
         name: ruff-check
         args: [--fix]
       - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: tach
+        name: tach
+        entry: uv run tach check
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: pip-audit
+        name: pip-audit
+        entry: uv run python scripts/pip_audit_fixable.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        verbose: true
+        stages: [manual]
