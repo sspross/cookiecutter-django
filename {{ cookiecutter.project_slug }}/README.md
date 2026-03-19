@@ -1,11 +1,14 @@
 ## Setup
 
+- Check `.env` and adjust `DATABASE_URL` if needed (defaults to SQLite)
 - `uv sync`
 - `uv run pre-commit install`
 - `uv run playwright install chromium`
 - `make db.recreate`
 - `make db.initialize`
 - `make frontend.install`
+- `make frontend.build`
+- `uv run python manage.py collectstatic --noinput`
 
 ## Work
 

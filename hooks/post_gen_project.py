@@ -2,6 +2,7 @@ import click  # dependency of cookiecutter
 import random
 import shutil
 import string
+import subprocess
 
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
@@ -25,7 +26,10 @@ def main():
     password = _create_django_password(django_password, secret_key)
     _replace_in_file(DUMPDATA_FILE, "replace-with-password-hash", password)
 
-    # 2. Print further instructions
+    # 3. Update pre-commit hooks to latest versions
+    _update_pre_commit_hooks()
+
+    # 4. Print further instructions
     _print_instructions(project_slug)
 
 
@@ -45,6 +49,17 @@ def _create_django_password(password, secret_key):
     return make_password(password, salt=secret_key)
 
 
+def _update_pre_commit_hooks():
+    try:
+        subprocess.run(["pre-commit", "autoupdate"], check=True, capture_output=True)
+        click.secho("\tPre-commit hooks updated to latest versions", fg="green")
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        click.secho(
+            "\tNote: Run 'pre-commit autoupdate' to get latest hook versions",
+            fg="yellow",
+        )
+
+
 def _print_instructions(project_slug):
     click.echo()
     click.secho("\tNext steps:", fg="yellow")
@@ -52,14 +67,17 @@ def _print_instructions(project_slug):
     click.secho("\t1. Navigate to your project directory:", fg="blue")
     click.secho(f"\t   cd {project_slug}", fg="cyan")
     click.echo()
-    click.secho("\t2. Put project under version control", fg="blue")
+    click.secho("\t2. Install dependencies:", fg="blue")
+    click.secho("\t   uv sync", fg="cyan")
+    click.echo()
+    click.secho("\t3. Put project under version control", fg="blue")
     click.secho("\t   git init", fg="cyan")
     click.secho("\t   git add --all", fg="cyan")
     click.secho(
         '\t   git commit -m "Initial setup from django project template"', fg="cyan"
     )
     click.echo()
-    click.secho("\t3. Follow instructions in project README:", fg="blue")
+    click.secho("\t4. Follow instructions in project README:", fg="blue")
     click.echo()
 
 
