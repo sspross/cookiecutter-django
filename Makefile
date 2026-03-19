@@ -35,18 +35,26 @@ define run_step
 endef
 
 # run_step_smoke(command, assert_pattern)
+# Polls log file for assert_pattern up to 15s, then kills the process.
 define run_step_smoke
 	@printf "  \`$(1)\`"; \
 	logfile=$$(mktemp); \
 	( cd $(PROJDIR) && $(1) ) > "$$logfile" 2>&1 & \
 	PID=$$!; \
-	sleep 3; \
+	matched=0; \
+	for i in $$(seq 1 30); do \
+		if [ -n "$(2)" ] && grep -q "$(2)" "$$logfile" 2>/dev/null; then \
+			matched=1; \
+			break; \
+		fi; \
+		sleep 0.5; \
+	done; \
 	pkill -P $$PID 2>/dev/null; \
 	kill $$PID 2>/dev/null; \
 	wait $$PID 2>/dev/null; \
 	output=$$(cat "$$logfile"); \
 	rm -f "$$logfile"; \
-	if [ -n "$(2)" ] && ! echo "$$output" | grep -q "$(2)"; then \
+	if [ -n "$(2)" ] && [ "$$matched" -eq 0 ]; then \
 		echo " FAILED (expected: $(2))"; \
 		echo "$$output"; \
 		exit 1; \
