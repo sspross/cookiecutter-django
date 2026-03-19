@@ -35,16 +35,28 @@ define run_step
 endef
 
 # run_step_smoke(command, assert_pattern)
-# Lets the process run for 10s, kills it (flushing buffers), then checks output.
+# Runs command for 10s, kills the process tree, then checks output.
+# PYTHONUNBUFFERED=1 ensures Python output is flushed to file immediately.
+# timeout/gtimeout kills the entire process group (setpgid).
 define run_step_smoke
 	@printf "  \`$(1)\`"; \
 	logfile=$$(mktemp); \
-	( cd $(PROJDIR) && $(1) ) > "$$logfile" 2>&1 & \
-	PID=$$!; \
-	sleep 10; \
-	pkill -P $$PID 2>/dev/null; \
-	kill $$PID 2>/dev/null; \
-	wait $$PID 2>/dev/null; \
+	TIMEOUT_CMD=""; \
+	if command -v timeout >/dev/null 2>&1; then \
+		TIMEOUT_CMD="timeout"; \
+	elif command -v gtimeout >/dev/null 2>&1; then \
+		TIMEOUT_CMD="gtimeout"; \
+	fi; \
+	if [ -n "$$TIMEOUT_CMD" ]; then \
+		( cd $(PROJDIR) && PYTHONUNBUFFERED=1 $$TIMEOUT_CMD 10 $(1) ) > "$$logfile" 2>&1 || true; \
+	else \
+		( cd $(PROJDIR) && PYTHONUNBUFFERED=1 $(1) ) > "$$logfile" 2>&1 & \
+		PID=$$!; \
+		sleep 10; \
+		pkill -KILL -P $$PID 2>/dev/null; \
+		kill -KILL $$PID 2>/dev/null; \
+		wait $$PID 2>/dev/null; \
+	fi; \
 	output=$$(cat "$$logfile"); \
 	rm -f "$$logfile"; \
 	if [ -n "$(2)" ] && ! echo "$$output" | grep -q "$(2)"; then \
