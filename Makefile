@@ -53,8 +53,14 @@ define run_step_smoke
 		( cd $(PROJDIR) && NO_COLOR=1 PYTHONUNBUFFERED=1 $(1) ) > "$$logfile" 2>&1 & \
 		PID=$$!; \
 		sleep 10; \
-		pkill -KILL -P $$PID 2>/dev/null; \
-		kill -KILL $$PID 2>/dev/null; \
+		kill_tree() { \
+			local children=$$(pgrep -P "$$1" 2>/dev/null); \
+			for child in $$children; do \
+				kill_tree "$$child"; \
+			done; \
+			kill -KILL "$$1" 2>/dev/null; \
+		}; \
+		kill_tree $$PID; \
 		wait $$PID 2>/dev/null; \
 	fi; \
 	output=$$(cat "$$logfile"); \
