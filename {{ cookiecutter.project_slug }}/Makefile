@@ -16,6 +16,10 @@ lint:
 format:
 	uv run ruff format .
 
+precommit:
+	uv run pre-commit run --all-files
+	uv run pre-commit run --hook-stage manual --all-files
+
 db.recreate:
 	dropdb --if-exists --force {{ cookiecutter.project_slug }}
 	createdb {{ cookiecutter.project_slug }}
