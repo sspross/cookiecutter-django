@@ -48,9 +48,9 @@ define run_step_smoke
 		TIMEOUT_CMD="gtimeout"; \
 	fi; \
 	if [ -n "$$TIMEOUT_CMD" ]; then \
-		( cd $(PROJDIR) && PYTHONUNBUFFERED=1 $$TIMEOUT_CMD 10 $(1) ) > "$$logfile" 2>&1 || true; \
+		( cd $(PROJDIR) && NO_COLOR=1 PYTHONUNBUFFERED=1 $$TIMEOUT_CMD 10 $(1) ) > "$$logfile" 2>&1 || true; \
 	else \
-		( cd $(PROJDIR) && PYTHONUNBUFFERED=1 $(1) ) > "$$logfile" 2>&1 & \
+		( cd $(PROJDIR) && NO_COLOR=1 PYTHONUNBUFFERED=1 $(1) ) > "$$logfile" 2>&1 & \
 		PID=$$!; \
 		sleep 10; \
 		pkill -KILL -P $$PID 2>/dev/null; \
