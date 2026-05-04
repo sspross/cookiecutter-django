@@ -17,9 +17,16 @@ from ninja.responses import Status
 
 from core.csrf import csrf_protect_route
 from example import selectors, services
-from example.filters import TagFilters
-from example.models import Tag
-from example.schemas import TagIn, TagOut, TagPatch
+from example.filters import ProjectFilters, TagFilters
+from example.models import Project, Tag
+from example.schemas import (
+    ProjectIn,
+    ProjectOut,
+    ProjectPatch,
+    TagIn,
+    TagOut,
+    TagPatch,
+)
 
 router = Router()
 
@@ -54,4 +61,48 @@ def update_tag(request, tag_id: int, payload: TagPatch) -> Tag:
 def delete_tag(request, tag_id: int):
     tag = get_object_or_404(Tag, pk=tag_id)
     services.delete_tag(tag=tag)
+    return Status(204, None)
+
+
+# --- Projects --------------------------------------------------------------
+
+
+@router.get("/projects", response=list[ProjectOut], tags=["projects"])
+@paginate(LimitOffsetPagination)
+def list_projects(request, filters: Query[ProjectFilters]):
+    return selectors.list_projects(filters=filters)
+
+
+@router.get("/projects/{project_id}", response=ProjectOut, tags=["projects"])
+def get_project(request, project_id: int) -> Project:
+    return get_object_or_404(
+        Project.objects.prefetch_related("tags"), pk=project_id
+    )
+
+
+@router.post("/projects", response={201: ProjectOut}, tags=["projects"])
+@csrf_protect_route
+def create_project(request, payload: ProjectIn):
+    project = services.create_project(**payload.dict())
+    return Status(201, project)
+
+
+@router.patch(
+    "/projects/{project_id}", response=ProjectOut, tags=["projects"]
+)
+@csrf_protect_route
+def update_project(request, project_id: int, payload: ProjectPatch) -> Project:
+    project = get_object_or_404(Project, pk=project_id)
+    return services.update_project(
+        project=project, **payload.dict(exclude_unset=True)
+    )
+
+
+@router.delete(
+    "/projects/{project_id}", response={204: None}, tags=["projects"]
+)
+@csrf_protect_route
+def delete_project(request, project_id: int):
+    project = get_object_or_404(Project, pk=project_id)
+    services.delete_project(project=project)
     return Status(204, None)

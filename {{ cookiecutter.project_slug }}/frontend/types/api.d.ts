@@ -28,6 +28,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/example/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Projects */
+        get: operations["example_api_list_projects"];
+        put?: never;
+        /** Create Project */
+        post: operations["example_api_create_project"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/example/projects/{project_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Project */
+        get: operations["example_api_get_project"];
+        put?: never;
+        post?: never;
+        /** Delete Project */
+        delete: operations["example_api_delete_project"];
+        options?: never;
+        head?: never;
+        /** Update Project */
+        patch: operations["example_api_update_project"];
+        trace?: never;
+    };
     "/api/example/tags": {
         parameters: {
             query?: never;
@@ -114,12 +151,86 @@ export interface components {
              */
             offset: number;
         };
+        /** PagedProjectOut */
+        PagedProjectOut: {
+            /** Count */
+            count: number;
+            /** Items */
+            items: components["schemas"]["ProjectOut"][];
+        };
         /** PagedTagOut */
         PagedTagOut: {
             /** Count */
             count: number;
             /** Items */
             items: components["schemas"]["TagOut"][];
+        };
+        /** ProjectFilters */
+        ProjectFilters: {
+            /** Status */
+            status?: ("draft" | "active" | "archived") | null;
+            /** Tag */
+            tag?: number | null;
+            /** Title */
+            title?: string | null;
+        };
+        /** ProjectIn */
+        ProjectIn: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Status
+             * @default draft
+             * @enum {string}
+             */
+            status: "draft" | "active" | "archived";
+            /**
+             * Tag Ids
+             * @default []
+             */
+            tag_ids: number[];
+            /** Title */
+            title: string;
+        };
+        /** ProjectOut */
+        ProjectOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string;
+            /** Id */
+            id: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "active" | "archived";
+            /** Tags */
+            tags: components["schemas"]["TagOut"][];
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ProjectPatch */
+        ProjectPatch: {
+            /** Description */
+            description?: string | null;
+            /** Status */
+            status?: ("draft" | "active" | "archived") | null;
+            /** Tag Ids */
+            tag_ids?: number[] | null;
+            /** Title */
+            title?: string | null;
         };
         /** TagFilters */
         TagFilters: {
@@ -186,6 +297,124 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConfigOut"];
+                };
+            };
+        };
+    };
+    example_api_list_projects: {
+        parameters: {
+            query?: {
+                title?: string | null;
+                status?: ("draft" | "active" | "archived") | null;
+                tag?: number | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedProjectOut"];
+                };
+            };
+        };
+    };
+    example_api_create_project: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOut"];
+                };
+            };
+        };
+    };
+    example_api_get_project: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOut"];
+                };
+            };
+        };
+    };
+    example_api_delete_project: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    example_api_update_project: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectPatch"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectOut"];
                 };
             };
         };

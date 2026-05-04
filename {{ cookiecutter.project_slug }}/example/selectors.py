@@ -7,8 +7,8 @@ database — that's services' job.
 
 from django.db.models import QuerySet
 
-from example.filters import TagFilters
-from example.models import Tag
+from example.filters import ProjectFilters, TagFilters
+from example.models import Project, Tag
 
 
 def list_tags(*, filters: TagFilters | None = None) -> QuerySet[Tag]:
@@ -25,3 +25,22 @@ def get_tag(*, tag_id: int) -> Tag:
     Raises `Tag.DoesNotExist` if no tag matches; callers map that to 404.
     """
     return Tag.objects.get(pk=tag_id)
+
+
+def list_projects(*, filters: ProjectFilters | None = None) -> QuerySet[Project]:
+    """Return the queryset of projects with tags prefetched.
+
+    Tag filtering goes through `tags__id`, which would otherwise duplicate
+    rows if a project had multiple matching tags. `distinct()` collapses
+    those back to one row per project.
+    """
+    qs = Project.objects.all().prefetch_related("tags")
+    if filters is not None:
+        qs = filters.filter(qs)
+        if filters.tag is not None:
+            qs = qs.distinct()
+    return qs
+
+
+def get_project(*, project_id: int) -> Project:
+    return Project.objects.prefetch_related("tags").get(pk=project_id)

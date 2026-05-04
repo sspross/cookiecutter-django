@@ -8,6 +8,11 @@ import {
 
 import { api } from "@/lib/api";
 import { HealthPage } from "@/routes/health";
+import { ProjectDetailPage } from "@/routes/project-detail";
+import {
+  ProjectsListPage,
+  projectsSearchSchema,
+} from "@/routes/projects-list";
 import { TagsPage, tagsSearchSchema } from "@/routes/tags";
 
 function RootComponent() {
@@ -44,7 +49,25 @@ const tagsRoute = createRoute({
   component: TagsPage,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, tagsRoute]);
+const projectsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/projects",
+  validateSearch: projectsSearchSchema,
+  component: ProjectsListPage,
+});
+
+const projectDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/projects/$projectId",
+  component: ProjectDetailPage,
+});
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  tagsRoute,
+  projectsRoute,
+  projectDetailRoute,
+]);
 
 export const router = createRouter({
   routeTree,
