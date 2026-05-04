@@ -63,15 +63,24 @@ behave like prod). To tear everything down: `make dev.down`.
 
 ### Generated types
 
-After any change to a Ninja schema or router, regenerate the typed API
-declaration and commit the diff:
+The SPA's `openapi-fetch` client is typed against
+`frontend/types/api.d.ts`, which is generated from the live OpenAPI
+document. The `.d.ts` is **committed**; the intermediate `openapi.json`
+is regenerated on demand and is not.
+
+Run `make codegen` after any change that affects the OpenAPI surface — a
+new or edited Ninja schema, router, response shape, query param, or
+status code:
 
 ```bash
 make codegen
 ```
 
-CI runs `make codegen.check`, which fails the build if the committed
-`frontend/openapi.json` or `frontend/types/api.d.ts` is stale.
+Commit the regenerated `frontend/types/api.d.ts` along with the backend
+change. CI runs `make codegen.check`, which regenerates the types and
+fails if `git diff` against the committed `.d.ts` is non-empty. A
+failure means the backend changed but the committed types weren't
+regenerated — re-run `make codegen` locally and commit the diff.
 
 ## Stage Deployment
 
