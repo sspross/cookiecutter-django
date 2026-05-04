@@ -13,3 +13,15 @@ forbid_circular_dependencies = true
 [[modules]]
 path = "core"
 depends_on = []
+
+[[modules]]
+path = "example"
+depends_on = ["core"]
+
+# Public surface of the `example` app. Other modules may only import from
+# `example.api`, `example.selectors`, and `example.services`. Reaching into
+# `example.models`, `example.filters`, or `example.schemas` from outside
+# the app fails the lint gate, which keeps the layering boundaries honest.
+[[interfaces]]
+expose = ["api.*", "selectors.*", "services.*"]
+from = ["example"]

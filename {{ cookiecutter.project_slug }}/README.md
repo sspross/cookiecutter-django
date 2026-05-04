@@ -61,6 +61,22 @@ This keeps file-watching and native debugger attach fast while still giving
 the SPA a same-origin view of the API (so cookies, CSRF, and SameSite
 behave like prod). To tear everything down: `make dev.down`.
 
+### Removing the `example` app
+
+The `example` app ships as a complete CRUD demo (`Tag`, `Project`, `Task`)
+that exists only to show the layering pattern. It's designed to be
+removable — taking it out leaves the walking skeleton (health, config,
+SPA shell) intact and clean. Two edits:
+
+1. Drop `"example"` from `INSTALLED_APPS` in `core/settings/base.py`.
+2. Remove the `api.add_router("/example", "example.api.router")` line in
+   `core/api.py`.
+
+After those edits, the project boots, `/api/health` and `/api/config`
+still respond, and the SPA's `/` route still renders. You can also
+delete the `example/` directory and its routes/components on the
+frontend.
+
 ### Generated types
 
 The SPA's `openapi-fetch` client is typed against

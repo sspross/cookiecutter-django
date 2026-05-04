@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import {
   createRootRoute,
   createRoute,
@@ -5,10 +6,29 @@ import {
   Outlet,
 } from "@tanstack/react-router";
 
+import { api } from "@/lib/api";
 import { HealthPage } from "@/routes/health";
+import { TagsPage, tagsSearchSchema } from "@/routes/tags";
+
+function RootComponent() {
+  // Prime the `csrftoken` cookie once on app boot. Mutations (POST/PATCH/DELETE)
+  // need it on the very first request, regardless of which route the SPA
+  // boots into. The HTTP roundtrip is small and only happens once because
+  // React Query caches the result with a long stale time.
+  useQuery({
+    queryKey: ["bootstrap-config"],
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/config");
+      if (error) throw error;
+      return data;
+    },
+    staleTime: Infinity,
+  });
+  return <Outlet />;
+}
 
 const rootRoute = createRootRoute({
-  component: () => <Outlet />,
+  component: RootComponent,
 });
 
 const indexRoute = createRoute({
@@ -17,7 +37,14 @@ const indexRoute = createRoute({
   component: HealthPage,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute]);
+const tagsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/tags",
+  validateSearch: tagsSearchSchema,
+  component: TagsPage,
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, tagsRoute]);
 
 export const router = createRouter({
   routeTree,

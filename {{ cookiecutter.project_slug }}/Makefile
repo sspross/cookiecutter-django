@@ -1,6 +1,6 @@
 .PHONY: test lint format precommit \
 	db.recreate db.initialize db.snapshot db.restore \
-	frontend.install frontend.build frontend.lint frontend.dev \
+	frontend.install frontend.build frontend.lint frontend.test frontend.dev \
 	codegen codegen.check \
 	dev.up dev.down dev.django dev.vite
 
@@ -52,6 +52,9 @@ frontend.build:
 
 frontend.lint:
 	cd frontend && npm run lint
+
+frontend.test:
+	cd frontend && npm run test
 
 frontend.dev:
 	cd frontend && npm run dev

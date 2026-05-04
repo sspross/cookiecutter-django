@@ -85,7 +85,7 @@ test:
 	$(call run_step,uv sync,Installed)
 	$(call run_step,git init -q && git add --all && uv run pre-commit install,pre-commit installed)
 	$(call run_step,uv run playwright install chromium)
-	$(call run_step,make db.initialize,Installed 1 object)
+	$(call run_step,make db.initialize,Installed)
 	$(call run_step,make frontend.install,added)
 	$(call run_step,make frontend.build,built in)
 	$(call run_step,uv run python manage.py collectstatic --noinput,static files copied)
@@ -97,6 +97,7 @@ test:
 	$(call run_step,make format,left unchanged)
 	$(call run_step,make precommit,Passed)
 	$(call run_step,make codegen.check,codegen.check OK)
+	$(call run_step,make frontend.test,passed)
 	$(call run_step_smoke,make dev.vite,Local:)
 	$(call run_step_smoke,make dev.django,Watching for file changes)
 	@echo ""
