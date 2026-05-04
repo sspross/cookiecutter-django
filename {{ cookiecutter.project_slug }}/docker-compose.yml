@@ -1,7 +1,7 @@
 services:
-  db:
+  postgres:
     image: postgres:16-alpine
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_DB: {{ cookiecutter.project_slug }}_db
       POSTGRES_USER: {{ cookiecutter.project_slug }}_user
@@ -14,25 +14,41 @@ services:
       timeout: 5s
       retries: 5
 
-  web:
-    build: .
-    restart: always
+  app:
+    build:
+      context: .
+      target: app
+    restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://{{ cookiecutter.project_slug }}_user:{{ cookiecutter.project_slug }}_password@db:5432/{{ cookiecutter.project_slug }}_db
+      DATABASE_URL: postgresql://{{ cookiecutter.project_slug }}_user:{{ cookiecutter.project_slug }}_password@postgres:5432/{{ cookiecutter.project_slug }}_db
       DEBUG: "False"
-      SECRET_KEY: development-secret-key-please-change-in-production
-      ALLOWED_HOSTS: localhost,127.0.0.1
-    ports:
-      - "8000:8000"
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-prod}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,caddy}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-}
+      MEDIA_ROOT: /var/media
+    volumes:
+      - media_data:/var/media
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/health').status == 200 else 1)"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
+  caddy:
+    build:
+      context: .
+      target: caddy
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - media_data:/srv/media:ro
+
 volumes:
   postgres_data:
+  media_data:

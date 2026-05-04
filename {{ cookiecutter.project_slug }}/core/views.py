@@ -1,35 +1,34 @@
-from dataclasses import dataclass
+"""Project-wide views.
 
-from django.http import HttpRequest
-from django.shortcuts import render
-from django.urls import reverse
+Currently the only view here is the SPA shell: a catch-all that returns the
+Vite-built `index.html` for any non-API, non-admin, non-static, non-media
+path. This is what serves the SPA in the WhiteNoise/Appliku deploy path.
+The Caddy/compose deploy serves `index.html` directly from disk and never
+hits Django for these paths.
+"""
 
+from pathlib import Path
 
-@dataclass
-class Navitem:
-    name: str
-    label: str
-
-    @property
-    def url(self) -> str:
-        return reverse(self.name)
-
-
-NAVITEMS = [
-    Navitem(name="home", label="Home"),
-    Navitem(name="about", label="About"),
-]
-
-PROJECT_NAME = "{{ cookiecutter.project_name }}"
+from django.conf import settings
+from django.http import FileResponse, Http404, HttpRequest, HttpResponse
+from django.views.decorators.cache import never_cache
 
 
-def home(request: HttpRequest):
-    return render(
-        request, "home.html", {"navitems": NAVITEMS, "project_name": PROJECT_NAME}
-    )
-
-
-def about(request: HttpRequest):
-    return render(
-        request, "about.html", {"navitems": NAVITEMS, "project_name": PROJECT_NAME}
-    )
+@never_cache
+def spa_shell(request: HttpRequest) -> HttpResponse:
+    """Return the Vite-built index.html as the SPA entry point."""
+    index_path = Path(settings.STATIC_ROOT) / "index.html"
+    if not index_path.exists():
+        # Dev fallback: collectstatic has not run, but the Vite build may
+        # still have produced index.html in STATICFILES_DIRS.
+        for static_dir in settings.STATICFILES_DIRS:
+            candidate = Path(static_dir) / "index.html"
+            if candidate.exists():
+                index_path = candidate
+                break
+        else:
+            raise Http404(
+                "SPA index.html not found. Run `make frontend.build` and "
+                "`uv run python manage.py collectstatic --noinput`."
+            )
+    return FileResponse(index_path.open("rb"), content_type="text/html")

@@ -1,6 +1,38 @@
+# {{ cookiecutter.project_name }}
+
+A Django + typed React/TypeScript SPA project, generated from
+[cookiecutter-django](https://github.com/sspross/cookiecutter-django).
+
+> **The example resources ship without authentication.** This template's demo
+> runs anonymously by design. Do not deploy a project derived from it
+> publicly without first wiring up Django auth and per-resource permissions.
+
+## Architecture
+
+- **Backend**: Django + [Django Ninja](https://django-ninja.dev/). One
+  shared `NinjaAPI` instance lives in `core` (`core/api.py`); every app
+  contributes endpoints by exporting a `Router` mounted there. The whole
+  project produces a single OpenAPI document.
+- **Frontend**: React 19 + TypeScript (strict, including
+  `noUncheckedIndexedAccess`) + Vite, at `frontend/`. TanStack Router
+  (code-based) drives client-side navigation, TanStack Query is the data
+  layer, and `openapi-fetch` is the runtime client typed against
+  `frontend/types/api.d.ts`.
+- **Type contract**: `make codegen` regenerates `frontend/types/api.d.ts`
+  from the live OpenAPI document. `make codegen.check` fails if the
+  committed types are stale relative to the schema.
+- **Static**: `STATICFILES_DIRS` includes `frontend/dist`, so a single
+  `collectstatic` aggregates the Vite bundle and Django admin assets into
+  one `STATIC_ROOT`. The same artifact is served by both deploy paths.
+- **SPA shell**: A catch-all view in `core` returns `index.html` for any
+  non-API/non-admin/non-static path — this is what serves the SPA in the
+  WhiteNoise/Appliku deploy. The Caddy/compose deploy serves `index.html`
+  directly from disk and never hits Django for those paths.
+
 ## Setup
 
-- Check `.env` and adjust `DATABASE_URL` if needed (defaults to SQLite)
+- Copy `.env.example` to `.env` and adjust `DATABASE_URL` if needed
+  (defaults to SQLite)
 - `uv sync`
 - `uv run pre-commit install`
 - `uv run playwright install chromium`
@@ -10,59 +42,85 @@
 - `make frontend.build`
 - `uv run python manage.py collectstatic --noinput`
 
-## Work
+## Local development
 
-- Start frontend watcher first: `make frontend.dev`
-- `uv run python manage.py runserver`
+Three predictable commands in three terminals:
 
-## Add your own app(s)
+```bash
+make dev.up       # Postgres + Caddy in docker compose
+make dev.django   # Django on the host
+make dev.vite     # Vite dev server on the host
+```
 
-- `uv run python manage.py startapp xyz`
+Caddy listens on `http://localhost:8080` and proxies:
+
+- `/api/*`, `/admin/*`, `/media/*` → Django on `host.docker.internal:8000`
+- everything else → Vite on `host.docker.internal:5173`
+
+This keeps file-watching and native debugger attach fast while still giving
+the SPA a same-origin view of the API (so cookies, CSRF, and SameSite
+behave like prod). To tear everything down: `make dev.down`.
+
+### Generated types
+
+After any change to a Ninja schema or router, regenerate the typed API
+declaration and commit the diff:
+
+```bash
+make codegen
+```
+
+CI runs `make codegen.check`, which fails the build if the committed
+`frontend/openapi.json` or `frontend/types/api.d.ts` is stale.
 
 ## Stage Deployment
 
-### Docker with Caddy
+### Docker compose with Caddy
 
-#### Install
+The compose stack is three services: `app` (Django via gunicorn), `caddy`
+(serves baked static + reverse-proxies the app), and `postgres`. The
+project Caddy listens on plain HTTP on an internal port; an outer Caddy
+(or Cloudflare) handles TLS at the edge.
 
-- `uv add fabric`
-- Adjust `TARGET_SERVER` and `TARGET_DIR` in `fabfile.py`
-- Clone project manually to the `TARGET_DIR` on `TARGET_SERVER`
-- Choose an unused port in `docker-compose.yml`, e.g. `"8123:8000"`
-- Add `{{ cookiecutter.project_slug }}.intra.sspross.ch` to `ALLOWED_HOSTS` in `docker-compose.yml`
-- Add proxy rule to intra Caddy `~/projects/caddy-intra/Caddyfile`:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
-{{ cookiecutter.project_slug }}.intra.sspross.ch {
-    reverse_proxy http://smini.tail9af27c.ts.net:8123
-}
-```
-- Restart intra Caddy `docker compose down && docker compose up -d`
 
-#### Deploy
+The SPA bundle is **baked into the Caddy image** at build time. Deploys
+are atomic — rolling back is a single image-tag change. Cache headers
+match Cloudflare's expectations: hashed Vite assets get
+`Cache-Control: public, max-age=31536000, immutable`, the SPA `index.html`
+is `no-cache`, and media uses a short `max-age`.
 
-- Run `uv run fab deploy` and if needed `uv run fab migrate`
-- Visit https://{{ cookiecutter.project_slug }}.intra.sspross.ch
+#### Cloudflare-readiness deltas
 
-### Appliku
+`caddy/Caddyfile.prod` includes a commented `trusted_proxies cloudflare`
+snippet — uncomment it once Cloudflare orange-cloud is enabled so Caddy
+honors `CF-Connecting-IP`. Direct Let's Encrypt issuance is documented in
+that same file as an opt-in for self-contained deploys.
 
-1. Push Repo on GitHub
-1. Add Application, e.g. `{{ cookiecutter.project_slug }}` to Appliku: https://app.appliku.com/dashboard/team/private/applications
-1. Add Postgres Database to new Application
-1. Open Application Settings > Volumes:
-    1. Container path: `/volumes/media`
-    1. URL: `/media/`
-    1. Envirnment variable: `MEDIA`
-    1. Add volume
-1. Open Application Settings > Processes:
-    1. Add `web`: `bash web.sh`
-    1. Add `release`: `bash release.sh`
-1. Open Application Settings > Build Settings:
-    1. Base Docker Image: `Dockerfile from the codebase`
-    1. Dockerfile path: `Dockerfile`
-    1. Save changes
-1. Open Application Settings > Environment Variables and add:
-    1. ALLOWED_HOSTS (e.g. `{{ cookiecutter.project_slug }}.applikuapp.com`)
-    1. CSRF_TRUSTED_ORIGINS (e.g. `https://{{ cookiecutter.project_slug }}.applikuapp.com`)
-    1. SECRET_KEY (`python -c "import random, string; print(''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(50)))"`)
-    1. DATABASE_URL (should already be there)
-    1. Save and deploy
+### Appliku (gunicorn + WhiteNoise)
+
+The existing Appliku flow is preserved as an additive deploy target.
+`collectstatic` aggregates the SPA bundle into `STATIC_ROOT`; WhiteNoise
+serves it; the catch-all `spa_shell` view returns `index.html` for any
+non-API/non-admin path.
+
+1. Push the repo to GitHub.
+1. Add an Application in Appliku and attach a Postgres database.
+1. Application Settings > Volumes:
+    - Container path: `/volumes/media`
+    - URL: `/media/`
+    - Environment variable: `MEDIA`
+    - Add volume
+1. Application Settings > Processes:
+    - `web`: `bash web.sh`
+    - `release`: `bash release.sh`
+1. Application Settings > Build Settings:
+    - Base Docker Image: `Dockerfile from the codebase`
+    - Dockerfile path: `Dockerfile` (target: `app`)
+1. Application Settings > Environment Variables:
+    - `ALLOWED_HOSTS` (e.g. `{{ cookiecutter.project_slug }}.applikuapp.com`)
+    - `CSRF_TRUSTED_ORIGINS` (e.g. `https://{{ cookiecutter.project_slug }}.applikuapp.com`)
+    - `SECRET_KEY`
+    - `DATABASE_URL` (provisioned)

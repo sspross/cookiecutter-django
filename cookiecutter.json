@@ -6,6 +6,18 @@
     "django_username": "sspross",
     "django_password": "bondens",
     "_copy_without_render": [
-        "*.html"
+        "*.html",
+        "*.tsx",
+        "*.jsx",
+        "*.ts",
+        "*.mjs",
+        "*.cjs",
+        "*.css",
+        "package.json",
+        "package-lock.json",
+        "tsconfig.json",
+        "tsconfig.*.json",
+        "components.json",
+        "eslint.config.*"
     ]
 }

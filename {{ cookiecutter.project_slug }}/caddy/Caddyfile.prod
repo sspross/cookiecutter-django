@@ -1,0 +1,58 @@
+# Project-internal Caddy. Listens on plain HTTP on an internal port; an outer
+# Caddy (or Cloudflare) handles TLS at the edge. To switch to direct
+# Let's Encrypt issuance, replace `:8080` with your hostname (e.g.
+# `example.com`) and Caddy will provision the certificate automatically.
+#
+# Cloudflare-readiness: uncomment the `trusted_proxies cloudflare` block to
+# pick up the real client IP from `CF-Connecting-IP` once Cloudflare is in
+# front of this Caddy.
+
+{
+	# servers {
+	#     trusted_proxies cloudflare
+	# }
+	auto_https off
+}
+
+:8080 {
+	encode zstd gzip
+
+	# Hashed Vite assets: long-lived, immutable.
+	@assets path /static/assets/* /static/admin/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+
+	# SPA shell HTML: never cache.
+	@indexHtml path / /index.html
+	header @indexHtml Cache-Control "no-cache"
+
+	# Media: short max-age (revalidate but allow brief edge caching).
+	@media path /media/*
+	header @media Cache-Control "public, max-age=300"
+
+	# Static (incl. SPA bundle) is baked into the image.
+	handle /static/* {
+		root * /srv
+		file_server
+	}
+
+	# Media is mounted from the named volume.
+	handle /media/* {
+		root * /srv
+		file_server
+	}
+
+	# API + admin go to the Django app.
+	handle /api/* {
+		reverse_proxy app:8000
+	}
+	handle /admin/* {
+		reverse_proxy app:8000
+	}
+
+	# SPA shell for everything else (TanStack Router takes over client-side).
+	handle {
+		root * /srv/static
+		try_files {path} /index.html
+		file_server
+	}
+}

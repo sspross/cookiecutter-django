@@ -1,48 +1,69 @@
-FROM python:3.13-slim
+# Multi-stage build with three named targets:
+#
+#   builder — installs Python + Node deps, builds the SPA, runs collectstatic
+#   app     — minimal Python runtime that runs gunicorn (used by Appliku and
+#             by the compose `app` service)
+#   caddy   — Caddy image with the collected static directory and the
+#             Caddyfile baked in (used by the compose `caddy` service only)
 
-# Set environment variables
+ARG PYTHON_VERSION=3.13-slim
+ARG NODE_VERSION=22-bookworm-slim
+ARG CADDY_VERSION=2-alpine
+
+# ------- builder ----------------------------------------------------
+FROM python:${PYTHON_VERSION} AS builder
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_SYSTEM_PYTHON=1
 
-# Install system dependencies including Node.js for Tailwind
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libpq-dev \
-    curl \
-    nodejs \
-    npm \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libpq-dev curl ca-certificates gnupg \
+    && curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Set working directory
 WORKDIR /app
 
-# Copy dependency files
 COPY pyproject.toml uv.lock ./
-
-# Install dependencies including prod group
 RUN uv sync --frozen --no-group dev --group prod
 
-# Copy project code
 COPY . .
-
-# Copy .env file if it exists
 COPY .env.example .env
 
-# Install Javascript and CSS dependencies
-RUN make frontend.install
-RUN make frontend.build
+RUN make frontend.install \
+    && make frontend.build \
+    && uv run python manage.py collectstatic --noinput \
+    && rm -f .env
 
-# Collect static files
-RUN uv run python manage.py collectstatic --noinput
+# ------- app --------------------------------------------------------
+FROM python:${PYTHON_VERSION} AS app
 
-# Remove .env file to use docker-compose env variables
-RUN rm -f .env
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_SYSTEM_PYTHON=1
 
-# Run the application
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 curl \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /app
+
+COPY --from=builder /app /app
+
 EXPOSE 8000
 CMD ["uv", "run", "gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
+
+# ------- caddy ------------------------------------------------------
+FROM caddy:${CADDY_VERSION} AS caddy
+
+# Bake the collected static directory and Caddyfile into the image so the
+# deploy is a single atomic artifact and rollbacks are a tag change.
+COPY --from=builder /app/staticfiles /srv/static
+COPY caddy/Caddyfile.prod /etc/caddy/Caddyfile
+
+EXPOSE 8080

@@ -1,0 +1,14 @@
+# Explicit prod overlay. Apply with:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# This brings up app + caddy + postgres with the prod-targeted images and
+# exposes Caddy on the documented internal HTTP port (the outer Caddy /
+# Cloudflare handles TLS).
+services:
+  postgres:
+    ports: !reset []
+
+  caddy:
+    ports:
+      - "${CADDY_PORT:-8080}:8080"

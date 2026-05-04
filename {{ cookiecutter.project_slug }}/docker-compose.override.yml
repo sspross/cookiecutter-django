@@ -1,0 +1,25 @@
+# Auto-loaded dev override.
+#
+# Starts only Postgres and Caddy. Django and Vite run on the host so file
+# watching, debugger attachment, and fast reloads stay native. Caddy proxies
+# to the host via `host.docker.internal` (Linux needs the host-gateway flag
+# below; macOS/Windows already provide that name).
+services:
+  postgres:
+    ports:
+      - "5432:5432"
+
+  caddy:
+    image: caddy:2-alpine
+    build: !reset null
+    depends_on: !reset []
+    volumes:
+      - ./caddy/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+    ports:
+      - "8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # Don't start the app container in dev — Django runs on the host.
+  app:
+    profiles: ["never"]

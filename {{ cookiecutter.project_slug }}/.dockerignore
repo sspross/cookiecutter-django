@@ -2,7 +2,8 @@
 .git/
 .github/
 
-# Virtual environment (prevents local .venv from shadowing container's system packages)
+# Virtual environment (prevents local .venv from shadowing the container's
+# system packages)
 .venv/
 
 # Environment files
@@ -23,8 +24,9 @@ db.sqlite3
 
 # Build artifacts (rebuilt during docker build)
 staticfiles/
-core/static/dist/
-core/frontend/node_modules/
+frontend/dist/
+frontend/node_modules/
+frontend/openapi.json
 
 # Test and media files
 test_artifacts/

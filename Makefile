@@ -96,8 +96,9 @@ test:
 	$(call run_step,make lint,All checks passed)
 	$(call run_step,make format,left unchanged)
 	$(call run_step,make precommit,Passed)
-	$(call run_step_smoke,make frontend.dev,Local:)
-	$(call run_step_smoke,uv run python manage.py runserver,Watching for file changes)
+	$(call run_step,make codegen.check,codegen.check OK)
+	$(call run_step_smoke,make dev.vite,Local:)
+	$(call run_step_smoke,make dev.django,Watching for file changes)
 	@echo ""
 	@rm -rf "$(TMPDIR)"
 	@echo "All checks passed!"

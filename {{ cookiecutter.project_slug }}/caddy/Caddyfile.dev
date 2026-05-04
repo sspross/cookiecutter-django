@@ -1,0 +1,29 @@
+# Dev Caddy. Reaches Django (8000) and Vite (5173) on the host via
+# `host.docker.internal`. The compose file sets the host-gateway extra_hosts
+# entry so this name resolves on Linux too.
+
+{
+	auto_https off
+}
+
+:8080 {
+	encode zstd gzip
+
+	# API + admin go to Django on the host.
+	handle /api/* {
+		reverse_proxy host.docker.internal:8000
+	}
+	handle /admin/* {
+		reverse_proxy host.docker.internal:8000
+	}
+
+	# Django-collected static (admin assets) and media also come from Django.
+	handle /media/* {
+		reverse_proxy host.docker.internal:8000
+	}
+
+	# Everything else — including /static, /src, HMR — proxies to Vite.
+	handle {
+		reverse_proxy host.docker.internal:5173
+	}
+}

@@ -1,24 +1,33 @@
-# ABOUTME: Tests for Django views
-# ABOUTME: Ensures views are accessible and render correct templates
+# Tests for the SPA shell catch-all view used by the WhiteNoise/Appliku
+# deploy path.
 
 import pytest
-from django.urls import reverse
 
 
 @pytest.mark.django_db
-class TestHomeView:
-    def test_home_url_accessible(self, client):
-        """Test that home URL is accessible and returns 200 status."""
-        url = reverse("home")
-        response = client.get(url)
+class TestSpaShell:
+    def test_root_returns_spa_index(self, client):
+        response = client.get("/")
+        assert response.status_code == 200
+        # The SPA index.html contains the root mount point.
+        body = (
+            b"".join(response.streaming_content)
+            if hasattr(response, "streaming_content")
+            else response.content
+        )
+        assert b'id="root"' in body
+
+    def test_unknown_path_returns_spa_index(self, client):
+        response = client.get("/some/client/route")
         assert response.status_code == 200
 
-    def test_home_template_used(self, client):
-        """Test that home view uses the correct template."""
-        url = reverse("home")
-        response = client.get(url)
-        # With Jinja2, we can't directly check template_name
-        # Instead, we verify the response contains expected template content
-        assert response.status_code == 200
-        # Check for unique content from home.jinja template
-        assert b"This is the home page" in response.content
+    def test_admin_is_not_swallowed_by_shell(self, client):
+        # The admin should redirect to login, not return the SPA shell.
+        response = client.get("/admin/")
+        assert response.status_code in (200, 302)
+        body = b""
+        if hasattr(response, "streaming_content"):
+            body = b"".join(response.streaming_content)
+        else:
+            body = response.content
+        assert b'id="root"' not in body
