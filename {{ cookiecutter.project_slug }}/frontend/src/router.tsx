@@ -8,7 +8,10 @@ import {
 
 import { api } from "@/lib/api";
 import { HealthPage } from "@/routes/health";
-import { ProjectDetailPage } from "@/routes/project-detail";
+import {
+  ProjectDetailPage,
+  projectDetailSearchSchema,
+} from "@/routes/project-detail";
 import {
   ProjectsListPage,
   projectsSearchSchema,
@@ -59,6 +62,7 @@ const projectsRoute = createRoute({
 const projectDetailRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/projects/$projectId",
+  validateSearch: projectDetailSearchSchema,
   component: ProjectDetailPage,
 });
 

@@ -92,5 +92,65 @@
             "created_at": "2024-12-01T10:00:00Z",
             "updated_at": "2024-12-01T10:00:00Z"
         }
+    },
+    {
+        "model": "example.task",
+        "pk": 1,
+        "fields": {
+            "project": 1,
+            "title": "Wire up Caddy proxy",
+            "description": "Production reverse proxy with TLS at the edge.",
+            "status": "done",
+            "priority": "high",
+            "due_date": "2025-01-25",
+            "completed_at": "2025-01-24T14:00:00Z",
+            "created_at": "2025-01-20T10:00:00Z",
+            "updated_at": "2025-01-24T14:00:00Z"
+        }
+    },
+    {
+        "model": "example.task",
+        "pk": 2,
+        "fields": {
+            "project": 1,
+            "title": "SPA bootstrap",
+            "description": "TanStack Router + Query + openapi-fetch.",
+            "status": "in_progress",
+            "priority": "high",
+            "due_date": "2025-02-01",
+            "completed_at": null,
+            "created_at": "2025-01-21T10:00:00Z",
+            "updated_at": "2025-01-21T10:00:00Z"
+        }
+    },
+    {
+        "model": "example.task",
+        "pk": 3,
+        "fields": {
+            "project": 2,
+            "title": "Onboarding guide",
+            "description": "Set up steps for new contributors.",
+            "status": "todo",
+            "priority": "medium",
+            "due_date": "2025-02-15",
+            "completed_at": null,
+            "created_at": "2025-01-22T10:00:00Z",
+            "updated_at": "2025-01-22T10:00:00Z"
+        }
+    },
+    {
+        "model": "example.task",
+        "pk": 4,
+        "fields": {
+            "project": 2,
+            "title": "API reference",
+            "description": "",
+            "status": "blocked",
+            "priority": "low",
+            "due_date": null,
+            "completed_at": null,
+            "created_at": "2025-01-23T10:00:00Z",
+            "updated_at": "2025-01-23T10:00:00Z"
+        }
     }
 ]

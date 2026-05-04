@@ -1,6 +1,6 @@
 import factory
 
-from example.models import Project, Tag
+from example.models import Project, Tag, Task
 
 
 class TagFactory(factory.django.DjangoModelFactory):
@@ -24,3 +24,16 @@ class ProjectFactory(factory.django.DjangoModelFactory):
         if not create or not extracted:
             return
         self.tags.set(extracted)
+
+
+class TaskFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Task
+
+    project = factory.SubFactory(ProjectFactory)
+    title = factory.Sequence(lambda n: f"Task {n}")
+    description = ""
+    status = "todo"
+    priority = "medium"
+    due_date = None
+    completed_at = None

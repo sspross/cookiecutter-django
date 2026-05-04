@@ -6,12 +6,14 @@ service tests when they want to assert payload shape without going through
 the HTTP layer.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from ninja import Schema
 
 ProjectStatus = Literal["draft", "active", "archived"]
+TaskStatus = Literal["todo", "in_progress", "done", "blocked"]
+TaskPriority = Literal["low", "medium", "high", "urgent"]
 
 
 class TagOut(Schema):
@@ -59,3 +61,35 @@ class ProjectPatch(Schema):
     description: str | None = None
     status: ProjectStatus | None = None
     tag_ids: list[int] | None = None
+
+
+class TaskOut(Schema):
+    id: int
+    project_id: int
+    title: str
+    description: str
+    status: TaskStatus
+    priority: TaskPriority
+    due_date: date | None
+    completed_at: datetime | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class TaskIn(Schema):
+    project_id: int
+    title: str
+    description: str = ""
+    status: TaskStatus = "todo"
+    priority: TaskPriority = "medium"
+    due_date: date | None = None
+    completed_at: datetime | None = None
+
+
+class TaskPatch(Schema):
+    title: str | None = None
+    description: str | None = None
+    status: TaskStatus | None = None
+    priority: TaskPriority | None = None
+    due_date: date | None = None
+    completed_at: datetime | None = None

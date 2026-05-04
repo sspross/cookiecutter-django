@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from example.models import Project, Tag
+from example.models import Project, Tag, Task
 
 
 @admin.register(Tag)
@@ -16,3 +16,11 @@ class ProjectAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     search_fields = ("title", "description")
     filter_horizontal = ("tags",)
+
+
+@admin.register(Task)
+class TaskAdmin(admin.ModelAdmin):
+    list_display = ("title", "project", "status", "priority", "due_date")
+    list_filter = ("status", "priority")
+    search_fields = ("title", "description")
+    autocomplete_fields = ("project",)

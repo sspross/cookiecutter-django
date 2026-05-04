@@ -102,6 +102,43 @@ export interface paths {
         patch: operations["example_api_update_tag"];
         trace?: never;
     };
+    "/api/example/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Tasks */
+        get: operations["example_api_list_tasks"];
+        put?: never;
+        /** Create Task */
+        post: operations["example_api_create_task"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/example/tasks/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Task */
+        get: operations["example_api_get_task"];
+        put?: never;
+        post?: never;
+        /** Delete Task */
+        delete: operations["example_api_delete_task"];
+        options?: never;
+        head?: never;
+        /** Update Task */
+        patch: operations["example_api_update_task"];
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -164,6 +201,13 @@ export interface components {
             count: number;
             /** Items */
             items: components["schemas"]["TagOut"][];
+        };
+        /** PagedTaskOut */
+        PagedTaskOut: {
+            /** Count */
+            count: number;
+            /** Items */
+            items: components["schemas"]["TaskOut"][];
         };
         /** ProjectFilters */
         ProjectFilters: {
@@ -271,6 +315,97 @@ export interface components {
             name?: string | null;
             /** Slug */
             slug?: string | null;
+        };
+        /** TaskFilters */
+        TaskFilters: {
+            /** Due From */
+            due_from?: string | null;
+            /** Due To */
+            due_to?: string | null;
+            /** Priority */
+            priority?: ("low" | "medium" | "high" | "urgent") | null;
+            /** Project */
+            project?: number | null;
+            /** Status */
+            status?: ("todo" | "in_progress" | "done" | "blocked") | null;
+        };
+        /** TaskIn */
+        TaskIn: {
+            /** Completed At */
+            completed_at?: string | null;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Due Date */
+            due_date?: string | null;
+            /**
+             * Priority
+             * @default medium
+             * @enum {string}
+             */
+            priority: "low" | "medium" | "high" | "urgent";
+            /** Project Id */
+            project_id: number;
+            /**
+             * Status
+             * @default todo
+             * @enum {string}
+             */
+            status: "todo" | "in_progress" | "done" | "blocked";
+            /** Title */
+            title: string;
+        };
+        /** TaskOut */
+        TaskOut: {
+            /** Completed At */
+            completed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string;
+            /** Due Date */
+            due_date: string | null;
+            /** Id */
+            id: number;
+            /**
+             * Priority
+             * @enum {string}
+             */
+            priority: "low" | "medium" | "high" | "urgent";
+            /** Project Id */
+            project_id: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "todo" | "in_progress" | "done" | "blocked";
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** TaskPatch */
+        TaskPatch: {
+            /** Completed At */
+            completed_at?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Due Date */
+            due_date?: string | null;
+            /** Priority */
+            priority?: ("low" | "medium" | "high" | "urgent") | null;
+            /** Status */
+            status?: ("todo" | "in_progress" | "done" | "blocked") | null;
+            /** Title */
+            title?: string | null;
         };
     };
     responses: never;
@@ -532,6 +667,126 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TagOut"];
+                };
+            };
+        };
+    };
+    example_api_list_tasks: {
+        parameters: {
+            query?: {
+                project?: number | null;
+                status?: ("todo" | "in_progress" | "done" | "blocked") | null;
+                priority?: ("low" | "medium" | "high" | "urgent") | null;
+                due_from?: string | null;
+                due_to?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedTaskOut"];
+                };
+            };
+        };
+    };
+    example_api_create_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskIn"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOut"];
+                };
+            };
+        };
+    };
+    example_api_get_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOut"];
+                };
+            };
+        };
+    };
+    example_api_delete_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    example_api_update_task: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskPatch"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOut"];
                 };
             };
         };

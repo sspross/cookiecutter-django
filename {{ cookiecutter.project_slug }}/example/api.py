@@ -17,8 +17,8 @@ from ninja.responses import Status
 
 from core.csrf import csrf_protect_route
 from example import selectors, services
-from example.filters import ProjectFilters, TagFilters
-from example.models import Project, Tag
+from example.filters import ProjectFilters, TagFilters, TaskFilters
+from example.models import Project, Tag, Task
 from example.schemas import (
     ProjectIn,
     ProjectOut,
@@ -26,6 +26,9 @@ from example.schemas import (
     TagIn,
     TagOut,
     TagPatch,
+    TaskIn,
+    TaskOut,
+    TaskPatch,
 )
 
 router = Router()
@@ -105,4 +108,40 @@ def update_project(request, project_id: int, payload: ProjectPatch) -> Project:
 def delete_project(request, project_id: int):
     project = get_object_or_404(Project, pk=project_id)
     services.delete_project(project=project)
+    return Status(204, None)
+
+
+# --- Tasks -----------------------------------------------------------------
+
+
+@router.get("/tasks", response=list[TaskOut], tags=["tasks"])
+@paginate(LimitOffsetPagination)
+def list_tasks(request, filters: Query[TaskFilters]):
+    return selectors.list_tasks(filters=filters)
+
+
+@router.get("/tasks/{task_id}", response=TaskOut, tags=["tasks"])
+def get_task(request, task_id: int) -> Task:
+    return get_object_or_404(Task, pk=task_id)
+
+
+@router.post("/tasks", response={201: TaskOut}, tags=["tasks"])
+@csrf_protect_route
+def create_task(request, payload: TaskIn):
+    task = services.create_task(**payload.dict())
+    return Status(201, task)
+
+
+@router.patch("/tasks/{task_id}", response=TaskOut, tags=["tasks"])
+@csrf_protect_route
+def update_task(request, task_id: int, payload: TaskPatch) -> Task:
+    task = get_object_or_404(Task, pk=task_id)
+    return services.update_task(task=task, **payload.dict(exclude_unset=True))
+
+
+@router.delete("/tasks/{task_id}", response={204: None}, tags=["tasks"])
+@csrf_protect_route
+def delete_task(request, task_id: int):
+    task = get_object_or_404(Task, pk=task_id)
+    services.delete_task(task=task)
     return Status(204, None)

@@ -7,10 +7,12 @@ mapped to a 422 response that the SPA's RHF helper consumes.
 """
 
 from collections.abc import Iterable
+from datetime import date, datetime
 
 from django.core.exceptions import ValidationError
+from django.shortcuts import get_object_or_404
 
-from example.models import Project, Tag
+from example.models import Project, Tag, Task
 
 
 def create_tag(*, name: str, slug: str) -> Tag:
@@ -95,3 +97,61 @@ def update_project(
 
 def delete_project(*, project: Project) -> None:
     project.delete()
+
+
+def create_task(
+    *,
+    project_id: int,
+    title: str,
+    description: str = "",
+    status: str = "todo",
+    priority: str = "medium",
+    due_date: date | None = None,
+    completed_at: datetime | None = None,
+) -> Task:
+    project = get_object_or_404(Project, pk=project_id)
+    task = Task(
+        project=project,
+        title=title,
+        description=description,
+        status=status,
+        priority=priority,
+        due_date=due_date,
+        completed_at=completed_at,
+    )
+    task.full_clean()
+    task.save()
+    return task
+
+
+_TASK_UPDATABLE = (
+    "title",
+    "description",
+    "status",
+    "priority",
+    "due_date",
+    "completed_at",
+)
+
+
+def update_task(*, task: Task, **fields) -> Task:
+    """Apply a partial update.
+
+    Only fields present in `fields` are touched. `due_date` and
+    `completed_at` accept `None` as a real value (clear the field), which
+    is why this signature keys off "is the field present at all" rather
+    than "is the value not None". Callers (the API layer) build `fields`
+    from `payload.dict(exclude_unset=True)` so unset fields are skipped.
+    """
+    unknown = set(fields) - set(_TASK_UPDATABLE)
+    if unknown:
+        raise TypeError(f"update_task got unexpected fields: {sorted(unknown)}")
+    for name, value in fields.items():
+        setattr(task, name, value)
+    task.full_clean()
+    task.save()
+    return task
+
+
+def delete_task(*, task: Task) -> None:
+    task.delete()

@@ -7,8 +7,8 @@ database — that's services' job.
 
 from django.db.models import QuerySet
 
-from example.filters import ProjectFilters, TagFilters
-from example.models import Project, Tag
+from example.filters import ProjectFilters, TagFilters, TaskFilters
+from example.models import Project, Tag, Task
 
 
 def list_tags(*, filters: TagFilters | None = None) -> QuerySet[Tag]:
@@ -44,3 +44,14 @@ def list_projects(*, filters: ProjectFilters | None = None) -> QuerySet[Project]
 
 def get_project(*, project_id: int) -> Project:
     return Project.objects.prefetch_related("tags").get(pk=project_id)
+
+
+def list_tasks(*, filters: TaskFilters | None = None) -> QuerySet[Task]:
+    qs = Task.objects.all()
+    if filters is not None:
+        qs = filters.filter(qs)
+    return qs
+
+
+def get_task(*, task_id: int) -> Task:
+    return Task.objects.get(pk=task_id)
