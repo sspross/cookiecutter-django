@@ -1,14 +1,11 @@
-# Multi-stage build with three named targets:
+# Multi-stage build with two named targets:
 #
 #   builder — installs Python + Node deps, builds the SPA, runs collectstatic
-#   app     — minimal Python runtime that runs gunicorn (used by Appliku and
-#             by the compose `app` service)
-#   caddy   — Caddy image with the collected static directory and the
-#             Caddyfile baked in (used by the compose `caddy` service only)
+#   app     — minimal Python runtime that runs gunicorn (the single deploy
+#             artifact used by both compose-on-VM and Appliku)
 
 ARG PYTHON_VERSION=3.13-slim
 ARG NODE_VERSION=22-bookworm-slim
-ARG CADDY_VERSION=2-alpine
 
 # ------- builder ----------------------------------------------------
 FROM python:${PYTHON_VERSION} AS builder
@@ -57,13 +54,3 @@ COPY --from=builder /app /app
 
 EXPOSE 8000
 CMD ["uv", "run", "gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
-
-# ------- caddy ------------------------------------------------------
-FROM caddy:${CADDY_VERSION} AS caddy
-
-# Bake the collected static directory and Caddyfile into the image so the
-# deploy is a single atomic artifact and rollbacks are a tag change.
-COPY --from=builder /app/staticfiles /srv/static
-COPY caddy/Caddyfile.prod /etc/caddy/Caddyfile
-
-EXPOSE 8080

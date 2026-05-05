@@ -2,13 +2,15 @@
 #
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 #
-# This brings up app + caddy + postgres with the prod-targeted images and
-# exposes Caddy on the documented internal HTTP port (the outer Caddy /
-# Cloudflare handles TLS).
+# Brings up `app` + `postgres` and exposes the gunicorn port on the host so
+# the operator's external reverse proxy (Caddy, nginx, Cloudflare Tunnel,
+# etc.) can reach it. See the README's "Stage Deployment" section for a
+# Caddyfile snippet covering TLS, the media bind-mount, and `Host`
+# forwarding.
 services:
   postgres:
     ports: !reset []
 
-  caddy:
+  app:
     ports:
-      - "${CADDY_PORT:-8080}:8080"
+      - "${APP_PORT:-8000}:8000"
