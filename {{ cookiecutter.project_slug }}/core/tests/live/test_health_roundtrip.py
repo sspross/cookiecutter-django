@@ -1,8 +1,9 @@
 """End-to-end live test for the walking skeleton.
 
-Boots the SPA via the WhiteNoise/Appliku deploy path (Django serves
-index.html via the catch-all shell view), waits for the typed openapi-fetch
-client to round-trip `/api/health`, and asserts the response renders.
+Boots the SPA via the deployed serving path (Django's `spa_shell` view
+returns the collectstatic'd `index.html`), waits for the typed
+openapi-fetch client to round-trip `/api/health`, and asserts the
+response renders.
 """
 
 from playwright.sync_api import expect

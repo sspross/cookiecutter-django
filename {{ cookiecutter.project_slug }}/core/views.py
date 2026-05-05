@@ -2,9 +2,8 @@
 
 Currently the only view here is the SPA shell: a catch-all that returns the
 Vite-built `index.html` for any non-API, non-admin, non-static, non-media
-path. This is what serves the SPA in the WhiteNoise/Appliku deploy path.
-The Caddy/compose deploy serves `index.html` directly from disk and never
-hits Django for these paths.
+path. WhiteNoise inside the `app` container serves the hashed Vite + admin
+assets; this view supplies the SPA entry point.
 """
 
 from pathlib import Path

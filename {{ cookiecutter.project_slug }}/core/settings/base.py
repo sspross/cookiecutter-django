@@ -27,7 +27,7 @@ DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 
-# Identify secure requests behind a TLS-terminating proxy (Caddy / Cloudflare).
+# Identify secure requests behind a TLS-terminating reverse proxy.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
@@ -113,9 +113,8 @@ USE_TZ = True
 #
 # The Vite build emits its bundle into `frontend/dist/`. We expose that
 # directory through STATICFILES_DIRS so that `collectstatic` aggregates the
-# Vite bundle alongside Django admin assets into a single STATIC_ROOT. Both
-# the Caddy/compose deploy and the WhiteNoise/Appliku deploy serve from this
-# same artifact.
+# Vite bundle alongside Django admin assets into a single STATIC_ROOT.
+# WhiteNoise inside the `app` container serves the result.
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATIC_URL = "static/"
@@ -138,10 +137,10 @@ MEDIA_URL = env.str("MEDIA_URL", default="media/")  # type: ignore
 
 # CORS / cross-origin configuration
 #
-# In the default deploy the SPA is served same-origin via Caddy, so no
-# cross-origin requests are made and the allow-list is empty. When deploying
-# the SPA on a different origin (e.g. a separate static host) populate
-# CORS_ALLOWED_ORIGINS via env.
+# Both supported deploy paths serve the SPA same-origin (WhiteNoise inside
+# the `app` container), so no cross-origin requests are made and the
+# allow-list is empty. When deploying the SPA on a different origin (e.g. a
+# separate static host) populate CORS_ALLOWED_ORIGINS via env.
 
 CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_CREDENTIALS = True

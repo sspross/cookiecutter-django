@@ -1,8 +1,9 @@
 """URL configuration for the project.
 
 The mount order matters: API and admin are matched first, then media (in
-DEBUG only — media is served by Caddy/WhiteNoise in deploy), then a
-re-path catch-all for the SPA shell.
+DEBUG only — in deploy media is served by the operator's external reverse
+proxy from a bind-mounted volume), then a re-path catch-all for the SPA
+shell.
 """
 
 from django.conf import settings

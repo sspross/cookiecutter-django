@@ -1,5 +1,5 @@
-# Tests for the SPA shell catch-all view used by the WhiteNoise/Appliku
-# deploy path.
+# Tests for the SPA shell catch-all view that serves `index.html` for any
+# non-API/non-admin/non-static path.
 
 import pytest
 

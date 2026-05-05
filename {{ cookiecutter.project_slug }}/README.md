@@ -25,9 +25,8 @@ A Django + typed React/TypeScript SPA project, generated from
   `collectstatic` aggregates the Vite bundle and Django admin assets into
   one `STATIC_ROOT`. The same artifact is served by both deploy paths.
 - **SPA shell**: A catch-all view in `core` returns `index.html` for any
-  non-API/non-admin/non-static path — this is what serves the SPA in the
-  WhiteNoise/Appliku deploy. The Caddy/compose deploy serves `index.html`
-  directly from disk and never hits Django for those paths.
+  non-API/non-admin/non-static path. WhiteNoise inside the `app` container
+  serves the hashed Vite + admin assets with the right cache headers.
 
 ## Setup
 
@@ -97,33 +96,55 @@ regenerated — re-run `make codegen` locally and commit the diff.
 
 ## Stage Deployment
 
-### Docker compose with Caddy
+Both supported deploy paths ship the same `app` container (gunicorn +
+WhiteNoise), differing only in where it runs and what terminates TLS.
+WhiteNoise serves hashed Vite + admin assets with the right cache
+headers; the catch-all `spa_shell` view returns `index.html` for any
+non-API/non-admin path; media is served by the operator's reverse proxy
+from a bind-mounted volume (not by Django).
 
-The compose stack is three services: `app` (Django via gunicorn), `caddy`
-(serves baked static + reverse-proxies the app), and `postgres`. The
-project Caddy listens on plain HTTP on an internal port; an outer Caddy
-(or Cloudflare) handles TLS at the edge.
+### Docker compose on a VM
+
+Bring up `app` + `postgres` and expose the gunicorn port on the host:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 ```
 
-The SPA bundle is **baked into the Caddy image** at build time. Deploys
-are atomic — rolling back is a single image-tag change. Cache headers
-match Cloudflare's expectations: hashed Vite assets get
-`Cache-Control: public, max-age=31536000, immutable`, the SPA `index.html`
-is `no-cache`, and media uses a short `max-age`.
+Point your own reverse proxy (Caddy, nginx, Cloudflare Tunnel, etc.) at
+the exposed `app` port. A copy-pasteable Caddyfile for the host:
 
-#### Cloudflare-readiness deltas
+```caddy
+example.com {
+    encode zstd gzip
 
-`caddy/Caddyfile.prod` includes a commented `trusted_proxies cloudflare`
-snippet — uncomment it once Cloudflare orange-cloud is enabled so Caddy
-honors `CF-Connecting-IP`. Direct Let's Encrypt issuance is documented in
-that same file as an opt-in for self-contained deploys.
+    # Media is served by Caddy directly from a bind-mount of the
+    # `media_data` named volume (write side stays on the `app` service).
+    handle /media/* {
+        root * /var/lib/docker/volumes/<stack>_media_data/_data
+        file_server
+    }
 
-### Appliku (gunicorn + WhiteNoise)
+    # Everything else goes to gunicorn. `header_up Host {host}` keeps
+    # Django's ALLOWED_HOSTS check happy.
+    reverse_proxy 127.0.0.1:8000 {
+        header_up Host {host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}
+```
 
-The existing Appliku flow is preserved as an additive deploy target.
+- `example.com` triggers Caddy's automatic Let's Encrypt issuance.
+  Behind another TLS terminator (Cloudflare, an outer Caddy), bind to
+  `:80` instead and let the edge handle certs.
+- Behind Cloudflare with orange-cloud enabled, add a
+  `servers { trusted_proxies cloudflare }` block at the top of the
+  Caddyfile so logs and rate-limit logic see the real client IP.
+- Set `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` via env when bringing up
+  the stack (e.g. `ALLOWED_HOSTS=example.com docker compose -f ... up -d`).
+
+### Appliku
+
 `collectstatic` aggregates the SPA bundle into `STATIC_ROOT`; WhiteNoise
 serves it; the catch-all `spa_shell` view returns `index.html` for any
 non-API/non-admin path.

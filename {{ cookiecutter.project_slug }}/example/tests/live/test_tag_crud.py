@@ -1,7 +1,7 @@
 """End-to-end live test for the Tag CRUD slice.
 
-Boots the SPA via the WhiteNoise/Appliku deploy path and walks the
-happy path: list → filter → create → detail → edit → delete.
+Boots the SPA via the deployed serving path and walks the happy path:
+list → filter → create → detail → edit → delete.
 """
 
 from playwright.sync_api import expect
