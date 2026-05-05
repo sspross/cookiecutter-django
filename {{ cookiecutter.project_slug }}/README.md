@@ -47,19 +47,16 @@ A Django + typed React/TypeScript SPA project, generated from
 Three predictable commands in three terminals:
 
 ```bash
-make dev.up       # Postgres + Caddy in docker compose
-make dev.django   # Django on the host
-make dev.vite     # Vite dev server on the host
+make dev.up       # Postgres in docker compose
+make dev.django   # Django on the host (127.0.0.1:8000)
+make dev.vite     # Vite dev server on the host (localhost:5173)
 ```
 
-Caddy listens on `http://localhost:8080` and proxies:
-
-- `/api/*`, `/admin/*`, `/media/*` → Django on `host.docker.internal:8000`
-- everything else → Vite on `host.docker.internal:5173`
-
-This keeps file-watching and native debugger attach fast while still giving
-the SPA a same-origin view of the API (so cookies, CSRF, and SameSite
-behave like prod). To tear everything down: `make dev.down`.
+Open the SPA at `http://localhost:5173`. Vite's dev-server proxy forwards
+`/api`, `/admin`, `/media`, and `/static` to Django on `127.0.0.1:8000`, so
+the browser sees one origin and cookies, CSRF, and `SameSite` behave the
+way they will in production. `/static` is included so Django admin's CSS
+and JS render under `DEBUG=True`. To tear everything down: `make dev.down`.
 
 ### Removing the `example` app
 

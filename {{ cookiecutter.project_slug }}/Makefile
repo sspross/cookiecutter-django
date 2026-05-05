@@ -79,7 +79,9 @@ codegen.check: codegen
 	@echo "codegen.check OK"
 
 # --- dev workflow ---------------------------------------------------
-# Three predictable commands in three terminals.
+# Three predictable commands in three terminals. `dev.up` brings up Postgres
+# only today; the slot is reserved for future dev-side services (Redis,
+# MinIO, etc.) without churning the Make target.
 dev.up:
 	docker compose up -d
 
