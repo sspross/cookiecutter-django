@@ -1,28 +1,41 @@
-import { resolve } from 'path';
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { resolve } from "node:path";
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { defineConfig } from "vite";
 
+// Single Vite pipeline: React SPA + Tailwind v4 (via the @tailwindcss/vite
+// plugin). The compiled CSS (built from spa/index.css's
+// `@import "tailwindcss"`) is consumed by both the SPA mount template
+// and Django-rendered pages (login).
 export default defineConfig({
-  plugins: [react()],
-  root: resolve('./src'),
-  base: '/static/dist/js/', // Keep in sync DJANGO_VITE settings
+  plugins: [react(), tailwindcss()],
+  root: resolve("./src"),
+  base: "/static/dist/js/", // Keep in sync with DJANGO_VITE settings
   resolve: {
-    extensions: ['.jsx', '.js'],
+    extensions: [".tsx", ".ts", ".jsx", ".js"],
+    alias: {
+      "@": resolve("./src/spa"),
+    },
   },
   build: {
-    assetsDir: '',
-    manifest: 'manifest.json',
-    outDir: resolve('../static/dist/js'),
+    assetsDir: "",
+    manifest: "manifest.json",
+    outDir: resolve("../static/dist/js"),
     emptyOutDir: true,
-    target: 'es2015',
+    target: "es2022",
     rollupOptions: {
       input: {
-        test: resolve('./src/js/test.js'),
-        widget: resolve('./src/js/widget/main.jsx'),
-      },
-      output: {
-        chunkFileNames: undefined,
+        main: resolve("./src/main.tsx"),
       },
     },
+  },
+  server: {
+    // Vite dev server runs on a separate port; django-vite injects the
+    // HMR client only when DEBUG=True.
+    origin: "http://localhost:5173",
+  },
+  test: {
+    environment: "jsdom",
+    globals: true,
   },
 });

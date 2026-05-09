@@ -30,7 +30,7 @@ RUN uv sync --frozen --no-group dev --group prod
 # Copy project code
 COPY . .
 
-# Copy .env file if it exists
+# Copy .env file if it exists (need minimal env for next cmds)
 COPY .env.example .env
 
 # Install Javascript and CSS dependencies
@@ -42,7 +42,3 @@ RUN uv run python manage.py collectstatic --noinput
 
 # Remove .env file to use docker-compose env variables
 RUN rm -f .env
-
-# Run the application
-EXPOSE 8000
-CMD ["uv", "run", "gunicorn", "core.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]

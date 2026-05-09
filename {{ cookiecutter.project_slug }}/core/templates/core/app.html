@@ -1,0 +1,18 @@
+{% extends "_base.html" %}
+{% load django_vite %}
+
+{% block title %}{{ project_name }}{% endblock title %}
+
+{% block extra_head %}
+  {{ block.super }}
+  {% vite_react_refresh %}
+  {% vite_asset "main.tsx" %}
+{% endblock extra_head %}
+
+{% block body %}
+  {{ spa_config|json_script:"app-config" }}
+  <script>
+    window.__APP__ = JSON.parse(document.getElementById("app-config").textContent);
+  </script>
+  <div id="app"></div>
+{% endblock body %}

@@ -1,0 +1,14 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <p>
+    Mint a new API key for user <strong>{{ user_obj.username }}</strong>.
+    The raw token will be displayed exactly once on the next screen — copy it
+    and hand it to the user. Only the SHA-256 hash is stored.
+  </p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="default">Mint key</button>
+  </form>
+{% endblock %}

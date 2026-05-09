@@ -1,0 +1,42 @@
+build_settings:
+  build_image: dockerfile
+  dockerfile_path: Dockerfile
+  container_port: 8000
+  expose_web_port: true
+  environment_variables:
+    - name: DEBUG
+      value: "false"
+    - name: DATABASE_URL
+      from_database:
+        name: db
+        property: private_connection_url
+    - name: REDIS_URL
+      from_database:
+        name: redis
+        property: private_connection_url
+    - name: ALLOWED_HOSTS
+      from_domains: true
+    - name: SECRET_KEY
+      source: manual
+
+services:
+  web:
+    command: ./web.sh
+    scale: 1
+  worker:
+    command: ./worker.sh
+    scale: 1
+  release:
+    command: ./release.sh
+
+databases:
+  db:
+    type: postgresql_16
+  redis:
+    type: redis_7
+
+volumes:
+  media:
+    target: /volumes/media
+    url: /media/
+    environment_variable: MEDIA_ROOT
