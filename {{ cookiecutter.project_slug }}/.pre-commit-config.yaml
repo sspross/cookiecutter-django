@@ -47,3 +47,15 @@ repos:
         always_run: true
         verbose: true
         stages: [manual]
+      - id: biome-check
+        name: biome-check (core/frontend)
+        entry: bash -c 'cd core/frontend && npx --no-install biome check --write --no-errors-on-unmatched src vite.config.mjs'
+        language: system
+        files: ^core/frontend/(src/|vite\.config\.mjs|biome\.json|package\.json|tsconfig).*
+        pass_filenames: false
+      - id: tsc-typecheck
+        name: tsc typecheck (core/frontend)
+        entry: bash -c 'cd core/frontend && npx --no-install tsc --noEmit'
+        language: system
+        files: ^core/frontend/(src/|tsconfig).*\.(ts|tsx|json)$
+        pass_filenames: false

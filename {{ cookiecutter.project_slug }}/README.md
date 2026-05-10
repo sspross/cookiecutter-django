@@ -1,68 +1,72 @@
-## Setup
+# {{ cookiecutter.project_name }}
 
-- Check `.env` and adjust `DATABASE_URL` if needed (defaults to SQLite)
+## Development
+
+### Requirements
+
+- Local Redis Server
+- (Optional) Local Postgres Server, if SQLite is not enough
+- `uv` (https://docs.astral.sh/uv/)
+
+### Setup
+
+- `cp .env.example .env` (already done by post_gen_project.py)
 - `uv sync`
 - `uv run pre-commit install`
 - `uv run playwright install chromium`
-- `make db.recreate`
+- `make db.recreate` (Postgres only — skip if using SQLite)
 - `make db.initialize`
 - `make frontend.install`
-- `make frontend.build`
-- `uv run python manage.py collectstatic --noinput`
 
-## Work
+### Work
 
 - Start frontend watcher first: `make frontend.dev`
 - `uv run python manage.py runserver`
+- Log in at http://localhost:8000/accounts/login/ with `{{ cookiecutter.django_username }}` / `{{ cookiecutter.django_password }}`
 
-## Add your own app(s)
+### Tests
 
-- `uv run python manage.py startapp xyz`
+- `make test` — pytest suite
+- `make test.live.watch` — live Playwright tests, headed + slowmo (debugging)
+- `make precommit` — full pre-commit pipeline
 
-## Stage Deployment
+### Frontend type generation
 
-### Docker with Caddy
+After adding/changing ninja API endpoints, regenerate the SPA's typed schema:
 
-#### Install
+- `uv run python manage.py runserver` (in another terminal)
+- `make schema`
 
-- `uv add fabric`
-- Adjust `TARGET_SERVER` and `TARGET_DIR` in `fabfile.py`
-- Clone project manually to the `TARGET_DIR` on `TARGET_SERVER`
-- Choose an unused port in `docker-compose.yml`, e.g. `"8123:8000"`
-- Add `{{ cookiecutter.project_slug }}.intra.sspross.ch` to `ALLOWED_HOSTS` in `docker-compose.yml`
-- Add proxy rule to intra Caddy `~/projects/caddy-intra/Caddyfile`:
-```
-{{ cookiecutter.project_slug }}.intra.sspross.ch {
-    reverse_proxy http://smini.tail9af27c.ts.net:8123
-}
-```
-- Restart intra Caddy `docker compose down && docker compose up -d`
+## Deployment
 
-#### Deploy
+This template ships configurations for two deployment paths. Pick one.
 
-- Run `uv run fab deploy` and if needed `uv run fab migrate`
-- Visit https://{{ cookiecutter.project_slug }}.intra.sspross.ch
+### Appliku (canonical)
 
-### Appliku
+`appliku.yml` is the single source of truth. Push to `main`; Appliku redeploys
+and runs `release.sh` automatically.
 
-1. Push Repo on GitHub
-1. Add Application, e.g. `{{ cookiecutter.project_slug }}` to Appliku: https://app.appliku.com/dashboard/team/private/applications
-1. Add Postgres Database to new Application
-1. Open Application Settings > Volumes:
-    1. Container path: `/volumes/media`
-    1. URL: `/media/`
-    1. Envirnment variable: `MEDIA`
-    1. Add volume
-1. Open Application Settings > Processes:
-    1. Add `web`: `bash web.sh`
-    1. Add `release`: `bash release.sh`
-1. Open Application Settings > Build Settings:
-    1. Base Docker Image: `Dockerfile from the codebase`
-    1. Dockerfile path: `Dockerfile`
-    1. Save changes
-1. Open Application Settings > Environment Variables and add:
-    1. ALLOWED_HOSTS (e.g. `{{ cookiecutter.project_slug }}.applikuapp.com`)
-    1. CSRF_TRUSTED_ORIGINS (e.g. `https://{{ cookiecutter.project_slug }}.applikuapp.com`)
-    1. SECRET_KEY (`python -c "import random, string; print(''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(50)))"`)
-    1. DATABASE_URL (should already be there)
-    1. Save and deploy
+First-time setup:
+
+1. Push the repo to GitHub.
+2. Create the application in Appliku, pointed at the repo.
+3. Appliku reads `appliku.yml` and provisions the web/worker/release processes,
+   Postgres database, and Redis instance.
+4. Set `SECRET_KEY` in Appliku's environment variables (one-time):
+   `python -c "import secrets; print(secrets.token_urlsafe(50))"`
+5. Add a domain in Appliku; `ALLOWED_HOSTS` is auto-populated from `from_domains: true`.
+6. Deploy.
+
+See `.claude/skills/appliku/SKILL.md` for the full Appliku CLI/SDK reference.
+
+### Docker Compose (self-host, e.g. Mac mini via Tailscale)
+
+For a Mac mini hosted behind Caddy + Tailscale:
+
+1. `uv add fabric` (if not already)
+2. Adjust `TARGET_SERVER` and `TARGET_DIR` in `fabfile.py`.
+3. Clone the repo to `TARGET_DIR` on the host.
+4. Pick an unused port in `docker-compose.yml`'s `ports` mapping.
+5. Add your hostname to `ALLOWED_HOSTS` in `docker-compose.yml`.
+6. Add a Caddy proxy rule.
+7. Deploy: `uv run fab deploy && uv run fab release`.

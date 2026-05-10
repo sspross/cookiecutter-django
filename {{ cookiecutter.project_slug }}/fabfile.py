@@ -33,7 +33,7 @@ def deploy(context):
 
 
 @task
-def migrate(context):
-    """Run migrations on the Mac mini server."""
+def release(context):
+    """Run release tasks (migrations etc.) on the Mac mini server."""
     with connection.cd(TARGET_DIR):
-        connection.run("docker compose exec web uv run python manage.py migrate")
+        connection.run("docker compose run --rm web ./release.sh")

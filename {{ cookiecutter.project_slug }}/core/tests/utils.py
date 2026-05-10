@@ -40,9 +40,16 @@ class StaticLiveServerWithArtifactsOnErrorTestCase(StaticLiveServerTestCase):
 
         super().setUpClass()
 
-        # Initialize Playwright at class level
+        # Initialize Playwright at class level. Set PWDEBUG=1, HEADLESS=0,
+        # or HEADED=1 to launch a visible browser. SLOWMO_MS slows actions.
+        headless = os.environ.get("HEADLESS", "1") not in ("0", "false", "False")
+        if os.environ.get("HEADED") in ("1", "true", "True"):
+            headless = False
+        slow_mo_ms = int(os.environ.get("SLOWMO_MS", "0"))
         cls._playwright = sync_playwright().start()
-        cls._browser = cls._playwright.chromium.launch(headless=True)
+        cls._browser = cls._playwright.chromium.launch(
+            headless=headless, slow_mo=slow_mo_ms
+        )
 
     @classmethod
     def tearDownClass(cls):

@@ -1,24 +1,22 @@
-# ABOUTME: Tests for Django views
-# ABOUTME: Ensures views are accessible and render correct templates
-
 import pytest
 from django.urls import reverse
+
+from api_keys.tests.factories import UserFactory
 
 
 @pytest.mark.django_db
 class TestHomeView:
-    def test_home_url_accessible(self, client):
-        """Test that home URL is accessible and returns 200 status."""
+    def test_home_redirects_anonymous(self, client):
         url = reverse("home")
         response = client.get(url)
-        assert response.status_code == 200
+        assert response.status_code == 302
+        assert "/accounts/login/" in response["Location"]
 
-    def test_home_template_used(self, client):
-        """Test that home view uses the correct template."""
-        url = reverse("home")
-        response = client.get(url)
-        # With Jinja2, we can't directly check template_name
-        # Instead, we verify the response contains expected template content
+    def test_home_renders_for_authenticated_user(self, client):
+        user = UserFactory()
+        client.force_login(user)
+        response = client.get(reverse("home"))
         assert response.status_code == 200
-        # Check for unique content from home.jinja template
-        assert b"This is the home page" in response.content
+        # SPA mount markup is present.
+        assert b'id="app"' in response.content
+        assert b"app-config" in response.content

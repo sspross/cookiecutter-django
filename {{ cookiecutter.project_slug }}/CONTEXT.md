@@ -1,0 +1,168 @@
+# Context
+
+## Glossary
+
+### API Key
+A user-issued bearer credential for the headless API path. Stored as `UserApiKey`
+(`user FK, name, prefix, hash, created_at, last_used_at, revoked_at`). The raw token is
+`{{ cookiecutter.project_slug }}_live_` + `secrets.token_urlsafe(32)`; only `sha256(token)`
+is persisted. Provisioned two ways: (1) self-service in the SPA's **API Access** section —
+list / mint / revoke own keys; (2) Django admin (kept for emergency provisioning and
+cross-user revoke). The raw token is shown exactly once on creation. A user can hold
+multiple keys (rotatable, named per use case). "Delete" in user-facing copy means
+**revoke** — the row stays so the audit trail (`created_at`, `last_used_at`,
+`revoked_at`) is preserved; revoked keys remain listed but visually marked.
+
+### Soft-delete vocabulary
+Two distinct soft-delete semantics live in this codebase, and the naming makes the
+distinction load-bearing:
+
+- **`revoked_at` / `is_revoked`** — *visible-but-marked*. The row stays listed in the
+  user-facing surface and is rendered with a "(revoked)" indicator. Used by `UserApiKey`
+  so the audit trail (`created_at`, `last_used_at`, `revoked_at`) stays in front of the
+  owner.
+- **`deleted_at` / `is_deleted`** — *hidden from users*. The row is filtered out of
+  every user-facing read and only operators see it (Django admin, raw DB).
+
+No model in the template uses `deleted_at` yet — adopt that pattern when you need
+"hide from users" semantics. When introducing soft-delete on a new model, pick the
+pattern that matches the desired visibility — never invent a third name. Both
+patterns share the same field shape: a nullable `DateTimeField` plus an `is_*`
+`@property`.
+
+## Surfaces
+
+Routes (all login-required except `/accounts/login/` and `/admin/`):
+
+HTML pages:
+
+- `/` — Django shell that mounts the React SPA on the **Dashboard** route.
+- `/api-access/` — same SPA mount, react-router renders the **API Access** route.
+- `/accounts/login/` & `/accounts/logout/` — Django built-in auth views.
+  Reuse the SPA's compiled Tailwind CSS bundle (so visual tokens match)
+  but don't load the React JS bundle.
+- `/admin/` — Django admin; superuser creates non-staff `User` accounts here, and
+  mints `UserApiKey` rows via a custom admin action.
+- `/django-rq/` — django-rq queue dashboard, gated to staff users by django-rq itself.
+
+API (django-ninja, dual auth, CSRF on session-authed writes):
+
+- `GET  /api/api-keys/` — list the requesting user's keys (active and revoked,
+  newest-first)
+- `POST /api/api-keys/` — body `{name}`; responds 201 with the created row plus the
+  raw token, the only place the server ever returns it
+- `POST /api/api-keys/{id}/revoke/` — idempotent soft-delete; cross-user 404, not 403
+
+Every endpoint accepts **either** auth method by default:
+
+- `ninja.security.django_auth` — session cookie set by `/accounts/login/`. Used by
+  the SPA. CSRF enforced via `X-CSRFToken` header read from the `csrftoken` cookie.
+- `HttpBearer` against `UserApiKey` — `Authorization: Bearer
+  {{ cookiecutter.project_slug }}_live_…`. Used by headless callers. No CSRF
+  (state-changing requests are token-bound, not cookie-bound).
+
+Both auth paths resolve to the same `request.user`.
+
+The `/api/api-keys/*` router is the single exception: it overrides the global
+default to **`auth=django_auth` only**. A leaked bearer token cannot be used to
+mint or revoke keys, so revocation by the user remains a clean kill. See ADR-0002.
+
+App layout:
+
+```
+core/
+  __init__.py
+  apps.py
+  api.py             # NinjaAPI mount; defaults to [ApiKeyBearer(), django_auth]
+  context.py         # template context_processor: project_name
+  urls.py
+  views.py           # app_view: SPA mount; @login_required + @ensure_csrf_cookie
+  templates/
+    _base.html       # vite-aware base, Geist + Inter fonts
+    _logo.html       # mirror of spa/components/layout/logo.tsx
+    core/app.html    # SPA mount template
+    registration/login.html
+  tests/
+    test_views.py
+    utils.py         # StaticLiveServerWithArtifactsOnErrorTestCase
+api_keys/
+  __init__.py
+  apps.py
+  admin.py           # UserApiKeyAdmin (standard add flow + revoke action)
+  api.py             # ninja Router, /api/api-keys/* (django_auth only)
+  auth.py            # HttpBearer subclass resolving Bearer token → User
+  models.py          # UserApiKey
+  schemas.py         # ApiKeyOut, ApiKeyCreateIn, ApiKeyMintOut
+  services.py        # mint(), verify(), revoke() — token engine
+  tests/
+    factories.py
+    test_models.py
+    test_services.py
+    test_api.py
+    live/
+      test_mint_flow.py
+```
+
+SPA source layout under `core/frontend/src/spa/`:
+
+```
+spa/
+  main.tsx          # React entry; mounts <App />; QueryClientProvider + Router
+  App.tsx           # routes: / (Dashboard), /api-access (ApiAccess)
+  index.css         # @import "tailwindcss"; shadcn CSS variables
+  api/
+    schema.d.ts     # generated by openapi-typescript (placeholder until first run)
+    client.ts       # openapi-fetch instance + csrfFetch wrapper
+    csrf.ts
+  queries/
+    use-api-keys.ts # TanStack Query hooks for api keys
+  routes/
+    index.tsx       # Dashboard (inline cards, no abstractions yet)
+    api-access.tsx
+  components/
+    api-key-modals.tsx
+    layout/
+      app-shell.tsx # sidebar + main content
+      logo.tsx
+      icons.tsx
+      theme-toggle.tsx
+    ui/             # shadcn primitives: card, dialog, button, input,
+                    # label, badge, table, skeleton (8 only — `npx shadcn add`
+                    # the rest as needed)
+  lib/
+    utils.ts        # cn() helper
+```
+
+### Frontend & API contract
+The authenticated app is a React SPA (TypeScript, shadcn/ui on Tailwind v4,
+`react-router` v7, TanStack Query). Django serves a single mount template at `/` and
+`/api-access/` carrying `@login_required` + `@ensure_csrf_cookie`; the SPA bundle is
+loaded via `django-vite`'s manifest. Login (`/accounts/login/`) stays Django-rendered,
+Tailwind-styled to match.
+
+The SPA's typed API client is generated from ninja's OpenAPI schema using
+`openapi-typescript` (types) + `openapi-fetch` (typed fetch). Schema drift is caught
+at TS compile time. Generation: `make schema` (which runs
+`npx openapi-typescript http://localhost:8000/api/openapi.json -o ./src/spa/api/schema.d.ts`).
+A hand-crafted placeholder ships in `schema.d.ts` so `tsc --noEmit` passes on a
+fresh clone before the dev has run the server.
+
+Server state lives in TanStack Query. Cache is keyed by query key, so list views
+and detail views can share the same cached row.
+
+Build is a single Vite pipeline using `@tailwindcss/vite`. The same compiled CSS file
+is loaded by both the SPA mount template and Django-rendered pages (login, admin
+error pages), so visual tokens are shared.
+
+### Testing
+
+No JS unit tests. Frontend correctness is exercised end-to-end by the Python
+**live tests** under `*/tests/live/` (Playwright via
+`StaticLiveServerWithArtifactsOnErrorTestCase` in `core/tests/utils.py`). A live
+test drives the real SPA against a real Django server, so it covers the same
+ground a vitest suite would — minus the mocking gymnastics. Static correctness
+on the TS side is covered by `tsc --noEmit` and biome (both run in pre-commit).
+
+If you ever need a unit test that can't be expressed as a live test, add vitest
+back — but justify it in a PR, don't reflexively install it for "we should have
+unit tests."
