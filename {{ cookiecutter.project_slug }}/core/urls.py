@@ -9,8 +9,10 @@ from core import views
 from core.api import api
 
 urlpatterns = [
+    # SPA routes: every URL the React router knows about needs a server-side
+    # match here so a hard reload returns the SPA shell instead of a 404.
     path("", views.app_view, name="home"),
-    path("api-access/", views.app_view, name="api-access"),
+    path("api-access/", views.app_view),
     path("api/", api.urls),
     path("accounts/", include("django.contrib.auth.urls")),
     path("admin/", admin.site.urls),

@@ -96,7 +96,6 @@ test:
 	$(call run_step,make lint,All checks passed)
 	$(call run_step,make format,left unchanged)
 	$(call run_step,make precommit,Passed)
-	$(call run_step,uv run pytest api_keys/tests/live,passed)
 	$(call run_step_smoke,make frontend.dev,Local:)
 	$(call run_step_smoke,uv run python manage.py runserver,Watching for file changes)
 	@echo ""

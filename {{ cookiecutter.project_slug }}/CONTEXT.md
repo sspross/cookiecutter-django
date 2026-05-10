@@ -38,8 +38,9 @@ HTML pages:
 
 - `/` — Django shell that mounts the React SPA on the **Dashboard** route.
 - `/api-access/` — same SPA mount, react-router renders the **API Access** route.
-- `/accounts/login/` & `/accounts/logout/` — Django built-in auth views,
-  Tailwind-styled to match the SPA aesthetic. Not part of the SPA bundle.
+- `/accounts/login/` & `/accounts/logout/` — Django built-in auth views.
+  Reuse the SPA's compiled Tailwind CSS bundle (so visual tokens match)
+  but don't load the React JS bundle.
 - `/admin/` — Django admin; superuser creates non-staff `User` accounts here, and
   mints `UserApiKey` rows via a custom admin action.
 - `/django-rq/` — django-rq queue dashboard, gated to staff users by django-rq itself.
@@ -73,7 +74,7 @@ core/
   __init__.py
   apps.py
   api.py             # NinjaAPI mount; defaults to [ApiKeyBearer(), django_auth]
-  context.py         # template context_processor: project_name, navitems
+  context.py         # template context_processor: project_name
   urls.py
   views.py           # app_view: SPA mount; @login_required + @ensure_csrf_cookie
   templates/
@@ -87,13 +88,12 @@ core/
 api_keys/
   __init__.py
   apps.py
-  admin.py           # UserApiKeyAdmin + User admin mint action
+  admin.py           # UserApiKeyAdmin (standard add flow + revoke action)
   api.py             # ninja Router, /api/api-keys/* (django_auth only)
   auth.py            # HttpBearer subclass resolving Bearer token → User
   models.py          # UserApiKey
   schemas.py         # ApiKeyOut, ApiKeyCreateIn, ApiKeyMintOut
   services.py        # mint(), verify(), revoke() — token engine
-  templates/admin/api_keys/userapikey/mint.html
   tests/
     factories.py
     test_models.py

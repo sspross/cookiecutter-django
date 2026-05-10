@@ -13,7 +13,7 @@ DJANGO_VITE["default"]["manifest_path"] = (  # noqa: F405
     BASE_DIR / "core" / "static" / "dist" / "js" / "manifest.json"  # noqa: F405
 )
 
-# Plain (non-manifest) staticfiles storage so `{% static %}` lookups in tests
+# Plain (non-manifest) staticfiles storage so `{% raw %}{% static %}{% endraw %}` lookups in tests
 # don't require a collected staticfiles tree.
 STORAGES = {
     "staticfiles": {
