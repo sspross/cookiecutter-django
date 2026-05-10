@@ -34,8 +34,4 @@ export default defineConfig({
     // HMR client only when DEBUG=True.
     origin: "http://localhost:5173",
   },
-  test: {
-    environment: "jsdom",
-    globals: true,
-  },
 });

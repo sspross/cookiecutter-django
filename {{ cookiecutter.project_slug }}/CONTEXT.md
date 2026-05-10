@@ -153,3 +153,16 @@ and detail views can share the same cached row.
 Build is a single Vite pipeline using `@tailwindcss/vite`. The same compiled CSS file
 is loaded by both the SPA mount template and Django-rendered pages (login, admin
 error pages), so visual tokens are shared.
+
+### Testing
+
+No JS unit tests. Frontend correctness is exercised end-to-end by the Python
+**live tests** under `*/tests/live/` (Playwright via
+`StaticLiveServerWithArtifactsOnErrorTestCase` in `core/tests/utils.py`). A live
+test drives the real SPA against a real Django server, so it covers the same
+ground a vitest suite would — minus the mocking gymnastics. Static correctness
+on the TS side is covered by `tsc --noEmit` and biome (both run in pre-commit).
+
+If you ever need a unit test that can't be expressed as a live test, add vitest
+back — but justify it in a PR, don't reflexively install it for "we should have
+unit tests."
