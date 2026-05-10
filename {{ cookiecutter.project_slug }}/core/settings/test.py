@@ -6,11 +6,15 @@ DEBUG = False
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 CSRF_TRUSTED_ORIGINS = ["http://localhost", "http://127.0.0.1"]
 
-# We want to use builded and collected static files instead of a live server.
-# `make frontend.build && uv run python manage.py collectstatic --noinput`
+# Read the Vite manifest from the per-app build output rather than STATIC_ROOT,
+# so `make test` only needs `make frontend.build` (no `collectstatic` step).
 DJANGO_VITE["default"]["dev_mode"] = False  # noqa: F405
+DJANGO_VITE["default"]["manifest_path"] = (  # noqa: F405
+    BASE_DIR / "core" / "static" / "dist" / "js" / "manifest.json"  # noqa: F405
+)
 
-# Use standard static files storage for tests to avoid manifest requirements
+# Plain (non-manifest) staticfiles storage so `{% static %}` lookups in tests
+# don't require a collected staticfiles tree.
 STORAGES = {
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",

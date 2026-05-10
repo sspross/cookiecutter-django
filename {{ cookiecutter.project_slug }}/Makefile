@@ -1,4 +1,4 @@
-test:
+test: frontend.build
 	@echo "pytest running..."; \
 	output=$$(uv run pytest 2>&1); \
 	status=$$?; \
