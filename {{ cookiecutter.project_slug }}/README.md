@@ -10,7 +10,7 @@
 
 ### Setup
 
-- `cp .env.example .env` (already done by post_gen_project.py)
+- (`cp .env.example .env`)
 - `uv sync`
 - `uv run pre-commit install`
 - `uv run playwright install chromium`
@@ -22,7 +22,7 @@
 
 - Start frontend watcher first: `make frontend.dev`
 - `uv run python manage.py runserver`
-- Log in at http://localhost:8000/accounts/login/ with `{{ cookiecutter.django_username }}` / `{{ cookiecutter.django_password }}`
+- Log in at http://localhost:8000/accounts/login/
 
 ### Tests
 
