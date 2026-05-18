@@ -4,9 +4,10 @@
 
 ### Requirements
 
-- Local Redis Server
-- (Optional) Local Postgres Server, if SQLite is not enough
 - `uv` (https://docs.astral.sh/uv/)
+- (Optional) Local Postgres Server, if SQLite is not enough
+- (Optional) tmux for `make dev` experience: `brew install tmux`
+- (Optional) Local Redis Server for async worker: `brew install redis`
 
 ### Setup
 
@@ -20,8 +21,11 @@
 
 ### Work
 
-- Start frontend watcher first: `make frontend.dev`
-- `uv run python manage.py runserver`
+- `make dev` — tmux: a shell pane + frontend/backend/worker panes
+- ...or run individually in separate terminals:
+  - `make frontend.dev` (start this first)
+  - `make backend.dev`
+  - `make worker.dev` (needs Redis; only does work once you write a job)
 - Log in at http://localhost:8000/accounts/login/
 
 ### Tests
@@ -34,7 +38,7 @@
 
 After adding/changing ninja API endpoints, regenerate the SPA's typed schema:
 
-- `uv run python manage.py runserver` (in another terminal)
+- `make backend.dev` (in another terminal)
 - `make schema`
 
 ## Deployment

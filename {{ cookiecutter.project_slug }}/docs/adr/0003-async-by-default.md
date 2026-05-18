@@ -23,7 +23,13 @@ The template ships:
 - `redis` service in `docker-compose.yml`, with healthcheck and
   `depends_on` wiring on `web` and `worker`.
 - `redis` database in `appliku.yml`.
-- `worker.sh` script: `uv run python manage.py rqworker default`.
+- `worker.sh` script: `uv run python manage.py rqworker default` — the
+  *forking* worker (prod, Linux). Local dev uses `make worker.dev`, which
+  runs the same queue with `--worker-class rq.worker.SimpleWorker`
+  (in-process, no `os.fork()` — fork-safe on macOS). Write jobs correct
+  under **both**: don't rely on in-process state surviving between jobs,
+  and don't rely on SimpleWorker's lack of a hard per-job timeout — prod's
+  forking worker enforces `RQ_QUEUES` `DEFAULT_TIMEOUT` and kills the job.
 - `worker` service in compose, building from the same image as `web`,
   running `./worker.sh` instead of `./web.sh`.
 - The django-rq dashboard mounted at `/django-rq/` (gated to staff by
@@ -46,9 +52,12 @@ Positive:
 
 Negative:
 
-- A Redis dependency on day one for projects that may never need it
-  (the developer has to run `redis-server` locally or `docker compose
-  up redis` before `runserver` works).
+- A Redis dependency for projects that may never need it. It is *not*
+  needed for `runserver` or ordinary requests — RQ connects to Redis
+  lazily, only when the worker runs or a job is enqueued, and a freshly
+  generated project has no jobs. So Redis is optional until the first
+  job; once you have one, `make worker.dev` (and any `.delay()`) needs
+  `redis-server` locally or `docker compose up redis`.
 - A few extra lines in the Dockerfile/compose/appliku.yml that some
   generated projects will never use.
 

@@ -37,6 +37,20 @@ frontend.build:
 frontend.dev:
 	cd core/frontend && npm run dev
 
+backend.dev:
+	uv run python manage.py runserver
+
+# Local worker uses SimpleWorker (in-process, no os.fork() — fork-safe on
+# macOS). Prod (worker.sh) uses the forking `rqworker`. Write jobs correct
+# under BOTH: don't rely on in-process state surviving between jobs, and
+# don't rely on SimpleWorker's lack of a hard per-job timeout — prod enforces
+# RQ_QUEUES DEFAULT_TIMEOUT and kills the job. See docs/adr/0003.
+worker.dev:
+	uv run python manage.py rqworker default --worker-class rq.worker.SimpleWorker
+
+dev: # one-command dev loop: tmux with a shell + frontend/backend/worker panes
+	./scripts/dev.sh
+
 schema:
 	cd core/frontend && npm run schema
 
