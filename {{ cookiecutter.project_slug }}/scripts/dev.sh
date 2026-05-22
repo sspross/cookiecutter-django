@@ -42,6 +42,11 @@ fi
 # Build the layout detached. Pane creation order makes the right column,
 # top->bottom, panes 1, 3, 2 (same split sequence as a known-good setup).
 tmux new-session -d -s "$SESSION" -n dev
+
+# Mouse mode: scroll panes with the wheel, click to select, drag borders to
+# resize. Scoped to this session so it never touches the user's tmux config.
+tmux set-option -t "$SESSION" mouse on
+
 tmux split-window -h -p 33 -t "$SESSION:0"
 tmux split-window -v -t "$SESSION:0.1"
 tmux split-window -v -t "$SESSION:0.1"
