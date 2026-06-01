@@ -23,6 +23,15 @@ if ! command -v tmux >/dev/null 2>&1; then
 	exit 1
 fi
 
+# tmux refuses to start ("open terminal failed: missing or unsuitable terminal")
+# when $TERM has no terminfo entry on this host — common when the terminal
+# (e.g. Ghostty's xterm-ghostty) isn't installed inside a container / VM /
+# remote box. Fall back to a universally-available description for this session.
+if ! infocmp "$TERM" >/dev/null 2>&1; then
+	echo "note: '$TERM' terminfo missing here; using xterm-256color for tmux" >&2
+	export TERM=xterm-256color
+fi
+
 # Connect to whichever client we have: switch within tmux, attach from a
 # plain shell.
 connect() {
