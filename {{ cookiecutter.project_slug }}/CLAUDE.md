@@ -11,6 +11,16 @@ Run these before declaring work complete:
 - `make format` — apply formatting.
 - `make precommit` — run the full pre-commit pipeline locally to catch issues before committing.
 
+## Conventions
+
+- **Python tooling is `uv`** — `uv add`, `uv run`, etc. Never `pip`.
+- **Imports go at module top.** Defer one only for a genuine circular cycle (add a comment naming it, e.g. `# avoid circular: jobs → services → models → jobs`) or under a `TYPE_CHECKING` guard. Judge each import on its own; `# noqa: PLC0415` is a smell, not a pattern to copy.
+- **Type-hint everything.** Annotate all function signatures and any non-obvious variable; the goal is maximal coverage, not just the easy cases.
+- **Put units in names** — `TIMEOUT_SECONDS`, `MAX_SIZE_MB`, `DELAY_MS`.
+- **No TODOs without an issue number.**
+- **Never `--no-verify`, and never skip or delete a failing test to go green** — fix the underlying problem.
+- **After 3 failed attempts at the same problem, stop and reassess** instead of repeating variations.
+
 ## Agent skills
 
 ### Issue tracker
