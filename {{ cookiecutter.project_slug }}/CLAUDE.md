@@ -15,6 +15,7 @@ Run these before declaring work complete:
 
 - **Python tooling is `uv`** — `uv add`, `uv run`, etc. Never `pip`.
 - **Imports go at module top.** Defer one only for a genuine circular cycle (add a comment naming it, e.g. `# avoid circular: jobs → services → models → jobs`) or under a `TYPE_CHECKING` guard. Judge each import on its own; `# noqa: PLC0415` is a smell, not a pattern to copy.
+- **Module boundaries are enforced by `tach`** (`tach.toml`). A `from other_app.models import X` that `tach check` rejects at runtime is **still allowed under a `TYPE_CHECKING` guard for type-hinting only** — annotations create no runtime dependency. Keep such an import pointing the same direction as the runtime arrow; never invert a boundary behind the guard. See ADR-0005.
 - **Type-hint everything.** Annotate all function signatures and any non-obvious variable; the goal is maximal coverage, not just the easy cases.
 - **Put units in names** — `TIMEOUT_SECONDS`, `MAX_SIZE_MB`, `DELAY_MS`.
 - **No TODOs without an issue number.**

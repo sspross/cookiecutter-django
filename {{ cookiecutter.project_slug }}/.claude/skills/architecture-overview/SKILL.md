@@ -41,7 +41,8 @@ on django-vite + shadcn/Tailwind + TanStack Query; dual deployment (Appliku and
 docker-compose); the Playwright live-test harness; `tach.toml` declaring module
 boundaries; `make test`/`lint`/`format`/`precommit` guardrails; the `appliku`
 agent skill and the `docs/agents/` docs; ADRs 0001 react-spa, 0002
-api-keys-session-only, 0003 async-by-default, 0004 dual-deployment.
+api-keys-session-only, 0003 async-by-default, 0004 dual-deployment, 0005
+tach-boundaries.
 
 ## Workflow
 
