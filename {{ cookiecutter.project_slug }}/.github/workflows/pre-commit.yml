@@ -16,6 +16,7 @@ jobs:
           python-version: '3.13'
       - uses: astral-sh/setup-uv@v5
       - run: uv sync --frozen
+      - run: make frontend.install   # biome-check & tsc-typecheck hooks need core/frontend/node_modules
       - uses: pre-commit/action@v3.0.1
       - uses: pre-commit/action@v3.0.1
         with:
