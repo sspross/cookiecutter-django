@@ -147,6 +147,13 @@ appliku volumes list   --team <team_path> --app <id>
 appliku volumes delete --team <team_path> --app <id> --id <volume_id>
 ```
 
+A volume's `environment_variable` is a **PREFIX**, not a literal var name: Appliku
+injects `<PREFIX>_ROOT` (the mount target) and `<PREFIX>_URL` (the web url). For the
+media volume the prefix must be `MEDIA` so Django gets `MEDIA_ROOT`/`MEDIA_URL` (which
+`core/settings/base.py` reads). Setting it to `MEDIA_ROOT` injects useless
+`MEDIA_ROOT_ROOT`/`MEDIA_ROOT_URL`, `MEDIA_ROOT` falls back to ephemeral `BASE_DIR/media`,
+and uploads 404 in production.
+
 ### crons
 
 ```bash

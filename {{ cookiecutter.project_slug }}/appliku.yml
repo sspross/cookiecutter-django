@@ -39,4 +39,8 @@ volumes:
   media:
     target: /volumes/media
     url: /media/
-    environment_variable: MEDIA_ROOT
+    # environment_variable is a PREFIX: Appliku injects <PREFIX>_ROOT (the
+    # target path) and <PREFIX>_URL (the url). Django reads MEDIA_ROOT and
+    # MEDIA_URL (see core/settings/base.py), so the prefix must be MEDIA —
+    # NOT MEDIA_ROOT, which would inject useless MEDIA_ROOT_ROOT/MEDIA_ROOT_URL.
+    environment_variable: MEDIA
