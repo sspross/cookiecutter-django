@@ -6,15 +6,6 @@ import { BrowserRouter } from "react-router";
 import "./spa/index.css";
 import { App } from "./spa/App";
 
-declare global {
-  interface Window {
-    __APP__?: {
-      projectName?: string;
-      username?: string;
-    };
-  }
-}
-
 // Pages that share the bundle only for CSS (login, admin error pages)
 // will not have an `#app` mount node — bail early so they pick up
 // styling without paying for React boot.
@@ -29,16 +20,15 @@ if (mountNode) {
     },
   });
 
-  const config = window.__APP__ ?? {};
+  // `projectName` is a build-time constant server-rendered onto the mount
+  // node. Per-user data (username) is fetched from the typed `/api/me`.
+  const projectName = mountNode.dataset.projectName ?? "";
 
   ReactDOM.createRoot(mountNode).render(
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <App
-            projectName={config.projectName ?? "{{ cookiecutter.project_name }}"}
-            username={config.username}
-          />
+          <App projectName={projectName} />
         </BrowserRouter>
       </QueryClientProvider>
     </React.StrictMode>,

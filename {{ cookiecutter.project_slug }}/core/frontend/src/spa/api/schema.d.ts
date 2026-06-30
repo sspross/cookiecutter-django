@@ -25,6 +25,13 @@ export interface paths {
       };
     };
   };
+  "/api/me": {
+    get: {
+      responses: {
+        200: { content: { "application/json": components["schemas"]["MeOut"] } };
+      };
+    };
+  };
 }
 export interface components {
   schemas: {
@@ -41,5 +48,6 @@ export interface components {
       api_key: components["schemas"]["ApiKeyOut"];
       raw_token: string;
     };
+    MeOut: { username: string };
   };
 }

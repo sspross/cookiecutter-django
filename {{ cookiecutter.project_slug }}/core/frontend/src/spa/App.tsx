@@ -5,12 +5,11 @@ import { DashboardRoute } from "@/routes/index";
 
 interface AppProps {
   projectName: string;
-  username?: string;
 }
 
-export function App({ projectName, username }: AppProps) {
+export function App({ projectName }: AppProps) {
   return (
-    <AppShell projectName={projectName} username={username}>
+    <AppShell projectName={projectName}>
       <Routes>
         <Route path="/" element={<DashboardRoute />} />
         <Route path="/api-access" element={<ApiAccessRoute />} />

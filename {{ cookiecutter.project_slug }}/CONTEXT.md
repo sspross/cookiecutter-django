@@ -47,6 +47,9 @@ HTML pages:
 
 API (django-ninja, dual auth, CSRF on session-authed writes):
 
+- `GET  /api/me` — the current user (`{username}`, schema `core.schemas.MeOut`).
+  Dual auth, so it doubles as a headless `whoami`; the SPA reads it via
+  `useMe()` for the "Signed in as …" footer. See ADR-0006.
 - `GET  /api/api-keys/` — list the requesting user's keys (active and revoked,
   newest-first)
 - `POST /api/api-keys/` — body `{name}`; responds 201 with the created row plus the
@@ -73,8 +76,9 @@ App layout:
 core/
   __init__.py
   apps.py
-  api.py             # NinjaAPI mount; defaults to [ApiKeyBearer(), django_auth]
+  api.py             # NinjaAPI mount; [ApiKeyBearer(), django_auth]; GET /api/me
   context.py         # template context_processor: project_name
+  schemas.py         # MeOut — the /api/me wire shape
   urls.py
   views.py           # app_view: SPA mount; @login_required + @ensure_csrf_cookie
   templates/
@@ -84,7 +88,7 @@ core/
     registration/login.html
   tests/
     test_views.py
-    utils.py         # StaticLiveServerWithArtifactsOnErrorTestCase
+    test_api.py      # /api/me (session + bearer + anonymous)
 api_keys/
   __init__.py
   apps.py
@@ -116,11 +120,13 @@ spa/
     csrf.ts
   queries/
     use-api-keys.ts # TanStack Query hooks for api keys
+    use-me.ts       # useMe() — current user from /api/me
   routes/
     index.tsx       # Dashboard (inline cards, no abstractions yet)
     api-access.tsx
   components/
     api-key-modals.tsx
+    copy-button.tsx # clipboard button (curl block + reveal modal)
     layout/
       app-shell.tsx # sidebar + main content
       logo.tsx
@@ -150,6 +156,11 @@ fresh clone before the dev has run the server.
 Server state lives in TanStack Query. Cache is keyed by query key, so list views
 and detail views can share the same cached row.
 
+The SPA boot payload is split by nature (ADR-0006): build-time **constants** are
+server-rendered (`project_name` → `data-project-name` on `#app`, read via
+`mountNode.dataset`), while per-user **data** (`username`) is fetched from the
+typed `/api/me` via `useMe()`. No `window.__APP__` global.
+
 Build is a single Vite pipeline using `@tailwindcss/vite`. The same compiled CSS file
 is loaded by both the SPA mount template and Django-rendered pages (login, admin
 error pages), so visual tokens are shared.
@@ -157,11 +168,27 @@ error pages), so visual tokens are shared.
 ### Testing
 
 No JS unit tests. Frontend correctness is exercised end-to-end by the Python
-**live tests** under `*/tests/live/` (Playwright via
-`StaticLiveServerWithArtifactsOnErrorTestCase` in `core/tests/utils.py`). A live
-test drives the real SPA against a real Django server, so it covers the same
-ground a vitest suite would — minus the mocking gymnastics. Static correctness
-on the TS side is covered by `tsc --noEmit` and biome (both run in pre-commit).
+**live tests** under `*/tests/live/`. A live test is a plain pytest function
+taking pytest-django's `live_server` and pytest-playwright's `page` fixtures —
+no bespoke base class. It drives the real SPA against a real Django server, so
+it covers the same ground a vitest suite would — minus the mocking gymnastics.
+
+Conventions:
+
+- **Web-first assertions.** Use Playwright's auto-retrying `expect(locator)`
+  (e.g. `to_be_visible()`, `to_contain_text()`, `to_have_count()`) rather than
+  bare instant reads — the retry absorbs animation/transition timing.
+- **Artifacts on failure** are captured natively by pytest-playwright into
+  `test-results/` (a trace + screenshot; configured via the `--tracing` /
+  `--screenshot` addopts in `pyproject.toml`). Inspect a trace with
+  `uv run playwright show-trace test-results/<…>/trace.zip`.
+- **Dev knobs** are Playwright-native: `uv run pytest --headed --slowmo 500`
+  (wrapped by `make test.live.watch`), or `PWDEBUG=1` for the inspector.
+- `core/settings/test.py` sets `DJANGO_ALLOW_ASYNC_UNSAFE` so the sync
+  Playwright API can touch the DB from its event loop.
+
+Static correctness on the TS side is covered by `tsc --noEmit` and biome (both
+run in pre-commit).
 
 If you ever need a unit test that can't be expressed as a live test, add vitest
 back — but justify it in a PR, don't reflexively install it for "we should have
