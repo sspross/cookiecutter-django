@@ -28,8 +28,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-uv run python manage.py export_openapi_schema -o "$OPENAPI_JSON"
-(cd core/frontend && npx --no-install openapi-typescript .openapi.json -o ./src/spa/api/schema.d.ts)
+make schema
 
 if ! diff -u "$snapshot" "$SCHEMA_FILE"; then
   echo >&2
