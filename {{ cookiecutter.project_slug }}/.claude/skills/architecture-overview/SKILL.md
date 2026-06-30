@@ -40,8 +40,11 @@ and bearer), including a `GET /api/me` whoami (`core/schemas.py`); RQ + Redis
 async infrastructure with no jobs by default; React SPA on django-vite +
 shadcn/Tailwind + TanStack Query, whose boot payload is split (build constants
 server-rendered via `data-project-name`, per-user data fetched from the typed
-`/api/me` with `useMe()` — no `window.__APP__`); dual deployment (Appliku and
-docker-compose); the live-test harness (function-style on pytest-django
+`/api/me` with `useMe()` — no `window.__APP__`), its TypeScript client
+generated from the ninja schema by `make schema` and kept in sync by the
+`schema-fresh` pre-commit guard (`schemas.py` is the single source of truth);
+dual deployment (Appliku and docker-compose); the live-test harness
+(function-style on pytest-django
 `live_server` + pytest-playwright `page`, artifacts via pyproject addopts — no
 base class); `tach.toml` declaring module boundaries; `make
 test`/`lint`/`format`/`precommit` guardrails; the `appliku` agent skill and the
