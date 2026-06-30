@@ -19,3 +19,4 @@ export const apiClient = createClient<paths>({
 export type ApiKey = components["schemas"]["ApiKeyOut"];
 export type ApiKeyCreateIn = components["schemas"]["ApiKeyCreateIn"];
 export type ApiKeyMintOut = components["schemas"]["ApiKeyMintOut"];
+export type Me = components["schemas"]["MeOut"];

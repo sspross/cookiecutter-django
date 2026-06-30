@@ -5,6 +5,7 @@ import {
   RevealApiKeyModal,
   RevokeApiKeyModal,
 } from "@/components/api-key-modals";
+import { CopyButton } from "@/components/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,24 +28,6 @@ function formatTimestamp(iso: string | null | undefined) {
   }
 }
 
-function CopyButton({ value, label }: { value: string; label?: string }) {
-  const [copied, setCopied] = useState(false);
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      setCopied(false);
-    }
-  }
-  return (
-    <Button type="button" variant="outline" size="sm" onClick={copy}>
-      {copied ? "Copied!" : (label ?? "Copy")}
-    </Button>
-  );
-}
-
 // `window` is always defined here — the SPA only runs in the browser.
 const ORIGIN = window.location.origin;
 const PREFIX_HINT = "{{ cookiecutter.project_slug }}_live_…";
@@ -52,11 +35,15 @@ const PREFIX_HINT = "{{ cookiecutter.project_slug }}_live_…";
 const CURL_LIST = `curl -H "Authorization: Bearer ${PREFIX_HINT}" \\
   ${ORIGIN}/api/api-keys/`;
 
+type Modal =
+  | { kind: "none" }
+  | { kind: "mint" }
+  | { kind: "reveal"; result: ApiKeyMintOut }
+  | { kind: "revoke"; key: ApiKey };
+
 export function ApiAccessRoute() {
   const list = useApiKeysList();
-  const [mintOpen, setMintOpen] = useState(false);
-  const [reveal, setReveal] = useState<ApiKeyMintOut | null>(null);
-  const [pendingRevoke, setPendingRevoke] = useState<ApiKey | null>(null);
+  const [modal, setModal] = useState<Modal>({ kind: "none" });
 
   const keys = list.data ?? [];
   const isEmpty = list.isSuccess && keys.length === 0;
@@ -72,7 +59,7 @@ export function ApiAccessRoute() {
             </p>
           </div>
           {!isEmpty && (
-            <Button data-testid="open-mint" onClick={() => setMintOpen(true)}>
+            <Button data-testid="open-mint" onClick={() => setModal({ kind: "mint" })}>
               New API key
             </Button>
           )}
@@ -104,7 +91,7 @@ export function ApiAccessRoute() {
             <Button
               className="mt-4"
               data-testid="empty-state-mint"
-              onClick={() => setMintOpen(true)}
+              onClick={() => setModal({ kind: "mint" })}
             >
               Create your first API key
             </Button>
@@ -156,7 +143,7 @@ export function ApiAccessRoute() {
                             variant="outline"
                             size="sm"
                             data-testid={`revoke-${key.id}`}
-                            onClick={() => setPendingRevoke(key)}
+                            onClick={() => setModal({ kind: "revoke", key })}
                           >
                             Revoke
                           </Button>
@@ -206,14 +193,17 @@ export function ApiAccessRoute() {
       </section>
 
       <MintApiKeyModal
-        open={mintOpen}
-        onOpenChange={setMintOpen}
-        onMinted={(result) => setReveal(result)}
+        open={modal.kind === "mint"}
+        onOpenChange={(open) => !open && setModal({ kind: "none" })}
+        onMinted={(result) => setModal({ kind: "reveal", result })}
       />
-      <RevealApiKeyModal result={reveal} onAcknowledge={() => setReveal(null)} />
+      <RevealApiKeyModal
+        result={modal.kind === "reveal" ? modal.result : null}
+        onAcknowledge={() => setModal({ kind: "none" })}
+      />
       <RevokeApiKeyModal
-        apiKey={pendingRevoke}
-        onClose={() => setPendingRevoke(null)}
+        apiKey={modal.kind === "revoke" ? modal.key : null}
+        onClose={() => setModal({ kind: "none" })}
       />
     </div>
   );

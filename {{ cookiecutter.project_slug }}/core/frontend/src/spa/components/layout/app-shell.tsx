@@ -5,10 +5,10 @@ import { HomeIcon, KeyIcon, Menu, X } from "@/components/layout/icons";
 import { Logo } from "@/components/layout/logo";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { cn } from "@/lib/utils";
+import { useMe } from "@/queries/use-me";
 
 interface AppShellProps {
   projectName: string;
-  username?: string;
   children: React.ReactNode;
 }
 
@@ -31,8 +31,9 @@ function LogoutForm({ className }: { className?: string }) {
   );
 }
 
-export function AppShell({ projectName, username, children }: AppShellProps) {
+export function AppShell({ projectName, children }: AppShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { data: me } = useMe();
   const { pathname } = useLocation();
   // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger to close nav on route change
   useEffect(() => setMobileNavOpen(false), [pathname]);
@@ -67,7 +68,7 @@ export function AppShell({ projectName, username, children }: AppShellProps) {
           ))}
         </nav>
         <div className="border-t border-sidebar-border p-3 text-xs text-muted-foreground">
-          {username ? `Signed in as ${username}` : null}
+          {me ? `Signed in as ${me.username}` : null}
           <div className="mt-2 flex items-center justify-between">
             <ThemeToggle />
             <LogoutForm />
@@ -120,7 +121,7 @@ export function AppShell({ projectName, username, children }: AppShellProps) {
                 </NavLink>
               ))}
               <div className="mt-2 border-t border-sidebar-border pt-3 text-xs text-muted-foreground">
-                {username ? <div>Signed in as {username}</div> : null}
+                {me ? <div>Signed in as {me.username}</div> : null}
                 <div className="mt-2 flex items-center justify-between">
                   <ThemeToggle />
                   <LogoutForm />

@@ -12,7 +12,13 @@ test: frontend.build
 test.live.watch: frontend.build # run live (Playwright) tests with a visible, slowed-down browser
 	@dirs=$$(find . -type d -path '*/tests/live' -not -path '*/.venv/*' -not -path '*/node_modules/*'); \
 	if [ -z "$$dirs" ]; then echo "No tests/live directories found"; exit 1; fi; \
-	HEADED=1 SLOWMO_MS=500 uv run pytest -s $$dirs
+	uv run pytest --headed --slowmo 500 -s $$dirs
+
+test.live.record: frontend.build # run live (Playwright) tests headless, recording video + trace for later review
+	@dirs=$$(find . -type d -path '*/tests/live' -not -path '*/.venv/*' -not -path '*/node_modules/*'); \
+	if [ -z "$$dirs" ]; then echo "No tests/live directories found"; exit 1; fi; \
+	uv run pytest --video on --tracing on --output test-results $$dirs; \
+	echo "Artifacts in ./test-results — drag trace.zip to https://trace.playwright.dev"
 
 lint:
 	uv run ruff check .

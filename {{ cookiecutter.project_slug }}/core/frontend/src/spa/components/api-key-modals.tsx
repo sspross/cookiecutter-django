@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ApiKey, ApiKeyMintOut } from "@/api/client";
+import { CopyButton } from "@/components/copy-button";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -108,22 +109,6 @@ interface RevealModalProps {
 }
 
 export function RevealApiKeyModal({ result, onAcknowledge }: RevealModalProps) {
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (!result) setCopied(false);
-  }, [result]);
-
-  async function copyToken() {
-    if (!result) return;
-    try {
-      await navigator.clipboard.writeText(result.raw_token);
-      setCopied(true);
-    } catch {
-      setCopied(false);
-    }
-  }
-
   // Acknowledgement-required: pointerDownOutside / Esc are routed
   // through the same ack handler so the only way to close is the
   // explicit "I've copied it" button.
@@ -152,14 +137,11 @@ export function RevealApiKeyModal({ result, onAcknowledge }: RevealModalProps) {
           >
             {result?.raw_token ?? ""}
           </pre>
-          <Button
-            type="button"
-            variant="outline"
+          <CopyButton
+            value={result?.raw_token ?? ""}
+            label="Copy to clipboard"
             data-testid="copy-token"
-            onClick={copyToken}
-          >
-            {copied ? "Copied!" : "Copy to clipboard"}
-          </Button>
+          />
         </div>
         <DialogFooter>
           <Button type="button" data-testid="ack-token" onClick={onAcknowledge}>

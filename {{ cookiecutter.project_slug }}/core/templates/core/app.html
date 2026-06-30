@@ -10,9 +10,5 @@
 {% endblock extra_head %}
 
 {% block body %}
-  {{ spa_config|json_script:"app-config" }}
-  <script>
-    window.__APP__ = JSON.parse(document.getElementById("app-config").textContent);
-  </script>
-  <div id="app"></div>
+  <div id="app" data-project-name="{{ project_name }}"></div>
 {% endblock body %}

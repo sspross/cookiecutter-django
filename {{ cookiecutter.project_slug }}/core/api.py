@@ -1,3 +1,4 @@
+from django.http import HttpRequest
 from ninja import NinjaAPI
 from ninja.security import django_auth
 
@@ -6,6 +7,7 @@ from ninja.security import django_auth
 # and remove the api_keys router mount. See docs/adr/0002-api-keys-session-only.md.
 from api_keys.api import router as api_keys_router
 from api_keys.auth import ApiKeyBearer
+from core.schemas import MeOut
 
 # Both auth methods accepted on every endpoint. ninja tries each in order;
 # the first that returns a truthy value wins. Bearer is tried before
@@ -19,3 +21,11 @@ from api_keys.auth import ApiKeyBearer
 # `django_auth` only — see ADR-0002.
 api = NinjaAPI(auth=[ApiKeyBearer(), django_auth])
 api.add_router("/api-keys/", api_keys_router)
+
+
+@api.get("/me", response=MeOut)
+def me(request: HttpRequest) -> MeOut:
+    """The authenticated user. Inherits the global dual auth, so it serves
+    both the SPA boot payload (session) and a headless ``whoami`` (bearer).
+    Read-only — no escalation risk on the bearer path."""
+    return request.user
