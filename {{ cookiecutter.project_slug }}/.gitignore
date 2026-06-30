@@ -5,7 +5,7 @@ db.sqlite3
 __pycache__/
 staticfiles/
 media/
-test_artifacts/
+test-results/
 
 # Frontend build artifacts
 core/static/dist/

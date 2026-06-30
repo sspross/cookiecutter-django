@@ -12,7 +12,7 @@ test: frontend.build
 test.live.watch: frontend.build # run live (Playwright) tests with a visible, slowed-down browser
 	@dirs=$$(find . -type d -path '*/tests/live' -not -path '*/.venv/*' -not -path '*/node_modules/*'); \
 	if [ -z "$$dirs" ]; then echo "No tests/live directories found"; exit 1; fi; \
-	HEADED=1 SLOWMO_MS=500 uv run pytest -s $$dirs
+	uv run pytest --headed --slowmo 500 -s $$dirs
 
 lint:
 	uv run ruff check .

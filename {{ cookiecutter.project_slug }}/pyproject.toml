@@ -53,10 +53,7 @@ select = [
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "core.settings.test"
 python_files = ["test_*.py", "*_test.py", "tests.py"]
-addopts = "-v --tb=short"
-markers = [
-     "browser: marks tests as browser tests using Playwright",
-]
+addopts = "-v --tb=short --tracing=retain-on-failure --screenshot=only-on-failure"
 
 [tool.deptry]
 # Patterns are matched from the start of the path (re.match), so nested test
