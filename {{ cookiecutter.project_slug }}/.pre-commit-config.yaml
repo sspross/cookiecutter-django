@@ -58,6 +58,13 @@ repos:
         always_run: true
         verbose: true
         stages: [manual]
+      - id: schema-fresh
+        name: schema-fresh (generated API client up to date)
+        entry: bash scripts/check_schema_fresh.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [manual]
       - id: biome-check
         name: biome-check (core/frontend)
         entry: bash -c 'cd core/frontend && npx --no-install biome check --write --no-errors-on-unmatched src vite.config.mjs'

@@ -21,3 +21,10 @@ jobs:
       - uses: pre-commit/action@v3.0.1
         with:
           extra_args: --hook-stage manual --all-files
+        # The schema-fresh hook boots Django to introspect the ninja API, so
+        # settings must import. Only SECRET_KEY + DATABASE_URL lack defaults in
+        # core/settings/base.py; the schema export never connects, so a
+        # throwaway sqlite URL is enough.
+        env:
+          SECRET_KEY: ci-not-a-real-secret
+          DATABASE_URL: sqlite:///db.sqlite3

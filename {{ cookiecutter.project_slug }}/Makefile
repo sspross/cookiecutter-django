@@ -57,8 +57,10 @@ worker.dev:
 dev: # one-command dev loop: tmux with a shell + frontend/backend/worker panes
 	./scripts/dev.sh
 
-schema:
+schema: # regenerate the typed API client (schema.d.ts) from the ninja schema, offline
+	uv run python manage.py export_openapi_schema -o core/frontend/.openapi.json
 	cd core/frontend && npm run schema
+	rm -f core/frontend/.openapi.json
 
 db.recreate: # only work with local Postgres, not SQLite
 	dropdb --if-exists --force {{ cookiecutter.project_slug }}
