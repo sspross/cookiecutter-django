@@ -10,3 +10,6 @@ test-results/
 # Frontend build artifacts
 core/static/dist/
 core/frontend/node_modules/
+
+# Transient OpenAPI export written by `make schema` / the schema-freshness guard
+core/frontend/.openapi.json
