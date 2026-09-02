@@ -1,7 +1,5 @@
 # 0003 — Async runtime ships by default
 
-Status: Accepted
-
 ## Context
 
 Most Django projects spawned from this template will eventually need
@@ -61,9 +59,8 @@ Negative:
 - A few extra lines in the Dockerfile/compose/appliku.yml that some
   generated projects will never use.
 
-These costs are real but small; the alternative — discovering you need
-async on week 6 and bolting it on across five files — has bitten this
-codebase enough times to justify the upfront tax.
+These costs are real but small, and the alternative is discovering you
+need async on week 6 and bolting it on across five files.
 
 ## Alternatives considered
 

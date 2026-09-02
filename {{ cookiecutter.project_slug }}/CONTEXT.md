@@ -195,7 +195,7 @@ and detail views can share the same cached row.
 The SPA boot payload is split by nature (ADR-0006): build-time **constants** are
 server-rendered (`project_name` → `data-project-name` on `#app`, read via
 `mountNode.dataset`), while per-user **data** (`username`) is fetched from the
-typed `/api/me` via `useMe()`. No `window.__APP__` global.
+typed `/api/me` via `useMe()`. No untyped `window` global.
 
 Build is a single Vite pipeline using `@tailwindcss/vite`. The same compiled CSS file
 is loaded by both the SPA mount template and Django-rendered pages (login, admin

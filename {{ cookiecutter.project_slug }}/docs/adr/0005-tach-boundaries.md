@@ -1,7 +1,5 @@
 # 0005 — Module boundaries enforced by tach; type-hint imports allowed across them
 
-Status: Accepted
-
 ## Context
 
 The template ships `tach` and a `tach.toml` that declares an explicit dependency
@@ -11,8 +9,7 @@ The baseline graph is one arrow: `core → api_keys` (`core` may import
 `api_keys`; `api_keys` may import nothing). As the project grows, each
 team-added `[[modules]]` block draws another boundary.
 
-Two facts make `tach` confusing on first contact, and both have bitten real
-projects spawned from this template:
+Two facts make `tach` confusing on first contact:
 
 1. A forbidden import and a type annotation look identical in source —
    `from other_app.models import Thing` — but they are not the same thing. The

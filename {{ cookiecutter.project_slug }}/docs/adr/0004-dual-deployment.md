@@ -1,10 +1,8 @@
 # 0004 — Two deployment paths ship: Appliku canonical, Docker Compose self-host
 
-Status: Accepted
-
 ## Context
 
-Past projects from this template have deployed two ways:
+Two deployment paths are both in active use:
 
 1. **Appliku** — a managed PaaS that reads `appliku.yml` and provisions
    Postgres, Redis, web/worker/release processes, env, and TLS. Push to
@@ -14,9 +12,7 @@ Past projects from this template have deployed two ways:
    docker-compose stack up. Useful for internal tools that should not
    leave the home/office network.
 
-Both paths are real for the maintainer; picking one and removing the
-other has been re-litigated and re-reverted enough times to merit
-freezing the answer.
+Neither can be dropped without losing a path someone deploys on today.
 
 ## Decision
 

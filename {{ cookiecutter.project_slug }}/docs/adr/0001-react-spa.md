@@ -1,7 +1,5 @@
 # 0001 — React SPA + shadcn/ui for the authenticated app
 
-Status: Accepted
-
 ## Context
 
 The authenticated app needs to grow beyond a single CRUD list. We expect
@@ -32,14 +30,15 @@ Concretely:
   same endpoints — no `/api/v2/` split. The exception is the
   `/api/api-keys/*` router; see ADR-0002.
 - **API contract.** `openapi-typescript` generates `schema.d.ts` from
-  ninja's `/api/openapi.json`; `openapi-fetch` is the typed fetch
-  wrapper. ninja schemas remain the single source of truth.
+  ninja's OpenAPI document, exported offline by `make schema`;
+  `openapi-fetch` is the typed fetch wrapper. ninja schemas remain the
+  single source of truth.
 - **Server state.** TanStack Query owns cache and mutations. List/detail
   routes share cache by query key.
 - **Build.** Single `@tailwindcss/vite` pipeline. Compiled CSS is shared
   between the SPA and the remaining Django-rendered pages (login).
 - **Aesthetic.** System-aware dark/light, shadcn `zinc` base, monochrome
-  primary, sidebar shell, Geist Sans + Geist Mono.
+  primary, sidebar shell, Geist and Geist Mono (Inter as sans fallback).
 
 ## Consequences
 
