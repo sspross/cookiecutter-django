@@ -9,6 +9,9 @@ test: frontend.build
 		exit $$status; \
 	fi
 
+test.coverage: frontend.build # run the suite with a coverage report (config in pyproject.toml)
+	uv run pytest --cov --cov-report=term
+
 test.live.watch: frontend.build # run live (Playwright) tests with a visible, slowed-down browser
 	@dirs=$$(find . -type d -path '*/tests/live' -not -path '*/.venv/*' -not -path '*/node_modules/*'); \
 	if [ -z "$$dirs" ]; then echo "No tests/live directories found"; exit 1; fi; \

@@ -55,6 +55,21 @@ DJANGO_SETTINGS_MODULE = "core.settings.test"
 python_files = ["test_*.py", "*_test.py", "tests.py"]
 addopts = "-v --tb=short --tracing=retain-on-failure --screenshot=only-on-failure"
 
+[tool.coverage.run]
+source = ["core", "api_keys"]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/asgi.py",
+    "*/wsgi.py",
+    "core/settings/*",
+    "manage.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
 [tool.deptry]
 # Patterns are matched from the start of the path (re.match), so nested test
 # dirs need an explicit `.*/` prefix — deptry's built-in `tests` exclude only
