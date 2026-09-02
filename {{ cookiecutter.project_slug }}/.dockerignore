@@ -21,7 +21,7 @@ staticfiles/
 core/static/dist/
 core/frontend/node_modules/
 
-test_artifacts/
+test-results/
 media/
 
 .pre-commit-config.yaml
