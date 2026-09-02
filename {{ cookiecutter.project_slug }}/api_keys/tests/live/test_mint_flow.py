@@ -65,9 +65,7 @@ def test_full_self_service_lifecycle(page: Page, live_server):
     page.wait_for_selector('[data-testid="reveal-modal"]', state="detached")
 
     # The new key shows up in the list, marked Active.
-    expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text(
-        "laptop-cli"
-    )
+    expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text("laptop-cli")
     expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text("Active")
 
     # Click revoke; confirm in the dialog.
@@ -78,8 +76,6 @@ def test_full_self_service_lifecycle(page: Page, live_server):
 
     # Row stays visible with a Revoked badge; revoke action is gone.
     expect(page.locator('[data-testid^="api-key-revoked-"]')).to_be_visible()
-    expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text(
-        "laptop-cli"
-    )
+    expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text("laptop-cli")
     expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text("Revoked")
     expect(page.locator('[data-testid^="revoke-"]')).to_have_count(0)

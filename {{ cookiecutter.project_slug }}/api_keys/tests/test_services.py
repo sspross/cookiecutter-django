@@ -67,9 +67,7 @@ class TestVerify:
         user = UserFactory()
         result = api_keys.mint(user, name="ci")
         # Flip a single character in the random portion.
-        tampered = result.raw_token[:-1] + (
-            "a" if result.raw_token[-1] != "a" else "b"
-        )
+        tampered = result.raw_token[:-1] + ("a" if result.raw_token[-1] != "a" else "b")
 
         assert api_keys.verify(tampered) is None
 
