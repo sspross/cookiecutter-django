@@ -59,18 +59,3 @@ Negative:
   learn than a templates-only app.
 - `vite build` blocks Django-rendered pages too (login depends on the
   SPA's compiled CSS). Build break = unstyled login.
-
-## Alternatives considered
-
-- **Server-rendered Django templates + htmx polling.** Rejected: most
-  projects built from this template are expected to grow beyond a
-  templates-only shape; modal-only detail forfeits deep-links.
-- **AlpineJS in templates.** Rejected: shadcn's component quality is
-  unreachable without reinventing primitives.
-- **React but no shadcn** (Mantine / MUI / Chakra). Rejected: the
-  explicit goal is the shadcn aesthetic and component vocabulary.
-- **TanStack Router instead of react-router.** Rejected: with TanStack
-  Query owning server state, the router only needs path-matching;
-  react-router is the boring, ubiquitous choice.
-- **Hand-written TS types over fetch.** Rejected: two sources of truth
-  drift silently; ninja's OpenAPI makes generation free.

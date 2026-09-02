@@ -21,6 +21,9 @@ The template ships **both** deployment configurations:
 - `appliku.yml` — the canonical path. README leads with Appliku.
 - `docker-compose.yml` + `fabfile.py` — the self-host fallback.
 
+Both ship unconditionally rather than behind a cookiecutter question: a
+single yml and a fabfile cost less than asking the user to pick upfront.
+
 Both produce identical web + worker + redis + postgres topologies. The
 shared `Dockerfile` has no `CMD`; the orchestrator picks the entry
 point (`./web.sh`, `./worker.sh`, or `./release.sh`).
@@ -50,15 +53,3 @@ Negative:
   hit. Most of the time only one is in use.
 - Both files have to stay coherent if topology changes (e.g. adding
   a `beat` process for scheduled jobs would touch both).
-
-## Alternatives considered
-
-- **Ship only `appliku.yml`.** Rejected — the self-host path is in
-  active use and re-creating it from scratch each time is wasteful.
-- **Ship only `docker-compose.yml`.** Rejected — Appliku is the
-  canonical path for projects that should be on the open internet, and
-  re-deriving `appliku.yml` from compose loses the volume / database /
-  domain wiring that the platform does for free.
-- **Hide one behind a cookiecutter question.** Rejected — both paths
-  are small (a single yml + a fabfile) and the cost of always shipping
-  both is lower than the cost of asking the user to decide upfront.

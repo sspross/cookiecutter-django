@@ -48,15 +48,3 @@ Negative:
 - The footer's "Signed in as …" now resolves after a fetch rather than on
   first paint — a negligible flash, accepted in exchange for the typing.
 - One more endpoint and one more query hook than inlining the blob.
-
-## Alternatives considered
-
-- **An inlined `window` blob, typed by hand.** Rejected — any hand-written
-  `declare global` is a second source of truth that drifts from the Django
-  side with nothing to catch it; that is the exact failure ADR-0001 pays to
-  avoid.
-- **Server-render the username too (onto `data-username`).** Rejected — it
-  is per-user data, not a build constant; routing it through the typed API
-  keeps one rule and gives the SPA a real `whoami` for free.
-- **Inline the whole user as a typed JSON island.** Rejected — saves one
-  fetch but reintroduces a parallel, hand-maintained type for the user shape.
