@@ -18,18 +18,14 @@ def main():
     project_slug = "{{ cookiecutter.project_slug }}"
     secret_key = _create_django_secret_key()
 
-    # 1. Create env file with fresh secret key
     shutil.copyfile(ENV_EXAMPLE_FILE, ENV_FILE)
     _replace_in_file(ENV_FILE, "replace-with-secret-key", secret_key)
 
-    # 2. Create a password hash for the default admin user
     password = _create_django_password(django_password, secret_key)
     _replace_in_file(DUMPDATA_FILE, "replace-with-password-hash", password)
 
-    # 3. Update pre-commit hooks to latest versions
     _update_pre_commit_hooks()
 
-    # 4. Print further instructions
     _print_instructions(project_slug)
 
 

@@ -1,23 +1,15 @@
-# tach enforces the module boundaries declared below: each [[modules]] block
-# lists what that package is ALLOWED to import, and `tach check` fails on any
-# import that crosses a boundary the graph doesn't permit.
+# Each [[modules]] block lists what that package may import; `tach check` fails
+# on any import crossing a boundary the graph doesn't permit.
 #
-# The boundary is a RUNTIME-arrow rule. With `ignore_type_checking_imports =
-# true`, an import that `tach check` forbids at runtime is still ALLOWED when it
-# lives under an `if TYPE_CHECKING:` guard (pair it with
-# `from __future__ import annotations`) — naming another module's *model* type in
-# an annotation touches no ORM and adds no runtime dependency. So a package that
-# may not import `other_app.models` at runtime may still do:
+# The boundary is a RUNTIME-arrow rule. `ignore_type_checking_imports = true`
+# lets an otherwise-forbidden import live under an `if TYPE_CHECKING:` guard
+# (paired with `from __future__ import annotations`), because an annotation
+# touches no ORM and adds no runtime dependency. Such a guarded import may only
+# travel the SAME direction as the runtime arrow — inverting it would hide a
+# forbidden dependency behind the guard. See ADR-0005 for the full rule.
 #
-#     if TYPE_CHECKING:
-#         from other_app.models import Thing   # for type hints only
-#
-# purely to type-hint a value it receives. The one rule: a TYPE_CHECKING import
-# may only travel the SAME direction as the runtime arrow, never against it —
-# inverting it would hide a forbidden dependency behind the guard. See ADR-0005.
-#
-# Exempt from the boundary: tests, migrations, management commands (the
-# composition root may wire anything), and manage.py.
+# Exempt: tests, migrations, management commands (a composition root may wire
+# anything), and manage.py.
 exclude = [
     "**/__pycache__",
     "**/tests/**",

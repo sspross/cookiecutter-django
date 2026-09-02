@@ -1,9 +1,8 @@
 /**
  * TanStack Query hook for `/api/me` — the current user.
  *
- * Per-user boot data lives behind the typed API (ADR-0006), not an inlined
- * `window` global, so the SPA reads it the same way it reads any other
- * server state.
+ * Per-user boot data goes through the typed API, read like any other server
+ * state. See ADR-0006.
  */
 
 import { useQuery } from "@tanstack/react-query";

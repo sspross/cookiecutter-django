@@ -1,9 +1,8 @@
 /**
  * Dashboard — / route.
  *
- * Day-1 shape: two inline cards (no abstractions). When you add your first
- * domain model, duplicate the API Keys card pattern below. When the third
- * card lands and you're sick of the duplication, *then* extract <StatCard>.
+ * Inline cards, no abstractions. Duplicate the API Keys card for your first
+ * domain model; extract a <StatCard> only once a third card lands.
  */
 import {
   Card,

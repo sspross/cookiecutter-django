@@ -1,10 +1,7 @@
 /**
- * Typed API client.
- *
- * `openapi-fetch` is parameterised on the `paths` map generated from
- * ninja's OpenAPI schema (see schema.d.ts). The CSRF concern is hidden
- * inside the custom fetch — TanStack Query hooks just call methods on
- * `apiClient`.
+ * Typed API client, parameterised on the `paths` map generated from ninja's
+ * OpenAPI schema. CSRF is hidden inside the custom fetch, so query hooks just
+ * call methods on `apiClient`.
  */
 
 import createClient from "openapi-fetch";

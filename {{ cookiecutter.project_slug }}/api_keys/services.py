@@ -1,9 +1,8 @@
 """Token engine for `UserApiKey`.
 
-A deep module: the public surface is two functions — ``mint`` and
-``verify`` — and the prefix/hashing/revocation policy stays inside.
-Callers (admin actions, ninja auth class) do not import ``hashlib`` or
-``secrets``; if the policy ever changes, only this module updates.
+The public surface is ``mint``, ``verify`` and ``revoke``; the prefix, hashing
+and revocation policy stays inside. Callers import neither ``hashlib`` nor
+``secrets``, so a policy change touches only this module.
 """
 
 from __future__ import annotations
@@ -23,8 +22,6 @@ DISPLAY_PREFIX_LENGTH = 12
 
 @dataclass(frozen=True)
 class MintResult:
-    """Return value of ``mint``: the persisted row + the one-shot raw token."""
-
     api_key: UserApiKey
     raw_token: str
 
@@ -34,11 +31,10 @@ def _hash(raw_token: str) -> str:
 
 
 def mint(user, name: str) -> MintResult:
-    """Generate a new API key for ``user`` and persist its hash.
+    """Generate a new API key for ``user`` and persist only its hash.
 
-    Returns the freshly-created ``UserApiKey`` row alongside the raw token,
-    which is the only opportunity any caller has to observe the live
-    credential. The raw token is never written back to the database.
+    The returned raw token is the sole opportunity any caller has to observe
+    the live credential; it is never written back to the database.
     """
 
     raw_token = TOKEN_PREFIX + secrets.token_urlsafe(TOKEN_RANDOM_BYTES)
@@ -54,9 +50,8 @@ def mint(user, name: str) -> MintResult:
 def verify(raw_token: str):
     """Resolve a raw bearer token to its owning user, or ``None``.
 
-    Rejects: unknown hashes, revoked keys, malformed/tampered tokens.
-    On success, bumps ``last_used_at`` so the admin can identify dormant
-    keys.
+    Rejects unknown hashes, revoked keys and malformed tokens. On success,
+    bumps ``last_used_at``.
     """
 
     if not raw_token or not raw_token.startswith(TOKEN_PREFIX):

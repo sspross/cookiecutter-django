@@ -1,15 +1,12 @@
 /**
  * CSRF helpers for the SPA's typed API client.
  *
- * Every mutating request (POST/PUT/PATCH/DELETE) must echo Django's
- * `csrftoken` cookie back via the `X-CSRFToken` header. Centralising
- * this in one place means no individual TanStack Query hook has to
- * remember it, and a missing cookie raises a clear error rather than
+ * Django requires every mutating request to echo the `csrftoken` cookie back
+ * via the `X-CSRFToken` header; a missing cookie raises here rather than
  * silently sending an empty header.
  *
- * `openapi-fetch` calls custom fetch implementations with a `Request`
- * object as the first argument (and an empty `init`), so we have to
- * read the method off the Request, not off `init`.
+ * `openapi-fetch` calls a custom fetch with a `Request` as the first argument
+ * and an empty `init`, so the method must be read off the Request, not `init`.
  */
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -31,7 +28,7 @@ export class CsrfCookieMissingError extends Error {
 }
 
 export interface CsrfFetchOptions extends RequestInit {
-  /** Optional override for the cookie source (used by tests). */
+  /** Override for the cookie source, in place of `document.cookie`. */
   cookieJar?: string;
 }
 
@@ -64,9 +61,8 @@ export async function csrfFetch(
     throw new CsrfCookieMissingError();
   }
 
-  // When `input` is a Request, its headers are immutable from outside;
-  // build a fresh Request with the original method/body/headers and the
-  // CSRF header tacked on.
+  // A Request's headers are immutable from outside; rebuild it with the CSRF
+  // header added.
   if (typeof Request !== "undefined" && input instanceof Request) {
     const headers = new Headers(input.headers);
     headers.set("X-CSRFToken", token);

@@ -1,9 +1,8 @@
 """Model-level tests for ``UserApiKey``.
 
-Only ``__str__`` lives here: it is the admin's sole means of identifying a
-key without revealing it, and no other test reaches it. Ordering, the
-``is_revoked`` predicate and the revocation transition are asserted where
-they are observable — through the API and through ``services.verify``.
+Only ``__str__`` lives here; no other test reaches it. Ordering, ``is_revoked``
+and the revocation transition are asserted where they are observable, through
+the API and through ``services.verify``.
 """
 
 import pytest

@@ -1,11 +1,8 @@
 """ninja router for `/api/api-keys/*` — self-service API key management.
 
-Session-only by design: a leaked bearer token must not be able to mint
-another bearer token. The router overrides the global
-``[ApiKeyBearer(), django_auth]`` default with ``django_auth`` only.
-See ADR-0002.
-
-Thin adapter over :mod:`api_keys.services`. No business logic lives here.
+Overrides the global ``[ApiKeyBearer(), django_auth]`` default with
+``django_auth`` only, so a leaked bearer token cannot mint a sibling.
+See ADR-0002. A thin adapter over :mod:`api_keys.services`.
 """
 
 from __future__ import annotations

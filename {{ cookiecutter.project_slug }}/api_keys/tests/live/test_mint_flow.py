@@ -1,13 +1,8 @@
 """End-to-end live test for the api_keys mint/revoke flow.
 
-Demonstrates the full stack: Django session login -> SPA route ->
-ninja API call -> modal with one-shot raw token -> revoke.
-
-Function-style on pytest-django's ``live_server`` + pytest-playwright's
-``page``. Artifacts (trace + screenshot) are captured on failure by
-pytest-playwright (see the ``--tracing``/``--screenshot`` addopts in
-pyproject.toml); no bespoke base class. Assertions use web-first
-``expect()``, which auto-retries and so absorbs animation/transition timing.
+Drives the full stack: Django session login -> SPA route -> ninja API call ->
+one-shot raw token modal -> revoke. Web-first ``expect()`` auto-retries, which
+absorbs animation timing. See CONTEXT.md for the live-test conventions.
 """
 
 from django.conf import settings
@@ -22,7 +17,6 @@ def test_full_self_service_lifecycle(page: Page, live_server):
     user.set_password("pw-12345!")
     user.save()
 
-    # Log in.
     page.goto(f"{live_server.url}/accounts/login/")
     page.fill('input[name="username"]', "alice")
     page.fill('input[name="password"]', "pw-12345!")
@@ -31,27 +25,20 @@ def test_full_self_service_lifecycle(page: Page, live_server):
     sidebar = page.locator('[data-testid="sidebar"]')
     expect(sidebar).to_be_visible()
 
-    # The ADR-0006 boot seam, observable only in a real render: the shell
-    # shows a build-time constant server-rendered onto the mount node's
-    # data attribute *and* a per-user value fetched from the typed
-    # /api/me. Lower layers can assert each source, but only the browser
-    # proves the SPA reads both and renders them together.
+    # The ADR-0006 boot seam: lower layers can assert each source, but only a
+    # browser proves the SPA reads both and renders them together.
     expect(sidebar).to_contain_text(settings.PROJECT_NAME)
     expect(sidebar).to_contain_text("Signed in as alice")
 
-    # Click the API sidebar nav item.
     page.click('[data-testid="sidebar"] >> text=API')
     page.wait_for_url("**/api-access")
 
-    # Empty state with CTA visible.
     expect(page.locator('[data-testid="api-keys-empty"]')).to_be_visible()
 
-    # Mint via the empty-state CTA.
     page.click('[data-testid="empty-state-mint"]')
     page.fill('[data-testid="api-key-name"]', "laptop-cli")
     page.click('[data-testid="submit-mint"]')
 
-    # Reveal modal: token visible + ack required.
     expect(page.locator('[data-testid="reveal-modal"]')).to_be_visible()
     expect(page.locator('[data-testid="raw-token"]')).to_contain_text(
         api_keys.TOKEN_PREFIX
@@ -60,21 +47,17 @@ def test_full_self_service_lifecycle(page: Page, live_server):
     page.keyboard.press("Escape")
     expect(page.locator('[data-testid="reveal-modal"]')).to_be_visible()
 
-    # Acknowledge to dismiss.
     page.click('[data-testid="ack-token"]')
     page.wait_for_selector('[data-testid="reveal-modal"]', state="detached")
 
-    # The new key shows up in the list, marked Active.
     expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text("laptop-cli")
     expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text("Active")
 
-    # Click revoke; confirm in the dialog.
     page.click('[data-testid^="revoke-"]')
     expect(page.locator('[data-testid="revoke-modal"]')).to_be_visible()
     page.click('[data-testid="confirm-revoke"]')
     page.wait_for_selector('[data-testid="revoke-modal"]', state="detached")
 
-    # Row stays visible with a Revoked badge; revoke action is gone.
     expect(page.locator('[data-testid^="api-key-revoked-"]')).to_be_visible()
     expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text("laptop-cli")
     expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text("Revoked")

@@ -11,10 +11,9 @@ set -e
 #   |                     | make worker.dev     (bottom)
 #   +---------------------+-----------------+
 #
-# The three right panes just call the standalone `make *.dev` targets, so
-# there is a single source of truth for how each process starts. tmux is
-# optional: without it, run those three targets in separate terminals
-# (see the README).
+# The three right panes call the standalone `make *.dev` targets, so there is
+# one source of truth for how each process starts. tmux is optional: without
+# it, run those three targets in separate terminals.
 #
 SESSION="{{ cookiecutter.project_slug }}"
 
@@ -32,8 +31,6 @@ if ! infocmp "$TERM" >/dev/null 2>&1; then
 	export TERM=xterm-256color
 fi
 
-# Connect to whichever client we have: switch within tmux, attach from a
-# plain shell.
 connect() {
 	if [ -n "$TMUX" ]; then
 		exec tmux switch-client -t "$SESSION"
@@ -42,14 +39,13 @@ connect() {
 	fi
 }
 
-# Re-running `make dev` reconnects to a running session — never rebuild or
-# kill work in progress.
+# Reconnect rather than rebuild: never kill work in progress.
 if tmux has-session -t "$SESSION" 2>/dev/null; then
 	connect
 fi
 
-# Build the layout detached. Pane creation order makes the right column,
-# top->bottom, panes 1, 3, 2 (same split sequence as a known-good setup).
+# Built detached. The split order below numbers the right column, top to
+# bottom, as panes 1, 3, 2 — hence the send-keys targets further down.
 tmux new-session -d -s "$SESSION" -n dev
 
 # Mouse mode: scroll panes with the wheel, click to select, drag borders to
@@ -64,8 +60,7 @@ tmux send-keys -t "$SESSION:0.1" "make frontend.dev" C-m
 tmux send-keys -t "$SESSION:0.3" "make backend.dev" C-m
 tmux send-keys -t "$SESSION:0.2" "make worker.dev" C-m
 
-# Land in the big left pane: a plain shell at the repo root. Start your
-# editor or agent here yourself.
+# Land in the big left pane: a plain shell at the repo root.
 tmux select-pane -t "$SESSION:0.0"
 
 connect

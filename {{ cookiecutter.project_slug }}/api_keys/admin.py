@@ -29,9 +29,8 @@ class UserApiKeyAdmin(admin.ModelAdmin):
         if change:
             super().save_model(request, obj, form, change)
             return
-        # Hand off to services.mint so the prefix/hash policy stays in
-        # one place and the raw token is surfaced exactly once via
-        # response_add.
+        # services.mint owns the prefix/hash policy; response_add surfaces the
+        # raw token exactly once.
         result = api_keys_services.mint(user=obj.user, name=obj.name)
         obj.pk = result.api_key.pk
         request._minted_raw_token = result.raw_token

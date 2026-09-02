@@ -109,9 +109,8 @@ interface RevealModalProps {
 }
 
 export function RevealApiKeyModal({ result, onAcknowledge }: RevealModalProps) {
-  // Acknowledgement-required: pointerDownOutside / Esc are routed
-  // through the same ack handler so the only way to close is the
-  // explicit "I've copied it" button.
+  // Acknowledgement-required: Esc and outside-clicks are suppressed so the
+  // only exit is the explicit "I've copied it" button.
   return (
     <Dialog open={result !== null}>
       <DialogContent
@@ -119,8 +118,7 @@ export function RevealApiKeyModal({ result, onAcknowledge }: RevealModalProps) {
         onEscapeKeyDown={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
-        // Hide the built-in DialogContent close icon — the only exit is
-        // the ack button.
+        // Hide the built-in close icon; the ack button is the only exit.
         className="[&>button[aria-label=Close]]:hidden"
       >
         <DialogHeader>

@@ -1,5 +1,4 @@
 {
-  // PYTHON
   "python.terminal.activateEnvironment": false,
   "[python]": {
     "editor.formatOnSave": true,

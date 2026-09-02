@@ -1,20 +1,16 @@
 #!/usr/bin/env bash
 #
-# Fail if the committed generated API client (schema.d.ts) is stale relative
-# to the ninja schema it is generated from. This is the guard that keeps
-# `schemas.py` the single source of truth: edit a Schema, forget `make
-# schema`, and `make precommit` catches it instead of the client silently
-# drifting (as it did in the badispass project — see issue #31).
+# Fail if the committed API client (schema.d.ts) is stale relative to the ninja
+# schema it is generated from, keeping `schemas.py` the single source of truth.
 #
-# It compares a fresh regeneration against a SNAPSHOT of the committed file,
-# NOT against `git diff`: a `git diff --exit-code` check false-fails whenever
-# schema.d.ts has legitimate uncommitted edits, and was rejected for that.
-# The snapshot is always restored, so this never leaves the working tree
-# modified — on success (regeneration == committed) or failure alike.
+# Compares a fresh regeneration against a SNAPSHOT of the committed file, not
+# against `git diff` — a diff check false-fails whenever schema.d.ts has
+# legitimate uncommitted edits. The snapshot is restored on success and on
+# failure alike, so this never leaves the working tree modified.
 #
-# Exactness depends on biome.json excluding schema.d.ts from formatting, so
-# the committed file is raw openapi-typescript output (byte-identical to what
-# this regenerates). Keep that per-file override.
+# Exactness depends on biome.json excluding schema.d.ts from formatting, so the
+# committed file stays byte-identical to raw openapi-typescript output. Keep
+# that per-file override.
 set -euo pipefail
 
 SCHEMA_FILE="core/frontend/src/spa/api/schema.d.ts"

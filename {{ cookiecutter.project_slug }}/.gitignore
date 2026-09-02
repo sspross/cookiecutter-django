@@ -9,7 +9,6 @@ test-results/
 .coverage
 htmlcov/
 
-# Frontend build artifacts
 core/static/dist/
 core/frontend/node_modules/
 

@@ -1,11 +1,9 @@
 """Export the ninja OpenAPI document as JSON, offline.
 
-`make schema` and the schema-freshness guard both regenerate the TypeScript
-client from this document. Reading it from `api.get_openapi_schema()`
-introspects the API in-process — no running server, and no database
-connection (settings import only needs `SECRET_KEY` + `DATABASE_URL`, and
-the URL is parsed, never dialed). That's what lets the guard run in CI's
-manual pre-commit stage against a throwaway sqlite URL.
+`api.get_openapi_schema()` introspects the API in-process: no running server
+and no database connection (settings need `SECRET_KEY` + `DATABASE_URL`, and
+the URL is parsed, never dialed). That is what lets the schema-freshness guard
+run in CI against a throwaway sqlite URL.
 """
 
 import json

@@ -7,11 +7,6 @@ interface CopyButtonProps {
   "data-testid"?: string;
 }
 
-/**
- * Copy `value` to the clipboard, flashing "Copied!" for 1.5s. Two call
- * sites (the quickstart curl block and the reveal-token modal), so it's a
- * real seam rather than a premature one.
- */
 export function CopyButton({ value, label, "data-testid": testId }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
   async function copy() {

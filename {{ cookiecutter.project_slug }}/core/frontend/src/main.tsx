@@ -6,9 +6,8 @@ import { BrowserRouter } from "react-router";
 import "./spa/index.css";
 import { App } from "./spa/App";
 
-// Pages that share the bundle only for CSS (login, admin error pages)
-// will not have an `#app` mount node — bail early so they pick up
-// styling without paying for React boot.
+// Pages that load the bundle only for its CSS (login, admin error pages) have
+// no `#app` node — bail before React boots.
 const mountNode = document.getElementById("app");
 if (mountNode) {
   const queryClient = new QueryClient({
@@ -20,8 +19,8 @@ if (mountNode) {
     },
   });
 
-  // `projectName` is a build-time constant server-rendered onto the mount
-  // node. Per-user data (username) is fetched from the typed `/api/me`.
+  // Build-time constant, server-rendered onto the mount node. Per-user data
+  // goes through `/api/me` instead. See ADR-0006.
   const projectName = mountNode.dataset.projectName ?? "";
 
   ReactDOM.createRoot(mountNode).render(
