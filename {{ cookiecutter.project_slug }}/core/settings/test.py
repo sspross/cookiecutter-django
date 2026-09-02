@@ -37,3 +37,10 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
 }
+
+# The default PBKDF2 hasher is deliberately slow, and every test that builds a
+# user through UserFactory pays for it. It dominated the suite: ~0.13s per test
+# against ~0.005s of actual work. MD5 keeps set_password/check_password honest
+# (the login flow in the live tests still exercises the real code path) while
+# taking the cost to zero.
+PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

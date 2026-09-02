@@ -35,37 +35,31 @@ define run_step
 endef
 
 # run_step_smoke(command, assert_pattern)
-# Runs command for 10s, kills the process tree, then checks output.
-# PYTHONUNBUFFERED=1 ensures Python output is flushed to file immediately.
-# timeout/gtimeout kills the entire process group (setpgid).
+# Starts a long-running command, waits only until assert_pattern shows up in
+# its output (polling every 0.1s, giving up after 15s), then kills the process
+# tree. An assert_pattern is required: it is the exit condition, not just an
+# assertion. PYTHONUNBUFFERED=1 makes Python flush to the file immediately.
 define run_step_smoke
 	@printf "  \`$(1)\`"; \
 	logfile=$$(mktemp); \
-	TIMEOUT_CMD=""; \
-	if command -v timeout >/dev/null 2>&1; then \
-		TIMEOUT_CMD="timeout"; \
-	elif command -v gtimeout >/dev/null 2>&1; then \
-		TIMEOUT_CMD="gtimeout"; \
-	fi; \
-	if [ -n "$$TIMEOUT_CMD" ]; then \
-		( cd $(PROJDIR) && NO_COLOR=1 PYTHONUNBUFFERED=1 $$TIMEOUT_CMD 10 $(1) ) > "$$logfile" 2>&1 || true; \
-	else \
-		( cd $(PROJDIR) && NO_COLOR=1 PYTHONUNBUFFERED=1 $(1) ) > "$$logfile" 2>&1 & \
-		PID=$$!; \
-		sleep 10; \
-		kill_tree() { \
-			local children=$$(pgrep -P "$$1" 2>/dev/null); \
-			for child in $$children; do \
-				kill_tree "$$child"; \
-			done; \
-			kill -KILL "$$1" 2>/dev/null; \
-		}; \
-		kill_tree $$PID; \
-		wait $$PID 2>/dev/null; \
-	fi; \
+	( cd $(PROJDIR) && NO_COLOR=1 PYTHONUNBUFFERED=1 $(1) ) > "$$logfile" 2>&1 & \
+	pid=$$!; \
+	for i in $$(seq 1 150); do \
+		if grep -q "$(2)" "$$logfile" 2>/dev/null; then break; fi; \
+		if ! kill -0 $$pid 2>/dev/null; then break; fi; \
+		sleep 0.1; \
+	done; \
+	kill_tree() { \
+		for child in $$(pgrep -P "$$1" 2>/dev/null); do \
+			kill_tree "$$child"; \
+		done; \
+		kill -KILL "$$1" 2>/dev/null; \
+	}; \
+	kill_tree $$pid; \
+	wait $$pid 2>/dev/null; \
 	output=$$(cat "$$logfile"); \
 	rm -f "$$logfile"; \
-	if [ -n "$(2)" ] && ! echo "$$output" | grep -q "$(2)"; then \
+	if ! echo "$$output" | grep -q "$(2)"; then \
 		echo " FAILED (expected: $(2))"; \
 		echo "$$output"; \
 		exit 1; \
