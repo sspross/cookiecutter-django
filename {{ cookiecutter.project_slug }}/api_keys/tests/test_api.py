@@ -46,16 +46,25 @@ class TestListApiKeys:
         assert len(rows) == 1
         assert rows[0]["revoked_at"] is not None
 
-    def test_does_not_leak_hash(self, client):
+    def test_never_carries_a_secret(self, client):
+        """One invariant, asserted over the whole create -> list path: a
+        listed row exposes neither the stored hash nor the raw token."""
         user = UserFactory()
-        api_keys.mint(user, name="ci")
         client.force_login(user)
+        client.post(
+            "/api/api-keys/",
+            data={"name": "ci"},
+            content_type="application/json",
+        )
 
         response = client.get("/api/api-keys/")
 
         assert response.status_code == 200
-        for row in response.json():
+        rows = response.json()
+        assert rows
+        for row in rows:
             assert "hash" not in row
+            assert "raw_token" not in row
 
     def test_requires_session_auth(self, client):
         response = client.get("/api/api-keys/")
@@ -96,22 +105,6 @@ class TestCreateApiKey:
         # The persisted row owns the same id and never the raw token.
         api_key = UserApiKey.objects.get(pk=body["api_key"]["id"])
         assert api_key.user == user
-
-    def test_subsequent_list_does_not_return_raw_token(self, client):
-        user = UserFactory()
-        client.force_login(user)
-        client.post(
-            "/api/api-keys/",
-            data={"name": "ci"},
-            content_type="application/json",
-        )
-
-        response = client.get("/api/api-keys/")
-
-        assert response.status_code == 200
-        for row in response.json():
-            assert "raw_token" not in row
-            assert "hash" not in row
 
     def test_requires_session_auth(self, client):
         response = client.post(

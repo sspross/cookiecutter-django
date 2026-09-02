@@ -18,9 +18,7 @@ class TestMeEndpoint:
     def test_bearer_auth_returns_username(self, client):
         user = UserFactory(username="bob")
         raw_token = mint(user, name="laptop-cli").raw_token
-        response = client.get(
-            ME_URL, HTTP_AUTHORIZATION=f"Bearer {raw_token}"
-        )
+        response = client.get(ME_URL, HTTP_AUTHORIZATION=f"Bearer {raw_token}")
         assert response.status_code == 200
         assert response.json() == {"username": "bob"}
 

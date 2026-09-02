@@ -215,6 +215,18 @@ Conventions:
   (wrapped by `make test.live.watch`), or `PWDEBUG=1` for the inspector.
 - `core/settings/test.py` sets `DJANGO_ALLOW_ASYNC_UNSAFE` so the sync
   Playwright API can touch the DB from its event loop.
+- **One journey, not many small e2e tests.** A live test drives a browser,
+  which costs ~100x what a `client` test costs (the whole non-live suite runs
+  in ~0.2s; the one live test takes ~2.3s). Extend the existing journey with
+  another step rather than adding a second browser session, and only assert
+  what a browser is needed for: real rendering, focus, keyboard, viewport,
+  static serving. Anything reachable from `client` belongs in `tests/test_*.py`.
+- `core/settings/test.py` also pins `PASSWORD_HASHERS` to MD5. The default
+  PBKDF2 hasher is deliberately slow and dominated the suite; don't remove it
+  without re-profiling.
+- Coverage is configured in `pyproject.toml` and reported by
+  `make test.coverage`. Use its diff to judge a deletion: a test whose removal
+  changes no missed line was asserting something another test already covers.
 
 Static correctness on the TS side is covered by `tsc --noEmit` and biome (both
 run in pre-commit).

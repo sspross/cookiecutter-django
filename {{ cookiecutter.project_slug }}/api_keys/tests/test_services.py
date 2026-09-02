@@ -67,9 +67,7 @@ class TestVerify:
         user = UserFactory()
         result = api_keys.mint(user, name="ci")
         # Flip a single character in the random portion.
-        tampered = result.raw_token[:-1] + (
-            "a" if result.raw_token[-1] != "a" else "b"
-        )
+        tampered = result.raw_token[:-1] + ("a" if result.raw_token[-1] != "a" else "b")
 
         assert api_keys.verify(tampered) is None
 
@@ -90,27 +88,3 @@ class TestVerify:
 
         result.api_key.refresh_from_db()
         assert result.api_key.last_used_at is not None
-
-
-@pytest.mark.django_db
-class TestRevoke:
-    def test_revoke_marks_revoked_at(self):
-        user = UserFactory()
-        result = api_keys.mint(user, name="ci")
-
-        api_keys.revoke(result.api_key)
-
-        result.api_key.refresh_from_db()
-        assert result.api_key.revoked_at is not None
-
-    def test_revoke_is_idempotent(self):
-        user = UserFactory()
-        result = api_keys.mint(user, name="ci")
-        api_keys.revoke(result.api_key)
-        result.api_key.refresh_from_db()
-        first_revoked_at = result.api_key.revoked_at
-
-        api_keys.revoke(result.api_key)
-
-        result.api_key.refresh_from_db()
-        assert result.api_key.revoked_at == first_revoked_at

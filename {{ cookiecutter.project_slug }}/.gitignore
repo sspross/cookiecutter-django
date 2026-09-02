@@ -6,6 +6,8 @@ __pycache__/
 staticfiles/
 media/
 test-results/
+.coverage
+htmlcov/
 
 # Frontend build artifacts
 core/static/dist/
