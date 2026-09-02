@@ -17,11 +17,13 @@ This is a single-context repo:
 /
 ├── CONTEXT.md
 ├── docs/adr/
+│   ├── README.md
 │   ├── 0001-react-spa.md
 │   ├── 0002-api-keys-session-only.md
 │   ├── 0003-async-by-default.md
 │   ├── 0004-dual-deployment.md
-│   └── 0005-tach-boundaries.md
+│   ├── 0005-tach-boundaries.md
+│   └── 0006-boot-data-typed.md
 └── core/, api_keys/, ...
 ```
 

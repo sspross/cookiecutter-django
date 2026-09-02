@@ -39,10 +39,11 @@ HTML pages:
 - `/` — Django shell that mounts the React SPA on the **Dashboard** route.
 - `/api-access/` — same SPA mount, react-router renders the **API Access** route.
 - `/accounts/login/` & `/accounts/logout/` — Django built-in auth views.
-  Reuse the SPA's compiled Tailwind CSS bundle (so visual tokens match)
-  but don't load the React JS bundle.
-- `/admin/` — Django admin; superuser creates non-staff `User` accounts here, and
-  mints `UserApiKey` rows via a custom admin action.
+  Load the SPA bundle so visual tokens match; `main.tsx` finds no `#app`
+  node there and bails before mounting React.
+- `/admin/` — Django admin; superuser creates non-staff `User` accounts here,
+  mints `UserApiKey` rows through the standard add form, and revokes them via a
+  custom admin action.
 - `/django-rq/` — django-rq queue dashboard, gated to staff users by django-rq itself.
 
 API (django-ninja, dual auth, CSRF on session-authed writes):
@@ -73,18 +74,24 @@ mint or revoke keys, so revocation by the user remains a clean kill. See ADR-000
 App layout:
 
 ```
-core/
-  __init__.py
-  apps.py
+core/                # settings package and Django app in one (namespace package)
+  admin.py           # empty — scaffold for your own admin registrations
+  models.py          # empty — scaffold for your own models
   api.py             # NinjaAPI mount; [ApiKeyBearer(), django_auth]; GET /api/me
   context.py         # template context_processor: project_name
   schemas.py         # MeOut — the /api/me wire shape
+  settings/
+    base.py          # env-driven settings
+    test.py          # test overrides (async guard, MD5 hasher, vite manifest)
   management/commands/
     export_openapi_schema.py  # offline OpenAPI JSON dump (make schema / guard)
+  migrations/
   urls.py
   views.py           # app_view: SPA mount; @login_required + @ensure_csrf_cookie
+  asgi.py
+  wsgi.py
   templates/
-    _base.html       # vite-aware base, Geist + Inter fonts
+    _base.html       # vite-aware base; Geist, Geist Mono and Inter webfonts
     _logo.html       # mirror of spa/components/layout/logo.tsx
     core/app.html    # SPA mount template
     registration/login.html
@@ -109,11 +116,11 @@ api_keys/
       test_mint_flow.py
 ```
 
-SPA source layout under `core/frontend/src/spa/`:
+SPA source layout under `core/frontend/src/`:
 
 ```
+main.tsx            # React entry (Vite build input); QueryClientProvider + Router
 spa/
-  main.tsx          # React entry; mounts <App />; QueryClientProvider + Router
   App.tsx           # routes: / (Dashboard), /api-access (ApiAccess)
   index.css         # @import "tailwindcss"; shadcn CSS variables
   api/

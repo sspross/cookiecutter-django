@@ -66,5 +66,3 @@ Negative:
 - **Hide one behind a cookiecutter question.** Rejected — both paths
   are small (a single yml + a fabfile) and the cost of always shipping
   both is lower than the cost of asking the user to decide upfront.
-  See `REFACTOR.md` decision #1: the template is opinionated and ships
-  both.

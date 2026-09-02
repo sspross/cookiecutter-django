@@ -13,7 +13,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 Use this single command to create a new project from this template:
 ```bash
-uv run --with cookiecutter --with django python -m cookiecutter git@github.com:sspross/cookiecutter_django.git
+uv run --with cookiecutter --with django python -m cookiecutter https://github.com/sspross/cookiecutter-django.git
 ```
 
 ## Working on this template

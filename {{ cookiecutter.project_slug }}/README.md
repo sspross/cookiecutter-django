@@ -38,8 +38,7 @@
 
 After adding/changing ninja API endpoints, regenerate the SPA's typed schema:
 
-- `make backend.dev` (in another terminal)
-- `make schema`
+- `make schema` (runs offline; no server needed)
 
 ## Deployment
 
