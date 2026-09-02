@@ -26,7 +26,6 @@ dev = [
 	"pytest-django",
 	"pytest-cov",
 	"factory-boy",
-	"django-debug-toolbar",
 	"pre-commit",
 	"playwright",
 	"pytest-playwright",

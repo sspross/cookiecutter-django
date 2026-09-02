@@ -12,7 +12,6 @@ import hashlib
 import secrets
 from dataclasses import dataclass
 
-from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from api_keys.models import UserApiKey
@@ -81,7 +80,3 @@ def revoke(api_key: UserApiKey) -> None:
     if api_key.revoked_at is None:
         api_key.revoked_at = timezone.now()
         api_key.save(update_fields=["revoked_at"])
-
-
-# Re-export the user model for ergonomic typing without importing all over.
-User = get_user_model()
