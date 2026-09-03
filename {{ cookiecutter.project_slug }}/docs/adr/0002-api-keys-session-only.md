@@ -1,7 +1,5 @@
 # 0002 — API key management endpoints are session-only
 
-Status: Accepted
-
 ## Context
 
 The headless API mounted at `/api/*` accepts both session cookies and
@@ -51,21 +49,8 @@ Positive:
 Negative:
 
 - The "every endpoint accepts both auth methods" property of the API is
-  no longer uniformly true. CONTEXT.md and `core/api.py` both have to
-  call out the exception.
+  no longer uniformly true. CONTEXT.md and the `api_keys/api.py` module
+  docstring both have to call out the exception.
 - Headless scripts cannot rotate their own keys via the API — they have
   to log into the SPA (or ask an operator). This is the intended
   trade-off; key rotation is a UI workflow, not a programmable one.
-
-## Alternatives considered
-
-- **Keep the global dual-auth on `/api/api-keys/*`.** Rejected — the
-  token-escalation risk above is the whole motivation for this ADR.
-- **Allow bearer auth but require step-up re-auth.** Rejected for v1: it
-  adds a re-auth flow we do not otherwise need; the session-only path
-  already covers every realistic use case (the user is in the SPA when
-  they want to manage keys).
-- **Move `/api/api-keys/*` to a separate `NinjaAPI` instance.** Rejected
-  — same outcome at higher cost (a second mount, a second OpenAPI
-  schema). The per-router override is the smallest change that
-  achieves the policy.

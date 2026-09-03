@@ -17,7 +17,5 @@ class TestHomeView:
         client.force_login(user)
         response = client.get(reverse("home"))
         assert response.status_code == 200
-        # SPA mount markup is present, carrying the server-rendered
-        # project name as a data attribute (the boot constant).
         assert b'id="app"' in response.content
         assert b"data-project-name=" in response.content

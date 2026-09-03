@@ -1,7 +1,5 @@
 # 0005 — Module boundaries enforced by tach; type-hint imports allowed across them
 
-Status: Accepted
-
 ## Context
 
 The template ships `tach` and a `tach.toml` that declares an explicit dependency
@@ -11,8 +9,7 @@ The baseline graph is one arrow: `core → api_keys` (`core` may import
 `api_keys`; `api_keys` may import nothing). As the project grows, each
 team-added `[[modules]]` block draws another boundary.
 
-Two facts make `tach` confusing on first contact, and both have bitten real
-projects spawned from this template:
+Two facts make `tach` confusing on first contact:
 
 1. A forbidden import and a type annotation look identical in source —
    `from other_app.models import Thing` — but they are not the same thing. The
@@ -70,6 +67,11 @@ boundary the runtime arrow forbids.**
   blocks only once the packages exist — pointing `tach.toml` at absent paths
   breaks `tach check`.
 
+- **A neutral top-level `types`/`contracts` module is not the answer to a
+  boundary-crossing type hint.** It is a whole module for what is usually a
+  single shared type. Reach for it when a genuinely shared contract object
+  appears, not to dodge a type hint the guard already allows.
+
 - **Tests, migrations, management commands, and `manage.py` are exempt**
   (`tach.toml` excludes them). A management command is a composition root that may
   wire anything; the seam is enforced where it matters — services, runners, and
@@ -95,18 +97,3 @@ Negative:
 - `ignore_type_checking_imports = true` trusts that guarded imports are honest
   about direction. The same-direction rule is a convention `tach` can't check —
   review catches an inverted guard, not the tool.
-
-## Alternatives considered
-
-- **`ignore_type_checking_imports = false` (block guarded imports too).**
-  Rejected — it forces `Any`, duplicated types, or stringly-typed annotations the
-  moment two modules share a type across a boundary, trading real type coverage
-  for a check that buys nothing (annotations have no runtime effect).
-- **A neutral top-level `types`/`contracts` module both sides import.** Works and
-  avoids the question, but it's a whole module for what is often a single shared
-  type. Reach for it only when a genuinely shared contract object appears, not to
-  dodge a type hint.
-- **Package-level boundaries only (trust convention for `models` vs
-  `services`).** Rejected when a write seam matters — the whole point is a
-  *mechanical* "don't touch the ORM" block, and package granularity can't express
-  "`services` yes, `models` no."

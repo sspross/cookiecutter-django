@@ -38,8 +38,7 @@
 
 After adding/changing ninja API endpoints, regenerate the SPA's typed schema:
 
-- `make backend.dev` (in another terminal)
-- `make schema`
+- `make schema` (runs offline; no server needed)
 
 ## Deployment
 
@@ -61,7 +60,7 @@ First-time setup:
 5. Add a domain in Appliku; `ALLOWED_HOSTS` is auto-populated from `from_domains: true`.
 6. Deploy.
 
-See `.claude/skills/appliku/SKILL.md` for the full Appliku CLI/SDK reference.
+See [docs.appliku.com/docs/cli-sdk](https://docs.appliku.com/docs/cli-sdk/) for the Appliku CLI/SDK reference.
 
 ### Docker Compose (self-host, e.g. Mac mini via Tailscale)
 

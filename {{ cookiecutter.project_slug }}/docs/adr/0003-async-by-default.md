@@ -1,12 +1,12 @@
 # 0003 — Async runtime ships by default
 
-Status: Accepted
-
 ## Context
 
 Most Django projects spawned from this template will eventually need
 background work: an outbound LLM call, a long-running export, a webhook
-fan-out, an email send. Retrofitting an async runtime later is more
+fan-out, an email send. Django's async views do not cover this — they solve
+concurrency, not deferred work; a long-running outbound call still wants to
+live off the request thread. Retrofitting an async runtime later is more
 painful than carrying it from day one — it touches `INSTALLED_APPS`,
 settings, Dockerfile, compose, deployment manifest, and CI shape.
 
@@ -19,7 +19,8 @@ RQ + Redis wiring that lets a developer add one in five minutes.
 The template ships:
 
 - `django-rq` in `INSTALLED_APPS` and `RQ_QUEUES` configured against
-  `REDIS_URL`.
+  `REDIS_URL`. RQ over Celery: one broker shape instead of Celery's
+  broker-plus-result-backend, which keeps the mental model small.
 - `redis` service in `docker-compose.yml`, with healthcheck and
   `depends_on` wiring on `web` and `worker`.
 - `redis` database in `appliku.yml`.
@@ -61,18 +62,5 @@ Negative:
 - A few extra lines in the Dockerfile/compose/appliku.yml that some
   generated projects will never use.
 
-These costs are real but small; the alternative — discovering you need
-async on week 6 and bolting it on across five files — has bitten this
-codebase enough times to justify the upfront tax.
-
-## Alternatives considered
-
-- **Sync-only template, add async on demand.** Rejected — the retrofit
-  cost across compose, Appliku, settings, and CI is the exact thing
-  this decision is paying down upfront.
-- **Celery instead of RQ.** Rejected — RQ + Redis is one fewer broker
-  shape (Celery + Redis-or-RabbitMQ + result backend) and Python-native.
-  The template optimises for "tiny mental model"; RQ wins.
-- **Django 5's async views without a job runner.** Rejected — async
-  views solve concurrency, not deferred work. A long-running outbound
-  call still wants to live off the request thread.
+These costs are real but small, and the alternative is discovering you
+need async on week 6 and bolting it on across five files.

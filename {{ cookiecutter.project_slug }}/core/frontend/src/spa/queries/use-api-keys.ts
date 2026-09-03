@@ -1,10 +1,3 @@
-/**
- * TanStack Query hooks for `/api/api-keys/*`.
- *
- * A list query plus mint/revoke mutations that invalidate the list on
- * success so the UI re-renders without threading state by hand.
- */
-
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   type ApiKey,

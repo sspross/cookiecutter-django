@@ -2,14 +2,11 @@ import os
 
 from .base import *  # noqa: F403
 
-# Live tests drive a browser through Playwright's sync API, which runs in an
-# event loop. Django's async-safety guard would reject the live_server
-# fixture's DB calls from that loop with SynchronousOnlyOperation; relax the
-# guard for the whole test run. It's a no-op for non-live tests (they never
-# enter an async context). Replaces the env-var the old base class set.
+# Playwright's sync API runs in an event loop, where Django's async-safety
+# guard rejects the live_server fixture's DB calls with SynchronousOnlyOperation.
+# A no-op for non-live tests, which never enter an async context.
 os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
 
-# Override env with test defaults before importing base
 SECRET_KEY = "test-secret-key-for-testing-only"
 DEBUG = False
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
@@ -22,9 +19,8 @@ DJANGO_VITE["default"]["manifest_path"] = (  # noqa: F405
     BASE_DIR / "core" / "static" / "dist" / "js" / "manifest.json"  # noqa: F405
 )
 
-# Run enqueued jobs inline on the calling thread instead of handing them to a
-# worker, so `.delay()` resolves synchronously in tests (no Redis round-trip,
-# no separate process). Matches the claim in core/settings/base.py. See ADR-0003.
+# Run enqueued jobs inline on the calling thread, so `.delay()` resolves
+# synchronously with no Redis round-trip and no worker process. See ADR-0003.
 RQ_QUEUES["default"]["ASYNC"] = False  # noqa: F405
 
 # Plain (non-manifest) staticfiles storage so `{% raw %}{% static %}{% endraw %}` lookups in tests
@@ -38,9 +34,7 @@ STORAGES = {
     },
 }
 
-# The default PBKDF2 hasher is deliberately slow, and every test that builds a
-# user through UserFactory pays for it. It dominated the suite: ~0.13s per test
-# against ~0.005s of actual work. MD5 keeps set_password/check_password honest
-# (the login flow in the live tests still exercises the real code path) while
-# taking the cost to zero.
+# The default PBKDF2 hasher is deliberately slow and dominated the suite:
+# ~0.13s per UserFactory-built test against ~0.005s of actual work. MD5 keeps
+# set_password/check_password honest. Re-profile before removing this.
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

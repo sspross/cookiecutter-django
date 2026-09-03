@@ -1,7 +1,4 @@
-/**
- * Re-export the small set of lucide icons we use across the SPA.
- * Single import point keeps tree-shaking honest and trims bundle size.
- */
+/** Single import point for lucide icons, so tree-shaking stays honest. */
 export {
   Home as HomeIcon,
   KeyRound as KeyIcon,

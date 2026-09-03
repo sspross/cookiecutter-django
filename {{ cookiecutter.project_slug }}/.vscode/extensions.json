@@ -5,6 +5,7 @@
         "ms-python.python",
         "ms-python.debugpy",
         "charliermarsh.ruff",
-        "ms-vscode.sublime-keybindings",
+        "biomejs.biome",
+        "bradlc.vscode-tailwindcss",
     ]
 }

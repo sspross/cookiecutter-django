@@ -1,8 +1,6 @@
 """ninja auth class for `Authorization: Bearer <prefix>…` tokens.
 
-Thin adapter: the policy lives in ``api_keys.services``. This module
-only adapts the bearer-token protocol to the request/response shape
-ninja expects.
+A thin adapter over ``api_keys.services``, which owns the policy.
 """
 
 from __future__ import annotations
@@ -13,12 +11,7 @@ from api_keys import services
 
 
 class ApiKeyBearer(HttpBearer):
-    """Resolve a bearer token to ``request.user`` via :func:`services.verify`.
-
-    Returning truthy from ``authenticate`` makes ninja set
-    ``request.auth``; we additionally assign ``request.user`` so the rest
-    of the API code does not have to know which auth method ran.
-    """
+    """Resolve a bearer token to ``request.user`` via :func:`services.verify`."""
 
     def authenticate(self, request, token: str):
         user = services.verify(token)

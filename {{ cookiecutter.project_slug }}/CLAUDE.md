@@ -1,6 +1,6 @@
 # {{ cookiecutter.project_slug }}
 
-See `CONTEXT.md` for domain language and `docs/adr/` for past architectural decisions.
+See `CONTEXT.md` for domain language and `docs/adr/` for the architectural decisions in effect.
 
 ## Guardrails
 

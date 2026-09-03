@@ -1,13 +1,8 @@
 """End-to-end live test for the api_keys mint/revoke flow.
 
-Demonstrates the full stack: Django session login -> SPA route ->
-ninja API call -> modal with one-shot raw token -> revoke.
-
-Function-style on pytest-django's ``live_server`` + pytest-playwright's
-``page``. Artifacts (trace + screenshot) are captured on failure by
-pytest-playwright (see the ``--tracing``/``--screenshot`` addopts in
-pyproject.toml); no bespoke base class. Assertions use web-first
-``expect()``, which auto-retries and so absorbs animation/transition timing.
+Drives the full stack: Django session login -> SPA route -> ninja API call ->
+one-shot raw token modal -> revoke. Web-first ``expect()`` auto-retries, which
+absorbs animation timing. See CONTEXT.md for the live-test conventions.
 """
 
 from django.conf import settings
@@ -31,11 +26,8 @@ def test_full_self_service_lifecycle(page: Page, live_server):
     sidebar = page.locator('[data-testid="sidebar"]')
     expect(sidebar).to_be_visible()
 
-    # The ADR-0006 boot seam, observable only in a real render: the shell
-    # shows a build-time constant server-rendered onto the mount node's
-    # data attribute *and* a per-user value fetched from the typed
-    # /api/me. Lower layers can assert each source, but only the browser
-    # proves the SPA reads both and renders them together.
+    # The ADR-0006 boot seam: lower layers can assert each source, but only a
+    # browser proves the SPA reads both and renders them together.
     expect(sidebar).to_contain_text(settings.PROJECT_NAME)
     expect(sidebar).to_contain_text("Signed in as alice")
 

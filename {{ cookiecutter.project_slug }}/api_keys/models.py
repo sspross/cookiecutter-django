@@ -5,17 +5,10 @@ from django.db import models
 class UserApiKey(models.Model):
     """A bearer credential for the headless API path.
 
-    The raw token (`{{ cookiecutter.project_slug }}_live_<urlsafe>`) is shown
-    to the user exactly once on creation. Only `sha256(raw_token)` is
-    persisted; the database never holds the live credential. `prefix` stores
-    the first ~12 characters of the raw token so the admin UI can identify a
-    key without revealing it.
-
-    Soft-delete vocabulary: `revoked_at` follows the visible-but-marked
-    convention. Revoked rows stay queryable in the admin and in the user's
-    own list (so they can audit "did I revoke that key?"), but `verify()`
-    rejects them. Contrast with `deleted_at`, which would mean
-    "hide from users entirely."
+    Only `sha256(raw_token)` is persisted; the database never holds the live
+    credential. `prefix` holds the leading characters so the admin can identify
+    a key without revealing it. `revoked_at` is visible-but-marked soft-delete:
+    the row stays listed, `verify()` rejects it. See CONTEXT.md.
     """
 
     user = models.ForeignKey(

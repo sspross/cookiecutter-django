@@ -1,7 +1,5 @@
 # 0001 — React SPA + shadcn/ui for the authenticated app
 
-Status: Accepted
-
 ## Context
 
 The authenticated app needs to grow beyond a single CRUD list. We expect
@@ -32,14 +30,15 @@ Concretely:
   same endpoints — no `/api/v2/` split. The exception is the
   `/api/api-keys/*` router; see ADR-0002.
 - **API contract.** `openapi-typescript` generates `schema.d.ts` from
-  ninja's `/api/openapi.json`; `openapi-fetch` is the typed fetch
-  wrapper. ninja schemas remain the single source of truth.
+  ninja's OpenAPI document, exported offline by `make schema`;
+  `openapi-fetch` is the typed fetch wrapper. ninja schemas remain the
+  single source of truth.
 - **Server state.** TanStack Query owns cache and mutations. List/detail
   routes share cache by query key.
 - **Build.** Single `@tailwindcss/vite` pipeline. Compiled CSS is shared
   between the SPA and the remaining Django-rendered pages (login).
 - **Aesthetic.** System-aware dark/light, shadcn `zinc` base, monochrome
-  primary, sidebar shell, Geist Sans + Geist Mono.
+  primary, sidebar shell, Geist and Geist Mono (Inter as sans fallback).
 
 ## Consequences
 
@@ -60,18 +59,3 @@ Negative:
   learn than a templates-only app.
 - `vite build` blocks Django-rendered pages too (login depends on the
   SPA's compiled CSS). Build break = unstyled login.
-
-## Alternatives considered
-
-- **Server-rendered Django templates + htmx polling.** Rejected: most
-  projects built from this template are expected to grow beyond a
-  templates-only shape; modal-only detail forfeits deep-links.
-- **AlpineJS in templates.** Rejected: shadcn's component quality is
-  unreachable without reinventing primitives.
-- **React but no shadcn** (Mantine / MUI / Chakra). Rejected: the
-  explicit goal is the shadcn aesthetic and component vocabulary.
-- **TanStack Router instead of react-router.** Rejected: with TanStack
-  Query owning server state, the router only needs path-matching;
-  react-router is the boring, ubiquitous choice.
-- **Hand-written TS types over fetch.** Rejected: two sources of truth
-  drift silently; ninja's OpenAPI makes generation free.

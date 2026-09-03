@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* Pick up Tailwind classes used in any HTML/Django template too. */
+/* Django templates carry Tailwind classes too. */
 @source "../../../**/*.html";
 
 @custom-variant dark (&:where(.dark, .dark *));

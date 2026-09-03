@@ -3,10 +3,8 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-// Single Vite pipeline: React SPA + Tailwind v4 (via the @tailwindcss/vite
-// plugin). The compiled CSS (built from spa/index.css's
-// `@import "tailwindcss"`) is consumed by both the SPA mount template
-// and Django-rendered pages (login).
+// One pipeline for the SPA and for Django-rendered pages: both load the CSS
+// this build emits. See ADR-0001.
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   root: resolve("./src"),

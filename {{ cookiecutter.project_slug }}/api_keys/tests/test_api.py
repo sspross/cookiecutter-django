@@ -1,10 +1,8 @@
 """HTTP-level tests for ``/api/api-keys/*``.
 
-These exercise the ninja router as a thin adapter over
-``api_keys.services``. They assert on observable behaviour — status
-codes, response JSON, persisted state — and never on which service
-helper was called or in what order. Service-level cases live in
-``test_services.py``.
+Assert on observable behaviour — status codes, response JSON, persisted state
+— never on which service helper ran or in what order. Service-level cases live
+in ``test_services.py``.
 """
 
 from __future__ import annotations
@@ -102,7 +100,6 @@ class TestCreateApiKey:
         assert body["api_key"]["name"] == "ci"
         assert body["api_key"]["prefix"] == body["raw_token"][:12]
         assert body["api_key"]["revoked_at"] is None
-        # The persisted row owns the same id and never the raw token.
         api_key = UserApiKey.objects.get(pk=body["api_key"]["id"])
         assert api_key.user == user
 
@@ -127,7 +124,6 @@ class TestCreateApiKey:
         )
 
         assert response.status_code == 401
-        # Only the seed key exists.
         assert UserApiKey.objects.filter(user=user).count() == 1
 
 
@@ -160,7 +156,6 @@ class TestRevokeApiKey:
         assert first.status_code == 200
         assert second.status_code == 200
         result.api_key.refresh_from_db()
-        # Idempotent: second call does not change the revocation timestamp.
         assert result.api_key.revoked_at == first_revoked_at
 
     def test_cross_user_revoke_returns_404(self, client):

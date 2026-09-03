@@ -1,10 +1,8 @@
 """Tests for the API key token engine.
 
-These assertions cover only the public surface (``mint`` / ``verify`` /
-``revoke``) and observable side effects (the persisted ``UserApiKey``
-row, ``last_used_at`` updates, the prefix on the raw token). Internal
-helpers — the hash function, the random source — are deliberately not
-poked, so the tests survive a reorganisation of the engine internals.
+Cover only the public surface (``mint`` / ``verify`` / ``revoke``) and its
+observable side effects. Internal helpers — the hash function, the random
+source — stay unpoked so these survive a reorganisation of the internals.
 """
 
 import pytest
@@ -66,7 +64,6 @@ class TestVerify:
     def test_tampered_token_is_rejected(self):
         user = UserFactory()
         result = api_keys.mint(user, name="ci")
-        # Flip a single character in the random portion.
         tampered = result.raw_token[:-1] + ("a" if result.raw_token[-1] != "a" else "b")
 
         assert api_keys.verify(tampered) is None

@@ -1,26 +1,16 @@
 # 0006 — Boot data is typed: constants are server-rendered, per-user data goes through the API
 
-Status: Accepted
-
 ## Context
 
 The SPA needs two things at boot: the project name (for the sidebar logo /
 title) and the signed-in user's name (for the "Signed in as …" footer).
 
-The original shape shipped **both** as an untyped `window.__APP__` blob: the
-view built a `spa_config` dict, the mount template inlined it via
-`json_script` + an inline `<script>`, and the TS side described it with a
-hand-written `declare global { interface Window { __APP__ } }` plus a
-cookiecutter-baked fallback literal for the project name. That blob escaped
-the project's otherwise-typed API contract (ADR-0001): a field added on the
-Django side and read on the TS side drifted with nothing to catch it, and
-`projectName` was plumbed four ways (setting → context processor → view
-`spa_config` → TS fallback).
-
 The two values differ in nature: the project name is a **build-time
 constant**, identical for every request; the username is **per-user data**.
-Conflating them in one transport forced the per-user value through a static,
-untyped channel.
+Carrying both in one untyped `window` blob would put the per-user value
+through a static channel and outside the project's typed API contract
+(ADR-0001), where a field added on the Django side and read on the TS side
+drifts with nothing to catch it.
 
 ## Decision
 
@@ -58,15 +48,3 @@ Negative:
 - The footer's "Signed in as …" now resolves after a fetch rather than on
   first paint — a negligible flash, accepted in exchange for the typing.
 - One more endpoint and one more query hook than inlining the blob.
-
-## Alternatives considered
-
-- **Keep the `window.__APP__` blob, just type it better.** Rejected — any
-  hand-written `declare global` is a second source of truth that drifts from
-  the Django side with nothing to catch it; that is the exact failure
-  ADR-0001 pays to avoid.
-- **Server-render the username too (onto `data-username`).** Rejected — it
-  is per-user data, not a build constant; routing it through the typed API
-  keeps one rule and gives the SPA a real `whoami` for free.
-- **Inline the whole user as a typed JSON island.** Rejected — saves one
-  fetch but reintroduces a parallel, hand-maintained type for the user shape.
