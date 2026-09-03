@@ -33,11 +33,21 @@
     "editor.defaultFormatter": "biomejs.biome"
   },
   "files.associations": {
+    "**/templates/**/*.html": "django-html",
     "*.css": "tailwindcss"
   },
+  "emmet.includeLanguages": {
+    "django-html": "html"
+  },
   "tailwindCSS.experimental.classRegex": [
-    ["cn\\(((?:[^()]|\\([^()]*\\))*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
-    ["cva\\(((?:[^()]|\\([^()]*\\))*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"]
+    [
+      "cn\\(((?:[^()]|\\([^()]*\\))*)\\)",
+      "[\"'`]([^\"'`]*).*?[\"'`]"
+    ],
+    [
+      "cva\\(((?:[^()]|\\([^()]*\\))*)\\)",
+      "[\"'`]([^\"'`]*).*?[\"'`]"
+    ]
   ],
   "files.exclude": {
     "**/*.pyc": true,
