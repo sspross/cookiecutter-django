@@ -141,6 +141,15 @@ RQ_QUEUES = {
     },
 }
 
+# Shared across gunicorn workers, so throttle counters hold under concurrency.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+        "KEY_PREFIX": "{{ cookiecutter.project_slug }}",
+    },
+}
+
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True

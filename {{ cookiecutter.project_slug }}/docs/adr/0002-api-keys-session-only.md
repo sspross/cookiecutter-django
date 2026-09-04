@@ -35,6 +35,23 @@ Concretely:
   it remains the operator backstop for cross-user revoke and emergency
   provisioning.
 
+### Minting is throttled, listing and revoking are not
+
+`POST /api/api-keys/` carries ninja's `AuthRateThrottle` at ten mints per
+hour, keyed on the authenticated session. Session-only auth removes the
+token-escalation path but not the session one: an attacker holding a
+stolen cookie could otherwise mint keys in bulk and keep long-lived
+credentials after the session itself is gone.
+
+`GET /api/api-keys/` and `POST /api/api-keys/{id}/revoke/` stay
+unthrottled. Revocation is the kill switch for a leaked credential, and
+listing is how a user finds the key to revoke. Rate-limiting either one
+would let an attacker who burns the budget block the user's own cleanup,
+which costs more than the abuse it would prevent.
+
+The throttle counts in the default cache, so it holds across gunicorn
+workers only because that cache is Redis-backed.
+
 ## Consequences
 
 Positive:
