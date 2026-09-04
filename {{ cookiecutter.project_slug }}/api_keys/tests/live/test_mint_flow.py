@@ -13,9 +13,7 @@ from api_keys.tests.factories import UserFactory
 
 
 def test_full_self_service_lifecycle(page: Page, live_server):
-    user = UserFactory(username="alice")
-    user.set_password("pw-12345!")
-    user.save()
+    UserFactory(username="alice")
 
     # Log in.
     page.goto(f"{live_server.url}/accounts/login/")
