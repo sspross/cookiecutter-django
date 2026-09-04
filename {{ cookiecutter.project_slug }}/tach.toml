@@ -24,8 +24,12 @@ forbid_circular_dependencies = true
 
 [[modules]]
 path = "core"
-depends_on = ["api_keys"]
+depends_on = ["api_keys", "users"]
 
 [[modules]]
 path = "api_keys"
+depends_on = []
+
+[[modules]]
+path = "users"
 depends_on = []
