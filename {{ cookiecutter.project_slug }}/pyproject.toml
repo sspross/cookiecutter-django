@@ -74,9 +74,6 @@ skip_covered = true
 # dirs need an explicit `.*/` prefix — deptry's built-in `tests` exclude only
 # catches a top-level tests/ directory.
 extend_exclude = [
-    # Fabric deploy glue run outside the app runtime — not part of the
-    # application's dependency graph (Fabric is intentionally not a dependency).
-    "fabfile\\.py",
     # Test code legitimately imports dev-group tools (pytest, factory-boy,
     # playwright); scanning it would raise spurious DEP004 misplaced-dev errors.
     ".*/tests/.*",
