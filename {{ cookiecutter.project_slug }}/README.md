@@ -42,10 +42,6 @@ After adding/changing ninja API endpoints, regenerate the SPA's typed schema:
 
 ## Deployment
 
-This template ships configurations for two deployment paths. Pick one.
-
-### Appliku (canonical)
-
 `appliku.yml` is the single source of truth. Push to `main`; Appliku redeploys
 and runs `release.sh` automatically.
 
@@ -61,15 +57,3 @@ First-time setup:
 6. Deploy.
 
 See [docs.appliku.com/docs/cli-sdk](https://docs.appliku.com/docs/cli-sdk/) for the Appliku CLI/SDK reference.
-
-### Docker Compose (self-host, e.g. Mac mini via Tailscale)
-
-For a Mac mini hosted behind Caddy + Tailscale:
-
-1. `uv add fabric` (if not already)
-2. Adjust `TARGET_SERVER` and `TARGET_DIR` in `fabfile.py`.
-3. Clone the repo to `TARGET_DIR` on the host.
-4. Pick an unused port in `docker-compose.yml`'s `ports` mapping.
-5. Add your hostname to `ALLOWED_HOSTS` in `docker-compose.yml`.
-6. Add a Caddy proxy rule.
-7. Deploy: `uv run fab deploy && uv run fab release`.
