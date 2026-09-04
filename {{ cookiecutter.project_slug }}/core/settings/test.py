@@ -25,6 +25,13 @@ DJANGO_VITE["default"]["manifest_path"] = (  # noqa: F405
     BASE_DIR / "core" / "static" / "dist" / "js" / "manifest.json"  # noqa: F405
 )
 
+# Stores nothing, so throttle counters cannot leak between tests.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+    },
+}
+
 # Run enqueued jobs inline on the calling thread, so `.delay()` resolves
 # synchronously with no Redis round-trip and no worker process. See ADR-0003.
 RQ_QUEUES["default"]["ASYNC"] = False  # noqa: F405
