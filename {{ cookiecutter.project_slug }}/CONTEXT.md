@@ -38,7 +38,9 @@ HTML pages:
 
 - `/` — Django shell that mounts the React SPA on the **Dashboard** route.
 - `/api-access/` — same SPA mount, react-router renders the **API Access** route.
-- `/accounts/login/` & `/accounts/logout/` — Django built-in auth views.
+- `/accounts/login/` & `/accounts/logout/` — Django built-in auth views, the
+  only two mounted under `/accounts/`. Password change and reset are not
+  mounted (no templates, no mailer), so those URLs 404.
   Load the SPA bundle so visual tokens match; `main.tsx` finds no `#app`
   node there and bails before mounting React.
 - `/admin/` — Django admin; superuser creates non-staff `User` accounts here,
@@ -63,7 +65,9 @@ Every endpoint accepts **either** auth method by default:
   the SPA. CSRF enforced via `X-CSRFToken` header read from the `csrftoken` cookie.
 - `HttpBearer` against `UserApiKey` — `Authorization: Bearer
   {{ cookiecutter.project_slug }}_live_…`. Used by headless callers. No CSRF
-  (state-changing requests are token-bound, not cookie-bound).
+  (state-changing requests are token-bound, not cookie-bound). Deactivating a
+  user revokes every one of their keys at once: `verify()` rejects a key whose
+  owner has `is_active=False`.
 
 Both auth paths resolve to the same `request.user`.
 

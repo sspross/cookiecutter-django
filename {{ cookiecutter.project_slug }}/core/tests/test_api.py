@@ -25,3 +25,16 @@ class TestMeEndpoint:
     def test_anonymous_is_rejected(self, client):
         response = client.get(ME_URL)
         assert response.status_code == 401
+
+    def test_bearer_of_inactive_user_is_rejected(self, client):
+        """Deactivating a user kills bearer access without revoking each key."""
+        user = UserFactory(username="carol")
+        result = mint(user, name="laptop-cli")
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+
+        response = client.get(ME_URL, HTTP_AUTHORIZATION=f"Bearer {result.raw_token}")
+
+        assert response.status_code == 401
+        result.api_key.refresh_from_db()
+        assert result.api_key.last_used_at is None

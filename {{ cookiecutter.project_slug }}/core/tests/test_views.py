@@ -19,3 +19,23 @@ class TestHomeView:
         assert response.status_code == 200
         assert b'id="app"' in response.content
         assert b"data-project-name=" in response.content
+
+
+@pytest.mark.django_db
+class TestAuthRoutes:
+    """Only login and logout are mounted under `/accounts/`; every other auth
+    URL must 404 rather than 500 on a template this project does not ship."""
+
+    def test_login_is_mounted(self, client):
+        response = client.get(reverse("login"))
+        assert response.status_code == 200
+
+    def test_logout_is_mounted(self, client):
+        user = UserFactory()
+        client.force_login(user)
+        response = client.post(reverse("logout"))
+        assert response.status_code == 302
+
+    def test_password_reset_is_not_mounted(self, client):
+        response = client.get("/accounts/password_reset/")
+        assert response.status_code == 404

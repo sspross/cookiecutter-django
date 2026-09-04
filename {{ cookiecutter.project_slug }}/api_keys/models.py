@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import models
 
+NAME_MAX_LENGTH = 128
+
 
 class UserApiKey(models.Model):
     """A bearer credential for the headless API path.
@@ -16,7 +18,7 @@ class UserApiKey(models.Model):
         on_delete=models.CASCADE,
         related_name="api_keys",
     )
-    name = models.CharField(max_length=128)
+    name = models.CharField(max_length=NAME_MAX_LENGTH)
     prefix = models.CharField(max_length=16)
     hash = models.CharField(max_length=64, unique=True, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
