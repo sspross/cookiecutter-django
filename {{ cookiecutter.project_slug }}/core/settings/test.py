@@ -40,7 +40,11 @@ STORAGES = {
     },
 }
 
+# Skip whitenoise's STATIC_ROOT scan at startup, which otherwise warns "No
+# directory at: staticfiles" because the test run never runs collectstatic.
+WHITENOISE_AUTOREFRESH = True
+
 # The default PBKDF2 hasher is deliberately slow and dominated the suite:
 # ~0.13s per UserFactory-built test against ~0.005s of actual work. MD5 keeps
-# set_password/check_password honest. Re-profile before removing this.
+# hashing and check_password honest. Re-profile before removing this.
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

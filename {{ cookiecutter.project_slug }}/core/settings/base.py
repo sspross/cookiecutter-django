@@ -152,3 +152,39 @@ if not DEBUG:
 
 # W005 and W021 flag the two HSTS scope settings above, which are deliberate.
 SILENCED_SYSTEM_CHECKS = ["security.W005", "security.W021"]
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "console": {
+            "format": "{levelname} {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "console",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "WARNING",
+    },
+    "loggers": {
+        "core": {"level": "INFO"},
+        "api_keys": {"level": "INFO"},
+        "users": {"level": "INFO"},
+        # Django keeps its own console handler on these two, so without an
+        # explicit entry every record would be printed twice: once there and
+        # once by the root handler.
+        "django": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        # ERROR keeps bot 404 probes, which Django logs at WARNING, out.
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+}
