@@ -40,7 +40,7 @@ precommit:
 frontend.install:
 	cd core/frontend && npm install
 
-frontend.install.ci: # exact install from the committed lockfile
+frontend.install.ci:
 	cd core/frontend && npm ci
 
 frontend.build:

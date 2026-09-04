@@ -1,3 +1,6 @@
+from collections.abc import Callable
+from typing import Literal
+
 import django_rq
 from django.contrib.auth.decorators import login_required
 from django.db import connection
@@ -6,19 +9,21 @@ from django.shortcuts import render
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_safe
 
+type DependencyStatus = Literal["ok", "error"]
 
-def _database_status() -> str:
+
+def _check_database() -> None:
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT 1")
+
+
+def _check_redis() -> None:
+    django_rq.get_connection("default").ping()
+
+
+def _status_of(check: Callable[[], None]) -> DependencyStatus:
     try:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT 1")
-    except Exception:
-        return "error"
-    return "ok"
-
-
-def _redis_status() -> str:
-    try:
-        django_rq.get_connection("default").ping()
+        check()
     except Exception:
         return "error"
     return "ok"
@@ -26,7 +31,10 @@ def _redis_status() -> str:
 
 @require_safe
 def healthz(request: HttpRequest) -> JsonResponse:
-    checks = {"database": _database_status(), "redis": _redis_status()}
+    checks: dict[str, DependencyStatus] = {
+        "database": _status_of(_check_database),
+        "redis": _status_of(_check_redis),
+    }
     all_ok = all(status == "ok" for status in checks.values())
     return JsonResponse(checks, status=200 if all_ok else 503)
 

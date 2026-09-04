@@ -150,5 +150,5 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = False
     SECURE_HSTS_PRELOAD = False
 
-# HSTS is scoped to this host: no subdomains, no browser preload list entry.
+# W005 and W021 flag the two HSTS scope settings above, which are deliberate.
 SILENCED_SYSTEM_CHECKS = ["security.W005", "security.W021"]
