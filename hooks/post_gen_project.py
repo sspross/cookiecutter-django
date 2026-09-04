@@ -1,12 +1,11 @@
-import click  # dependency of cookiecutter
 import random
 import shutil
 import string
 import subprocess
 
+import click  # dependency of cookiecutter
 from django.conf import settings
 from django.contrib.auth.hashers import make_password
-
 
 ENV_EXAMPLE_FILE = ".env.example"
 ENV_FILE = ".env"

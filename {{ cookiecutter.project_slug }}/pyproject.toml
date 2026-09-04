@@ -4,21 +4,21 @@ version = "0.1.0"
 description = ""
 readme = "README.md"
 authors = [{name = "{{ cookiecutter.author_name }}", email = "{{ cookiecutter.author_email }}"}]
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.13,<3.15"
 dependencies = [
-	"django>=6.0",
+	"django>=6.1,<6.2",
 	"whitenoise",
 	"django-environ",
-	"psycopg2-binary",
+	"psycopg[binary]",
 	"django-vite",
-	"django-ninja>=1.6.2",
-	"django-rq>=4.1.0",
-	"redis>=7.4.0",
+	"django-ninja>=1.7",
+	"django-rq>=4.2",
+	"redis>=8",
 ]
 
 [dependency-groups]
 prod = [
-	"gunicorn>=24.0",
+	"gunicorn>=26",
 ]
 dev = [
 	"ruff",
@@ -89,6 +89,6 @@ DEP002 = [
     "whitenoise",      # MIDDLEWARE + staticfiles STORAGES backend
     "django-vite",     # INSTALLED_APPS app: django_vite
     "django-rq",       # INSTALLED_APPS app + django_rq.urls
-    "psycopg2-binary", # PostgreSQL driver loaded by Django
+    "psycopg",         # PostgreSQL driver loaded by Django
     "redis",           # RQ broker, configured via RQ_QUEUES URL
 ]

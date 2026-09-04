@@ -41,6 +41,7 @@ boundary the runtime arrow forbids.**
   if TYPE_CHECKING:
       from other_app.models import Thing  # for type hints only
 
+
   def handle(thing: Thing) -> None: ...
   ```
 
