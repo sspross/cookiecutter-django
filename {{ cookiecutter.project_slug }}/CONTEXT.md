@@ -7,8 +7,8 @@ The project's own user model, `users.User`: Django's `AbstractUser` with no
 extra fields, wired in as `AUTH_USER_MODEL` from the first migration so a
 project can add fields later without migrating away from `auth.User`. Other
 apps reference it through `settings.AUTH_USER_MODEL` (foreign keys) or
-`get_user_model()` (code and factories), never by importing `users.models`
-directly; the `users` app itself depends on nothing (see `tach.toml`).
+`get_user_model()` (code and factories). The `users` app itself depends on
+nothing (see `tach.toml`).
 
 ### API Key
 A user-issued bearer credential for the headless API path. Stored as `UserApiKey`
@@ -83,7 +83,7 @@ App layout:
 
 ```
 core/                # settings package and Django app in one (namespace package)
-  apps.py            # CoreConfig, label pinned to "core"
+  apps.py
   admin.py           # empty — scaffold for your own admin registrations
   models.py          # empty — scaffold for your own models
   api.py             # NinjaAPI mount; [ApiKeyBearer(), django_auth]; GET /api/me
@@ -125,11 +125,13 @@ api_keys/
       test_mint_flow.py
 users/
   __init__.py
-  apps.py            # UsersConfig, label pinned to "users"
+  apps.py
   admin.py           # registers User with Django's stock UserAdmin
   models.py          # User(AbstractUser), the AUTH_USER_MODEL
   migrations/
     0001_initial.py
+  tests/
+    test_users.py    # seed fixture (loaddata) and admin pages
 ```
 
 SPA source layout under `core/frontend/src/`:
