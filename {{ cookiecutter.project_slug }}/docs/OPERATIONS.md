@@ -170,13 +170,19 @@ throwaway container from the same image with the same environment.
 ## First superuser
 
 After the first successful deploy, create the first superuser with a one-off
-command in Appliku:
+command in Appliku. One-off commands have no terminal attached, so the
+interactive prompts fail; pass the credentials through the environment
+variables Django reads with `--noinput`:
 
 ```
-uv run ./manage.py createsuperuser
+DJANGO_SUPERUSER_PASSWORD='<password>' uv run ./manage.py createsuperuser --noinput --username admin --email you@example.com
 ```
 
-On a compose host:
+If the runner rejects the inline prefix, set `DJANGO_SUPERUSER_PASSWORD` as an
+app environment variable, run the command without it, and remove the variable
+afterwards.
+
+On a compose host, interactive or with the same `--noinput` form:
 
 ```
 docker compose run --rm web uv run ./manage.py createsuperuser
