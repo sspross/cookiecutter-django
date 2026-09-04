@@ -14,7 +14,10 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.12.9 /uv /usr/local/bin/uv
+
+RUN groupadd --gid 1000 app \
+    && useradd --uid 1000 --gid app --home-dir /app --no-create-home --shell /usr/sbin/nologin app
 
 WORKDIR /app
 
@@ -27,10 +30,17 @@ COPY . .
 # collectstatic below needs SECRET_KEY/DATABASE_URL to import settings.
 COPY .env.example .env
 
-RUN make frontend.install
+RUN make frontend.install.ci
 RUN make frontend.build
 
 RUN uv run python manage.py collectstatic --noinput
 
 # Drop it again so the orchestrator's env vars win at runtime.
 RUN rm -f .env
+
+RUN chown -R app:app /app
+
+USER app
+
+# Only reached on an orchestrator that cannot override the command per process.
+CMD ["./web.sh"]

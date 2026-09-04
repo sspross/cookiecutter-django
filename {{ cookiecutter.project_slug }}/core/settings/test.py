@@ -12,12 +12,25 @@ DEBUG = False
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 CSRF_TRUSTED_ORIGINS = ["http://localhost", "http://127.0.0.1"]
 
+# The test client and live_server speak plain HTTP.
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SECURE_SSL_REDIRECT = False
+SECURE_HSTS_SECONDS = 0
+
 # Read the Vite manifest from the per-app build output rather than STATIC_ROOT,
 # so `make test` only needs `make frontend.build` (no `collectstatic` step).
 DJANGO_VITE["default"]["dev_mode"] = False  # noqa: F405
 DJANGO_VITE["default"]["manifest_path"] = (  # noqa: F405
     BASE_DIR / "core" / "static" / "dist" / "js" / "manifest.json"  # noqa: F405
 )
+
+# Stores nothing, so throttle counters cannot leak between tests.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+    },
+}
 
 # Run enqueued jobs inline on the calling thread, so `.delay()` resolves
 # synchronously with no Redis round-trip and no worker process. See ADR-0003.
@@ -34,7 +47,11 @@ STORAGES = {
     },
 }
 
+# Skip whitenoise's STATIC_ROOT scan at startup, which otherwise warns "No
+# directory at: staticfiles" because the test run never runs collectstatic.
+WHITENOISE_AUTOREFRESH = True
+
 # The default PBKDF2 hasher is deliberately slow and dominated the suite:
 # ~0.13s per UserFactory-built test against ~0.005s of actual work. MD5 keeps
-# set_password/check_password honest. Re-profile before removing this.
+# hashing and check_password honest. Re-profile before removing this.
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Monitor, Moon, Sun } from "@/components/layout/icons";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,9 @@ function applyMode(mode: Mode) {
 
 export function ThemeToggle() {
   const [mode, setMode] = useState<Mode>(() => readStored());
+  // The shell renders this twice (sidebar and mobile nav); a shared radio
+  // name would fuse both into one browser-level group.
+  const groupName = useId();
 
   useEffect(() => {
     applyMode(mode);
@@ -37,33 +40,37 @@ export function ThemeToggle() {
     localStorage.setItem(STORAGE_KEY, next);
   }
 
-  const buttons: { value: Mode; Icon: typeof Sun; label: string }[] = [
+  const options: { value: Mode; Icon: typeof Sun; label: string }[] = [
     { value: "system", Icon: Monitor, label: "System" },
     { value: "light", Icon: Sun, label: "Light" },
     { value: "dark", Icon: Moon, label: "Dark" },
   ];
+  // Native radios give arrow-key navigation for free; they are visually
+  // hidden and the icon in the label is what the user sees.
   return (
-    <div
-      role="radiogroup"
-      aria-label="Color mode"
-      className="inline-flex overflow-hidden rounded-md border border-border"
-    >
-      {buttons.map(({ value, Icon, label }) => (
-        <button
+    <fieldset className="inline-flex overflow-hidden rounded-md border border-border">
+      <legend className="sr-only">Color mode</legend>
+      {options.map(({ value, Icon, label }) => (
+        <label
           key={value}
-          type="button"
-          aria-label={label}
-          aria-checked={mode === value}
-          role="radio"
-          onClick={() => pick(value)}
           className={cn(
-            "flex h-6 w-6 items-center justify-center text-muted-foreground hover:text-foreground",
+            "flex h-6 w-6 cursor-pointer items-center justify-center text-muted-foreground hover:text-foreground",
+            "focus-within:ring-2 focus-within:ring-ring focus-within:ring-inset",
             mode === value && "bg-accent text-foreground",
           )}
         >
-          <Icon className="h-3.5 w-3.5" />
-        </button>
+          <input
+            type="radio"
+            name={groupName}
+            value={value}
+            checked={mode === value}
+            onChange={() => pick(value)}
+            className="sr-only"
+          />
+          <span className="sr-only">{label}</span>
+          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+        </label>
       ))}
-    </div>
+    </fieldset>
   );
 }

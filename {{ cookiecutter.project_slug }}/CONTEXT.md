@@ -2,6 +2,14 @@
 
 ## Glossary
 
+### User
+The project's own user model, `users.User`: Django's `AbstractUser` with no
+extra fields, wired in as `AUTH_USER_MODEL` from the first migration so a
+project can add fields later without migrating away from `auth.User`. Other
+apps reference it through `settings.AUTH_USER_MODEL` (foreign keys) or
+`get_user_model()` (code and factories). The `users` app itself depends on
+nothing (see `tach.toml`).
+
 ### API Key
 A user-issued bearer credential for the headless API path. Stored as `UserApiKey`
 (`user FK, name, prefix, hash, created_at, last_used_at, revoked_at`). The raw token is
@@ -38,13 +46,16 @@ HTML pages:
 
 - `/` — Django shell that mounts the React SPA on the **Dashboard** route.
 - `/api-access/` — same SPA mount, react-router renders the **API Access** route.
-- `/accounts/login/` & `/accounts/logout/` — Django built-in auth views.
+- `/accounts/login/` & `/accounts/logout/` — Django built-in auth views, the
+  only two mounted under `/accounts/`. Password change and reset are not
+  mounted (no templates, no mailer), so those URLs 404.
   Load the SPA bundle so visual tokens match; `main.tsx` finds no `#app`
   node there and bails before mounting React.
 - `/admin/` — Django admin; superuser creates non-staff `User` accounts here,
   mints `UserApiKey` rows through the standard add form, and revokes them via a
   custom admin action.
 - `/django-rq/` — django-rq queue dashboard, gated to staff users by django-rq itself.
+- `/healthz`, anonymous JSON probe (`{database, redis}`, each `ok` or `error`): 200 when both respond, 503 otherwise; never sets a cookie; exempt from the SSL redirect.
 
 API (django-ninja, dual auth, CSRF on session-authed writes):
 
@@ -54,7 +65,8 @@ API (django-ninja, dual auth, CSRF on session-authed writes):
 - `GET  /api/api-keys/` — list the requesting user's keys (active and revoked,
   newest-first)
 - `POST /api/api-keys/` — body `{name}`; responds 201 with the created row plus the
-  raw token, the only place the server ever returns it
+  raw token, the only place the server ever returns it. Throttled to 10 mints
+  per hour per session, 429 beyond that; list and revoke are not throttled
 - `POST /api/api-keys/{id}/revoke/` — idempotent soft-delete; cross-user 404, not 403
 
 Every endpoint accepts **either** auth method by default:
@@ -63,7 +75,9 @@ Every endpoint accepts **either** auth method by default:
   the SPA. CSRF enforced via `X-CSRFToken` header read from the `csrftoken` cookie.
 - `HttpBearer` against `UserApiKey` — `Authorization: Bearer
   {{ cookiecutter.project_slug }}_live_…`. Used by headless callers. No CSRF
-  (state-changing requests are token-bound, not cookie-bound).
+  (state-changing requests are token-bound, not cookie-bound). Deactivating a
+  user revokes every one of their keys at once: `verify()` rejects a key whose
+  owner has `is_active=False`.
 
 Both auth paths resolve to the same `request.user`.
 
@@ -75,6 +89,7 @@ App layout:
 
 ```
 core/                # settings package and Django app in one (namespace package)
+  apps.py
   admin.py           # empty — scaffold for your own admin registrations
   models.py          # empty — scaffold for your own models
   api.py             # NinjaAPI mount; [ApiKeyBearer(), django_auth]; GET /api/me
@@ -82,7 +97,7 @@ core/                # settings package and Django app in one (namespace package
   schemas.py         # MeOut — the /api/me wire shape
   settings/
     base.py          # env-driven settings
-    test.py          # test overrides (async guard, MD5 hasher, vite manifest)
+    test.py          # test overrides (async guard, MD5 hasher, vite manifest, dummy cache)
   management/commands/
     export_openapi_schema.py  # offline OpenAPI JSON dump (make schema / guard)
   migrations/
@@ -114,6 +129,15 @@ api_keys/
     test_api.py
     live/
       test_mint_flow.py
+users/
+  __init__.py
+  apps.py
+  admin.py           # registers User with Django's stock UserAdmin
+  models.py          # User(AbstractUser), the AUTH_USER_MODEL
+  migrations/
+    0001_initial.py
+  tests/
+    test_users.py    # seed fixture (loaddata) and admin pages
 ```
 
 SPA source layout under `core/frontend/src/`:
@@ -150,7 +174,7 @@ spa/
 
 ### Frontend & API contract
 The authenticated app is a React SPA (TypeScript, shadcn/ui on Tailwind v4,
-`react-router` v7, TanStack Query). Django serves a single mount template at `/` and
+`react-router` v8, TanStack Query). Django serves a single mount template at `/` and
 `/api-access/` carrying `@login_required` + `@ensure_csrf_cookie`; the SPA bundle is
 loaded via `django-vite`'s manifest. Login (`/accounts/login/`) stays Django-rendered,
 Tailwind-styled to match.
@@ -174,6 +198,9 @@ works in CI. The committed `schema.d.ts` is raw `openapi-typescript` output
 **`schema-fresh` pre-commit hook** (manual stage, like `pip-audit`) regenerates
 it and fails if it drifts from `schemas.py` — run `make schema` and commit. This
 is the guard that stops the generated client silently rotting out of date.
+
+`typescript` stays on `^5.9`: `openapi-typescript` declares a peer range on
+TypeScript 5.x, so raise the pin only once it supports the next major.
 
 Schema conventions (so the generated TS and API docs stay rich):
 

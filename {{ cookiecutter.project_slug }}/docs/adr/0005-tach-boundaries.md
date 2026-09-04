@@ -5,9 +5,10 @@
 The template ships `tach` and a `tach.toml` that declares an explicit dependency
 graph between Django apps. `tach check` (wired into `make lint` / pre-commit)
 fails the build on any import that crosses a boundary the graph doesn't permit.
-The baseline graph is one arrow: `core → api_keys` (`core` may import
-`api_keys`; `api_keys` may import nothing). As the project grows, each
-team-added `[[modules]]` block draws another boundary.
+The baseline graph is two arrows out of `core`: `core → api_keys` and
+`core → users` (`core` may import both; `api_keys` and `users` may import
+nothing). As the project grows, each team-added `[[modules]]` block draws
+another boundary.
 
 Two facts make `tach` confusing on first contact:
 
@@ -40,6 +41,7 @@ boundary the runtime arrow forbids.**
 
   if TYPE_CHECKING:
       from other_app.models import Thing  # for type hints only
+
 
   def handle(thing: Thing) -> None: ...
   ```

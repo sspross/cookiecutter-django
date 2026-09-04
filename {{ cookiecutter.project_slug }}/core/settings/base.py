@@ -21,6 +21,9 @@ CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 
 PROJECT_NAME = "{{ cookiecutter.project_name }}"
 
+# Only safe while the proxy in front of the app strips a client-supplied
+# X-Forwarded-Proto. Appliku's does; a self-run reverse proxy has to be
+# configured to.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 INSTALLED_APPS = [
@@ -32,9 +35,12 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_vite",
     "django_rq",
+    "users",
     "api_keys",
     "core",
 ]
+
+AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -134,5 +140,64 @@ RQ_QUEUES = {
     "default": {
         "URL": REDIS_URL,
         "DEFAULT_TIMEOUT": 360,
+    },
+}
+
+# Shared across gunicorn workers, so throttle counters hold under concurrency.
+# Shares the RQ database, and RedisCache.clear() is FLUSHDB: clearing the whole
+# cache would drop queued jobs with it.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": REDIS_URL,
+        "KEY_PREFIX": "{{ cookiecutter.project_slug }}",
+    },
+}
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_REDIRECT_EXEMPT = [r"^healthz$"]
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
+
+# W005 and W021 flag the two HSTS scope settings above, which are deliberate.
+SILENCED_SYSTEM_CHECKS = ["security.W005", "security.W021"]
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "console": {
+            "format": "{levelname} {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "console",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "WARNING",
+    },
+    "loggers": {
+        "core": {"level": "INFO"},
+        "api_keys": {"level": "INFO"},
+        "users": {"level": "INFO"},
+        # Django keeps its own console handler on these two, so without an
+        # explicit entry every record would be printed twice: once there and
+        # once by the root handler.
+        "django": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        # ERROR keeps bot 404 probes, which Django logs at WARNING, out.
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
     },
 }

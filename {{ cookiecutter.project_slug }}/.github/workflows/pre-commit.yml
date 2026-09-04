@@ -6,21 +6,26 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v10.0.1
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
       - run: uv sync --frozen
       - run: make frontend.install   # biome-check & tsc-typecheck hooks need core/frontend/node_modules
-      - uses: pre-commit/action@v3.0.1
-      - uses: pre-commit/action@v3.0.1
-        with:
-          extra_args: --hook-stage manual --all-files
+      - run: uv run pre-commit run --all-files
+      - run: uv run pre-commit run --all-files --hook-stage manual
         # The schema-fresh hook boots Django to introspect the ninja API, so
         # settings must import. Only SECRET_KEY + DATABASE_URL lack defaults in
         # core/settings/base.py; the schema export never connects, so a

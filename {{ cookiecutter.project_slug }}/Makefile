@@ -40,6 +40,9 @@ precommit:
 frontend.install:
 	cd core/frontend && npm install
 
+frontend.install.ci:
+	cd core/frontend && npm ci
+
 frontend.build:
 	cd core/frontend && npm run build
 

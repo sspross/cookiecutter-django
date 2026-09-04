@@ -32,8 +32,8 @@ function formatTimestamp(iso: string | null | undefined) {
 const ORIGIN = window.location.origin;
 const PREFIX_HINT = "{{ cookiecutter.project_slug }}_live_…";
 
-const CURL_LIST = `curl -H "Authorization: Bearer ${PREFIX_HINT}" \\
-  ${ORIGIN}/api/api-keys/`;
+const CURL_ME = `curl -H "Authorization: Bearer ${PREFIX_HINT}" \\
+  ${ORIGIN}/api/me`;
 
 type Modal =
   | { kind: "none" }
@@ -169,9 +169,9 @@ export function ApiAccessRoute() {
         <div className="space-y-2">
           <div className="flex items-start gap-2">
             <pre className="flex-1 overflow-x-auto rounded-md border bg-muted px-3 py-2 font-mono text-xs">
-              {CURL_LIST}
+              {CURL_ME}
             </pre>
-            <CopyButton value={CURL_LIST} />
+            <CopyButton value={CURL_ME} />
           </div>
         </div>
       </section>

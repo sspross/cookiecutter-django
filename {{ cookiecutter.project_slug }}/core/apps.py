@@ -1,7 +1,7 @@
 from django.apps import AppConfig
 
 
-class ApiKeysConfig(AppConfig):
+class CoreConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "api_keys"
-    label = "api_keys"
+    name = "core"
+    label = "core"

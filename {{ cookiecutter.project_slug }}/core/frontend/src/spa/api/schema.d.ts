@@ -128,7 +128,10 @@ export interface components {
          * @description Body for ``POST /api/api-keys/``.
          */
         ApiKeyCreateIn: {
-            /** Name */
+            /**
+             * Name
+             * @description Label for the key, bounded at the model's column width of 128 characters.
+             */
             name: string;
         };
     };

@@ -4,21 +4,21 @@ version = "0.1.0"
 description = ""
 readme = "README.md"
 authors = [{name = "{{ cookiecutter.author_name }}", email = "{{ cookiecutter.author_email }}"}]
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.13,<3.15"
 dependencies = [
-	"django>=6.0",
+	"django>=6.1,<6.2",
 	"whitenoise",
 	"django-environ",
-	"psycopg2-binary",
+	"psycopg[binary]",
 	"django-vite",
-	"django-ninja>=1.6.2",
-	"django-rq>=4.1.0",
-	"redis>=7.4.0",
+	"django-ninja>=1.7",
+	"django-rq>=4.2",
+	"redis>=8",
 ]
 
 [dependency-groups]
 prod = [
-	"gunicorn>=24.0",
+	"gunicorn>=26",
 ]
 dev = [
 	"ruff",
@@ -29,6 +29,7 @@ dev = [
 	"pre-commit",
 	"playwright",
 	"pytest-playwright",
+	"pytest-timeout",
 	"tach>=0.28.0",
 	"pip-audit>=2.10.0",
 	"deptry>=0.25.1",
@@ -49,13 +50,17 @@ select = [
     "UP", # pyupgrade
 ]
 
+[tool.ruff.lint.per-file-ignores]
+"*/migrations/*" = ["E501"]
+
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "core.settings.test"
 python_files = ["test_*.py", "*_test.py", "tests.py"]
 addopts = "-v --tb=short --tracing=retain-on-failure --screenshot=only-on-failure"
+timeout = 120
 
 [tool.coverage.run]
-source = ["core", "api_keys"]
+source = ["core", "api_keys", "users"]
 omit = [
     "*/migrations/*",
     "*/tests/*",
@@ -74,9 +79,6 @@ skip_covered = true
 # dirs need an explicit `.*/` prefix — deptry's built-in `tests` exclude only
 # catches a top-level tests/ directory.
 extend_exclude = [
-    # Fabric deploy glue run outside the app runtime — not part of the
-    # application's dependency graph (Fabric is intentionally not a dependency).
-    "fabfile\\.py",
     # Test code legitimately imports dev-group tools (pytest, factory-boy,
     # playwright); scanning it would raise spurious DEP004 misplaced-dev errors.
     ".*/tests/.*",
@@ -89,6 +91,6 @@ DEP002 = [
     "whitenoise",      # MIDDLEWARE + staticfiles STORAGES backend
     "django-vite",     # INSTALLED_APPS app: django_vite
     "django-rq",       # INSTALLED_APPS app + django_rq.urls
-    "psycopg2-binary", # PostgreSQL driver loaded by Django
+    "psycopg",         # PostgreSQL driver loaded by Django
     "redis",           # RQ broker, configured via RQ_QUEUES URL
 ]

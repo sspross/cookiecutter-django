@@ -6,13 +6,16 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
 
     services:
       postgres:
-        image: postgres:16
+        image: postgres:17
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -35,15 +38,20 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v10.0.1
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.13'
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
 
       - name: Install dependencies
         run: uv sync
@@ -52,7 +60,7 @@ jobs:
         run: uv run playwright install chromium
 
       - name: Install Javascript and CSS dependencies
-        run: make frontend.install && make frontend.build
+        run: make frontend.install.ci && make frontend.build
 
       - name: Collect static files
         env:
@@ -60,6 +68,22 @@ jobs:
           REDIS_URL: redis://localhost:6379/0
           SECRET_KEY: "test-secret-key-for-ci"
         run: uv run python manage.py collectstatic --noinput
+
+      - name: Check for missing migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+          REDIS_URL: redis://localhost:6379/0
+          SECRET_KEY: "test-secret-key-for-ci"
+        run: uv run python manage.py makemigrations --check --dry-run
+
+      - name: Run deployment checks
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
+          REDIS_URL: redis://localhost:6379/0
+          DEBUG: "False"
+          ALLOWED_HOSTS: "example.com"
+          SECRET_KEY: "deploy-check-secret-key-0123456789abcdefghijklmnopqrstuvwxyz"
+        run: uv run python manage.py check --deploy --fail-level WARNING
 
       - name: Run tests
         env:
@@ -70,7 +94,7 @@ jobs:
 
       - name: Upload test artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-artifacts
           path: test-results/
