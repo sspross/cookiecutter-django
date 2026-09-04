@@ -168,7 +168,7 @@ spa/
 
 ### Frontend & API contract
 The authenticated app is a React SPA (TypeScript, shadcn/ui on Tailwind v4,
-`react-router` v7, TanStack Query). Django serves a single mount template at `/` and
+`react-router` v8, TanStack Query). Django serves a single mount template at `/` and
 `/api-access/` carrying `@login_required` + `@ensure_csrf_cookie`; the SPA bundle is
 loaded via `django-vite`'s manifest. Login (`/accounts/login/`) stays Django-rendered,
 Tailwind-styled to match.
@@ -192,6 +192,9 @@ works in CI. The committed `schema.d.ts` is raw `openapi-typescript` output
 **`schema-fresh` pre-commit hook** (manual stage, like `pip-audit`) regenerates
 it and fails if it drifts from `schemas.py` — run `make schema` and commit. This
 is the guard that stops the generated client silently rotting out of date.
+
+`typescript` stays on `^5.9`: `openapi-typescript` declares a peer range on
+TypeScript 5.x, so raise the pin only once it supports the next major.
 
 Schema conventions (so the generated TS and API docs stay rich):
 

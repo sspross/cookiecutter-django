@@ -16,7 +16,7 @@ separate validation surfaces.
 ## Decision
 
 The authenticated app at `/` is a **React SPA** (TypeScript, shadcn/ui on
-Tailwind v4, `react-router` v7, TanStack Query). Django serves a single
+Tailwind v4, `react-router` v8, TanStack Query). Django serves a single
 mount template; the SPA owns all client routing under `/`.
 
 Concretely:
