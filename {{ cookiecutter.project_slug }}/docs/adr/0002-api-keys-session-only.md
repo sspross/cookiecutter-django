@@ -49,6 +49,34 @@ listing is how a user finds the key to revoke. Rate-limiting either one
 would let an attacker who burns the budget block the user's own cleanup,
 which costs more than the abuse it would prevent.
 
+### Growth path: one NinjaAPI per audience
+
+The single dual-auth surface holds while `/api/*` serves one audience: the
+project's own users, reaching it either from the SPA (session) or from their
+own scripts (bearer). A per-router `auth=` override is the right size for one
+exception; it is the wrong size for a second audience.
+
+When one appears (a partner API, a machine-to-machine integration, an internal
+ops API), the documented move is a second `NinjaAPI` instance on its own path
+prefix with its own `auth=` list, not more overrides on this one. Each instance
+carries its own docs page and its own OpenAPI document, so the SPA's generated
+`schema.d.ts` keeps describing only the endpoints the SPA can call, and an
+audience's auth rule is stated once at its mount instead of being reassembled
+from a default plus a list of exceptions.
+
+Scoped keys are the other half. `UserApiKey` today grants all-or-nothing access
+to everything the bearer path reaches; a second audience wants a key that names
+which surface it may call, so a leaked partner key cannot reach the user API.
+That means a scope field on `UserApiKey` and a check in `verify()`, plus each
+instance's bearer class asserting its own scope. None of it is built yet: the
+template ships the single-audience shape, and this paragraph records where to
+go rather than pre-building for a second audience most projects never grow.
+
+Two things to keep in mind when taking that step: the offline schema export
+(`manage.py export_openapi_schema`) imports one `api` object and would need to
+export each instance, and `/api/api-keys/*` stays session-only wherever it is
+mounted, for the reason above.
+
 ## Consequences
 
 Positive:

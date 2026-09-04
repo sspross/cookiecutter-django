@@ -1,6 +1,6 @@
 # {{ cookiecutter.project_slug }}
 
-See `CONTEXT.md` for domain language and `docs/adr/` for the architectural decisions in effect.
+See `CONTEXT.md` for domain language, `docs/adr/` for the architectural decisions in effect, and `docs/OPERATIONS.md` for the production runbook.
 
 ## Guardrails
 
@@ -18,6 +18,7 @@ Run these before declaring work complete:
 - **Module boundaries are enforced by `tach`** (`tach.toml`). A `from other_app.models import X` that `tach check` rejects at runtime is **still allowed under a `TYPE_CHECKING` guard for type-hinting only** — annotations create no runtime dependency. Keep such an import pointing the same direction as the runtime arrow; never invert a boundary behind the guard. See ADR-0005.
 - **Type-hint everything.** Annotate all function signatures and any non-obvious variable; the goal is maximal coverage, not just the easy cases.
 - **Put units in names** — `TIMEOUT_SECONDS`, `MAX_SIZE_MB`, `DELAY_MS`.
+- **While iterating run only the tests you touched; run the full suite once at the end.**
 - **No TODOs without an issue number.**
 - **Never `--no-verify`, and never skip or delete a failing test to go green** — fix the underlying problem.
 - **After 3 failed attempts at the same problem, stop and reassess** instead of repeating variations.
