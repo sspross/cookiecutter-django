@@ -43,7 +43,8 @@ After adding/changing ninja API endpoints, regenerate the SPA's typed schema:
 ## Deployment
 
 `appliku.yml` is the single source of truth. Push to `main`; Appliku redeploys
-and runs `release.sh` automatically.
+and runs `release.sh` automatically. `release.sh` only runs migrations, so a
+deploy never touches account data.
 
 First-time setup:
 
@@ -55,5 +56,8 @@ First-time setup:
    `python -c "import secrets; print(secrets.token_urlsafe(50))"`
 5. Add a domain in Appliku; `ALLOWED_HOSTS` is auto-populated from `from_domains: true`.
 6. Deploy.
+7. Create the first superuser with a one-off command in Appliku:
+   `uv run ./manage.py createsuperuser`. The `dumpdata.json` fixture seeds a
+   local admin for `make db.initialize` only and is never loaded in production.
 
 See [docs.appliku.com/docs/cli-sdk](https://docs.appliku.com/docs/cli-sdk/) for the Appliku CLI/SDK reference.

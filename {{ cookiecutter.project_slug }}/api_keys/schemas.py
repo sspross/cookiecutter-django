@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from ninja import Schema
+from ninja import Field, Schema
+
+from api_keys.models import UserApiKey
 
 
 class ApiKeyOut(Schema):
@@ -22,7 +24,13 @@ class ApiKeyOut(Schema):
 class ApiKeyCreateIn(Schema):
     """Body for ``POST /api/api-keys/``."""
 
-    name: str
+    name: str = Field(
+        max_length=UserApiKey.NAME_MAX_LENGTH,
+        description=(
+            "Label for the key, bounded at the model's column width of "
+            f"{UserApiKey.NAME_MAX_LENGTH} characters."
+        ),
+    )
 
 
 class ApiKeyMintOut(Schema):

@@ -50,8 +50,8 @@ def mint(user, name: str) -> MintResult:
 def verify(raw_token: str):
     """Resolve a raw bearer token to its owning user, or ``None``.
 
-    Rejects unknown hashes, revoked keys and malformed tokens. On success,
-    bumps ``last_used_at``.
+    Rejects unknown hashes, revoked keys, keys of deactivated users and
+    malformed tokens. On success, bumps ``last_used_at``.
     """
 
     if not raw_token or not raw_token.startswith(TOKEN_PREFIX):
@@ -62,7 +62,7 @@ def verify(raw_token: str):
     except UserApiKey.DoesNotExist:
         return None
 
-    if api_key.is_revoked:
+    if api_key.is_revoked or not api_key.user.is_active:
         return None
 
     UserApiKey.objects.filter(pk=api_key.pk).update(last_used_at=timezone.now())

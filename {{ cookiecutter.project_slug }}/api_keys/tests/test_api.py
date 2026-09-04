@@ -8,6 +8,7 @@ in ``test_services.py``.
 from __future__ import annotations
 
 import pytest
+from django.test import Client
 
 from api_keys import services as api_keys
 from api_keys.models import UserApiKey
@@ -125,6 +126,35 @@ class TestCreateApiKey:
 
         assert response.status_code == 401
         assert UserApiKey.objects.filter(user=user).count() == 1
+
+    def test_name_longer_than_the_column_returns_422(self, client):
+        user = UserFactory()
+        client.force_login(user)
+
+        response = client.post(
+            "/api/api-keys/",
+            data={"name": "x" * (UserApiKey.NAME_MAX_LENGTH + 1)},
+            content_type="application/json",
+        )
+
+        assert response.status_code == 422
+        assert not UserApiKey.objects.filter(user=user).exists()
+
+    def test_session_write_without_csrf_header_returns_403(self):
+        """The default test client skips CSRF, so the contract on session-authed
+        writes needs an enforcing client to be proven."""
+        user = UserFactory()
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(user)
+
+        response = csrf_client.post(
+            "/api/api-keys/",
+            data={"name": "ci"},
+            content_type="application/json",
+        )
+
+        assert response.status_code == 403
+        assert not UserApiKey.objects.filter(user=user).exists()
 
 
 @pytest.mark.django_db
