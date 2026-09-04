@@ -25,7 +25,7 @@ DJANGO_VITE["default"]["manifest_path"] = (  # noqa: F405
     BASE_DIR / "core" / "static" / "dist" / "js" / "manifest.json"  # noqa: F405
 )
 
-# No cache backend at all, so throttle counters cannot leak between tests.
+# Stores nothing, so throttle counters cannot leak between tests.
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.dummy.DummyCache",

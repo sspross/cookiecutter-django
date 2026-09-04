@@ -65,7 +65,8 @@ API (django-ninja, dual auth, CSRF on session-authed writes):
 - `GET  /api/api-keys/` — list the requesting user's keys (active and revoked,
   newest-first)
 - `POST /api/api-keys/` — body `{name}`; responds 201 with the created row plus the
-  raw token, the only place the server ever returns it
+  raw token, the only place the server ever returns it. Throttled to 10 mints
+  per hour per session, 429 beyond that; list and revoke are not throttled
 - `POST /api/api-keys/{id}/revoke/` — idempotent soft-delete; cross-user 404, not 403
 
 Every endpoint accepts **either** auth method by default:
@@ -96,7 +97,7 @@ core/                # settings package and Django app in one (namespace package
   schemas.py         # MeOut — the /api/me wire shape
   settings/
     base.py          # env-driven settings
-    test.py          # test overrides (async guard, MD5 hasher, vite manifest)
+    test.py          # test overrides (async guard, MD5 hasher, vite manifest, dummy cache)
   management/commands/
     export_openapi_schema.py  # offline OpenAPI JSON dump (make schema / guard)
   migrations/

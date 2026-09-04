@@ -12,7 +12,6 @@ from django.core.cache import cache
 from django.test import Client, override_settings
 
 from api_keys import services as api_keys
-from api_keys.api import MINT_RATE
 from api_keys.models import UserApiKey
 from api_keys.tests.factories import UserFactory
 
@@ -85,6 +84,16 @@ class TestListApiKeys:
         assert response.status_code == 401
 
 
+# The throttle counts in the cache, which the test settings stub out with a
+# backend that stores nothing. Only the throttle case needs a real one.
+THROTTLE_CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "api-key-mint-throttle",
+    },
+}
+
+
 @pytest.mark.django_db
 class TestCreateApiKey:
     def test_mint_returns_201_with_raw_token_and_api_key(self, client):
@@ -142,6 +151,41 @@ class TestCreateApiKey:
         assert response.status_code == 422
         assert not UserApiKey.objects.filter(user=user).exists()
 
+    def test_eleventh_mint_in_an_hour_is_throttled_while_revoke_stays_open(
+        self, client
+    ):
+        """A stolen session cannot mint unbounded keys, but the user can always
+        list and revoke the ones already out there."""
+        user = UserFactory()
+        client.force_login(user)
+
+        with override_settings(CACHES=THROTTLE_CACHES):
+            cache.clear()
+            minted = [
+                client.post(
+                    "/api/api-keys/",
+                    data={"name": f"key-{index}"},
+                    content_type="application/json",
+                )
+                for index in range(10)
+            ]
+            eleventh = client.post(
+                "/api/api-keys/",
+                data={"name": "one-too-many"},
+                content_type="application/json",
+            )
+            revoked = client.post(
+                f"/api/api-keys/{minted[0].json()['api_key']['id']}/revoke/"
+            )
+            listed = client.get("/api/api-keys/")
+            cache.clear()
+
+        assert [response.status_code for response in minted] == [201] * 10
+        assert eleventh.status_code == 429
+        assert UserApiKey.objects.filter(user=user).count() == 10
+        assert revoked.status_code == 200
+        assert listed.status_code == 200
+
     def test_session_write_without_csrf_header_returns_403(self):
         """The default test client skips CSRF, so the contract on session-authed
         writes needs an enforcing client to be proven."""
@@ -157,52 +201,6 @@ class TestCreateApiKey:
 
         assert response.status_code == 403
         assert not UserApiKey.objects.filter(user=user).exists()
-
-
-# The throttle counts in the cache, which the test settings stub out with the
-# dummy backend. Only this test needs a backend that actually stores.
-THROTTLE_CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "api-key-mint-throttle",
-    },
-}
-
-
-@pytest.mark.django_db
-def test_mint_is_throttled_while_revoke_stays_open(client):
-    """A stolen session cannot mint unbounded keys, but the user can always
-    revoke the ones already out there."""
-    allowed_mints = int(MINT_RATE.split("/")[0])
-    user = UserFactory()
-    client.force_login(user)
-
-    with override_settings(CACHES=THROTTLE_CACHES):
-        cache.clear()
-        minted = [
-            client.post(
-                "/api/api-keys/",
-                data={"name": f"key-{index}"},
-                content_type="application/json",
-            )
-            for index in range(allowed_mints)
-        ]
-        over_limit = client.post(
-            "/api/api-keys/",
-            data={"name": "one-too-many"},
-            content_type="application/json",
-        )
-        revoked = client.post(
-            f"/api/api-keys/{minted[0].json()['api_key']['id']}/revoke/"
-        )
-        listed = client.get("/api/api-keys/")
-        cache.clear()
-
-    assert [response.status_code for response in minted] == [201] * allowed_mints
-    assert over_limit.status_code == 429
-    assert UserApiKey.objects.filter(user=user).count() == allowed_mints
-    assert revoked.status_code == 200
-    assert listed.status_code == 200
 
 
 @pytest.mark.django_db

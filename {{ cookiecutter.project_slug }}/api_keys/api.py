@@ -19,8 +19,6 @@ from api_keys.schemas import ApiKeyCreateIn, ApiKeyMintOut, ApiKeyOut
 
 router = Router(tags=["api-keys"], auth=django_auth)
 
-MINT_RATE = "10/h"
-
 
 @router.get("/", response=list[ApiKeyOut])
 def list_api_keys(request: HttpRequest):
@@ -31,7 +29,7 @@ def list_api_keys(request: HttpRequest):
 @router.post(
     "/",
     response={201: ApiKeyMintOut},
-    throttle=[AuthRateThrottle(MINT_RATE)],
+    throttle=[AuthRateThrottle("10/h")],
 )
 def create_api_key(request: HttpRequest, payload: ApiKeyCreateIn):
     """Mint a new key and return the raw token exactly once."""

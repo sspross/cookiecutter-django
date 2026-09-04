@@ -49,9 +49,6 @@ listing is how a user finds the key to revoke. Rate-limiting either one
 would let an attacker who burns the budget block the user's own cleanup,
 which costs more than the abuse it would prevent.
 
-The throttle counts in the default cache, so it holds across gunicorn
-workers only because that cache is Redis-backed.
-
 ## Consequences
 
 Positive:

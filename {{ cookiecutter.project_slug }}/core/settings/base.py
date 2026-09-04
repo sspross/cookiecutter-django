@@ -142,6 +142,8 @@ RQ_QUEUES = {
 }
 
 # Shared across gunicorn workers, so throttle counters hold under concurrency.
+# Shares the RQ database, and RedisCache.clear() is FLUSHDB: clearing the whole
+# cache would drop queued jobs with it.
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
