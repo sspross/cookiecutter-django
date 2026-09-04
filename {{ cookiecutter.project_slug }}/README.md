@@ -42,9 +42,14 @@ After adding/changing ninja API endpoints, regenerate the SPA's typed schema:
 
 ## Deployment
 
-`appliku.yml` is the single source of truth. Push to `main`; Appliku redeploys
-and runs `release.sh` automatically. `release.sh` only runs migrations, so a
-deploy never touches account data.
+Two targets are supported, both on the same image and the same process scripts
+(`web.sh`, `worker.sh`, `release.sh`). See ADR-0004.
+
+### Appliku
+
+`appliku.yml` is the source of truth for this target. Push to `main`; Appliku
+redeploys and runs `release.sh` automatically. `release.sh` only runs
+migrations, so a deploy never touches account data.
 
 First-time setup:
 
@@ -61,5 +66,33 @@ First-time setup:
    local admin for `make db.initialize` only and is never loaded in production.
 
 See [docs.appliku.com/docs/cli-sdk](https://docs.appliku.com/docs/cli-sdk/) for the Appliku CLI/SDK reference.
+
+### Docker Compose
+
+`compose.yaml` is the source of truth for any docker-compose compatible host: a
+Docker host behind a reverse proxy, Dokploy, Coolify. It runs `db`
+(Postgres 17), `redis` (Redis 7), a one-shot `release` service, `web` and
+`worker`.
+
+1. `cp .env.example .env` on the host.
+2. Fill in `SECRET_KEY`, `POSTGRES_PASSWORD` (URL-safe), `ALLOWED_HOSTS` and
+   `CSRF_TRUSTED_ORIGINS`. `ALLOWED_HOSTS` needs `localhost` next to the real
+   domain, otherwise the `web` healthcheck gets a 400. Everything else
+   (`DEBUG`, `DATABASE_URL`, `REDIS_URL`, `MEDIA_ROOT`, `MEDIA_URL`) is set by
+   `compose.yaml`.
+3. `docker compose up -d`. `release` runs the migrations and exits; `web` and
+   `worker` start once it succeeded.
+4. Create the first superuser:
+   `docker compose run --rm web uv run ./manage.py createsuperuser`
+5. Redeploy after a code change with `docker compose up -d --build`.
+
+`web` publishes port 8000 on the host's loopback interface only
+(`127.0.0.1:8000`). Point the reverse proxy there, or attach it to a shared
+Docker network and proxy to the `web` service on port 8000. The proxy
+terminates TLS, has to forward `X-Forwarded-Proto` (which
+`SECURE_PROXY_SSL_HEADER` trusts) and has to strip any client-supplied one.
+Uploaded media lives in the `media` volume at `/volumes/media`; Django does not
+serve it with `DEBUG=false`, so point the proxy at that volume under `/media/`
+if the project uses uploads.
 
 `docs/OPERATIONS.md` is the runbook: environment variables, health probing, logs, backups, troubleshooting.

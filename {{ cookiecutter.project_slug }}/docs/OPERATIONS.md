@@ -2,62 +2,84 @@
 
 The runbook for running `{{ cookiecutter.project_slug }}` in production.
 
-Facts here are taken from the repo (`appliku.yml`, `Dockerfile`,
+Facts here are taken from the repo (`appliku.yml`, `compose.yaml`, `Dockerfile`,
 `core/settings/base.py`, `core/views.py`, `release.sh`, `web.sh`, `worker.sh`).
 Anything that depends on the Appliku account or the hosting plan rather than on
 this repo is marked **unverified**: confirm it in the Appliku dashboard and
 correct this file.
 
+Two deployment targets consume the same image and process scripts (ADR-0004):
+Appliku via `appliku.yml`, and any docker-compose compatible host via
+`compose.yaml`. Where the two differ, this runbook says which one it means.
+
 ## Architecture snapshot
 
 One Docker image (`Dockerfile`) is built per deploy and runs three processes,
-all declared in `appliku.yml`:
+declared in both deployment manifests:
 
 | Process | Command | What it does |
 | --- | --- | --- |
-| `web` | `./web.sh` | `gunicorn core.wsgi`, 5 workers, 120s timeout, logs to stdout |
+| `web` | `./web.sh` | `gunicorn core.wsgi` on `0.0.0.0:${PORT:-8000}`, 5 workers, 120s timeout, logs to stdout |
 | `worker` | `./worker.sh` | `manage.py rqworker default`, the forking RQ worker |
-| `release` | `./release.sh` | `manage.py migrate`, Appliku's managed release process, run once per deploy |
+| `release` | `./release.sh` | `manage.py migrate`, run once per deploy before web and worker start |
 
-Backing services, both provisioned by Appliku from `appliku.yml`:
+The image's `CMD` is `./web.sh`, which only matters on a host that cannot
+override the command; Appliku and compose both set the command per process.
 
-- `db`, Postgres 17. Injected as `DATABASE_URL` (private connection URL).
-- `redis`, Redis 7. Injected as `REDIS_URL` (private connection URL). It carries
-  two workloads at once: the RQ job queue and the Django cache.
+Backing services, provisioned by the deployment target (Appliku from
+`appliku.yml`, or the `db` and `redis` services in `compose.yaml`):
+
+- `db`, Postgres 17. Reaches the app as `DATABASE_URL`.
+- `redis`, Redis 7. Reaches the app as `REDIS_URL`. It carries two workloads at
+  once: the RQ job queue and the Django cache.
 
 Storage:
 
 - Static files are collected into the image at build time
   (`manage.py collectstatic`) and served by WhiteNoise from the web process.
   There is no CDN or object store in the default setup.
-- Uploaded media is written to the `media` volume, mounted at `/volumes/media`,
-  which `appliku.yml` declares with `url: /media/`. Django itself does not serve
-  it in production: `core/urls.py` uses `django.conf.urls.static.static()`,
-  which returns no patterns when `DEBUG` is false. **Unverified**: whether
-  Appliku's proxy serves the volume at that URL. Confirm before shipping a
-  feature that relies on user uploads being readable.
+- Uploaded media is written to the `media` volume, mounted at `/volumes/media`
+  on both targets, and served at `/media/`. Django itself does not serve it in
+  production: `core/urls.py` uses `django.conf.urls.static.static()`, which
+  returns no patterns when `DEBUG` is false. On Appliku the platform proxy is
+  supposed to serve the volume (`url: /media/` in `appliku.yml`);
+  **unverified**. On compose nothing serves it out of the box: the reverse
+  proxy in front of the stack has to. Confirm before shipping a feature that
+  relies on user uploads being readable.
 
 The container port is 8000 and the web process is exposed. Appliku terminates
-TLS in front of it and forwards `X-Forwarded-Proto`, which
-`SECURE_PROXY_SSL_HEADER` trusts. With `DEBUG=false` the app sets
-`SECURE_SSL_REDIRECT`, secure session and CSRF cookies, and one year of HSTS.
+TLS in front of it; a compose deployment publishes it on `127.0.0.1:8000` and
+expects the reverse proxy to. Either way the proxy forwards
+`X-Forwarded-Proto`, which `SECURE_PROXY_SSL_HEADER` trusts. With `DEBUG=false`
+the app sets `SECURE_SSL_REDIRECT`, secure session and CSRF cookies, and one
+year of HSTS.
 
 ## Environment variables
 
 Names and defaults below come from `core/settings/base.py`; the production
-source comes from `appliku.yml`.
+source comes from `appliku.yml` on Appliku and from `compose.yaml` plus the
+host's `.env` on a compose deployment.
 
-| Variable | Required | Default (no value set) | Production source |
-| --- | --- | --- | --- |
-| `SECRET_KEY` | yes | none, the app fails to boot | set manually in Appliku (`source: manual`) |
-| `DEBUG` | no | `False` | `appliku.yml` pins it to `"false"` |
-| `DATABASE_URL` | yes | none, the app fails to boot | `db` database, private connection URL |
-| `REDIS_URL` | no | `redis://localhost:6379/0` | `redis` database, private connection URL |
-| `ALLOWED_HOSTS` | no | `[]` (empty list) | `from_domains: true`, filled from the domains added in Appliku |
-| `CSRF_TRUSTED_ORIGINS` | no | `[]` (empty list) | not set by `appliku.yml`, set it manually |
-| `MEDIA_ROOT` | no | `<repo>/media` | injected from the `media` volume's `MEDIA` prefix |
-| `MEDIA_URL` | no | `media/` | injected from the `media` volume's `MEDIA` prefix |
-| `DJANGO_VITE_DEV_MODE` | no | unset, follows `DEBUG` | not set in production |
+| Variable | Required | Default (no value set) | Appliku source | Compose source |
+| --- | --- | --- | --- | --- |
+| `SECRET_KEY` | yes | none, the app fails to boot | set manually in Appliku (`source: manual`) | `.env` on the host |
+| `DEBUG` | no | `False` | `appliku.yml` pins it to `"false"` | `compose.yaml` pins it to `"false"` |
+| `DATABASE_URL` | yes | none, the app fails to boot | `db` database, private connection URL | `compose.yaml`, pointing at the `db` service with `${POSTGRES_PASSWORD}` |
+| `REDIS_URL` | no | `redis://localhost:6379/0` | `redis` database, private connection URL | `compose.yaml`, pointing at the `redis` service |
+| `ALLOWED_HOSTS` | no | `[]` (empty list) | `from_domains: true`, filled from the domains added in Appliku | `.env` on the host, needs `localhost` for the `web` healthcheck |
+| `CSRF_TRUSTED_ORIGINS` | no | `[]` (empty list) | not set by `appliku.yml`, set it manually | `.env` on the host |
+| `MEDIA_ROOT` | no | `<repo>/media` | injected from the `media` volume's `MEDIA` prefix | `compose.yaml`, `/volumes/media` |
+| `MEDIA_URL` | no | `media/` | injected from the `media` volume's `MEDIA` prefix | `compose.yaml`, `/media/` |
+| `PORT` | no | `8000` | **unverified** whether Appliku injects it; `container_port` is 8000 either way | unset, `web.sh` falls back to 8000 |
+| `DJANGO_VITE_DEV_MODE` | no | unset, follows `DEBUG` | not set in production | not set in production |
+
+`PORT` is not a Django setting: `web.sh` reads it to bind gunicorn
+(`0.0.0.0:${PORT:-8000}`). Changing it means changing `container_port` in
+`appliku.yml` or the port mapping in `compose.yaml` too.
+
+`POSTGRES_PASSWORD` is compose-only. It never reaches Django; `compose.yaml`
+interpolates it into the `db` service and into `DATABASE_URL`, without escaping,
+so it has to be URL-safe.
 
 Notes:
 
@@ -76,6 +98,8 @@ _Placeholder: list the API keys, webhook secrets, and third-party credentials th
 
 ## Deploy flow
 
+On Appliku:
+
 1. Push to `main`.
 2. Appliku builds the image from `Dockerfile`. The build installs dependencies,
    builds the Vite frontend, and runs `collectstatic`.
@@ -85,6 +109,12 @@ _Placeholder: list the API keys, webhook secrets, and third-party credentials th
 
 **Unverified**: what a failed build or a failed release process does to the
 version already running.
+
+On a compose host: pull the new commit and run `docker compose up -d --build`.
+The build is the same one. `release` runs to completion first; `web` and
+`worker` are recreated only after it exited 0
+(`condition: service_completed_successfully`), so a failing migration leaves the
+previous containers running.
 
 Per ADR-0004, migrations and one-shot tasks belong in `release.sh` rather than
 in `web.sh`. `release.sh` currently holds nothing but `migrate`: it runs on
@@ -106,6 +136,10 @@ the process scripts use. **Unverified**: which environment a one-off command
 receives, whether it gets its own container or attaches to a running one, and
 how long it may run.
 
+On a compose host the equivalent is
+`docker compose run --rm web uv run ./manage.py <command>`, which starts a
+throwaway container from the same image with the same environment.
+
 ## First superuser
 
 After the first successful deploy, create the first superuser with a one-off
@@ -113,6 +147,12 @@ command in Appliku:
 
 ```
 uv run ./manage.py createsuperuser
+```
+
+On a compose host:
+
+```
+docker compose run --rm web uv run ./manage.py createsuperuser
 ```
 
 Then log in at `https://<your-domain>/admin/` and create further accounts there.
@@ -142,6 +182,9 @@ curl -i https://<your-domain>/healthz
 
 Read a `503` as "the app is up but a dependency is not": the process is serving,
 so the body says which side to look at.
+
+`compose.yaml` probes it as the `web` service's healthcheck (every 30s, three
+retries), which is what marks the container healthy or unhealthy.
 
 **Unverified**: whether Appliku probes this endpoint itself, and whether a
 failing probe pulls the instance out of rotation. Point whatever uptime checker
@@ -178,11 +221,16 @@ _Placeholder: no error tracker is wired in the template. Record which one this p
 
 ## Database backups and restore
 
-The Postgres instance is Appliku's managed `postgresql_17`.
+On Appliku the Postgres instance is the managed `postgresql_17`.
 
 **Unverified**: whether Appliku takes automatic backups, how often, how long they
 are kept, and whether point-in-time recovery is available. Confirm this in the
 dashboard before relying on it, and write the answer here.
+
+On a compose host it is the `db` service, storing its data in the
+`postgres-data` named volume. Nothing backs that up: the template ships no
+backup job, so a compose deployment needs one on the host (a `pg_dump` from
+`docker compose exec db` on a schedule, shipped off the machine).
 
 Taking a manual dump: the deployed image installs `libpq-dev` but **not**
 `postgresql-client`, so `pg_dump` and `pg_restore` are not available in a one-off
@@ -224,22 +272,25 @@ Consequences to hold on to:
 
 **Unverified**: the persistence configuration of Appliku's managed `redis_7`
 (RDB snapshots, AOF, or neither) and whether its contents survive a restart.
-Until that is confirmed, assume the queue is volatile.
+Until that is confirmed, assume the queue is volatile. On a compose host the
+`redis` service runs the stock `redis:7` image with a `redis-data` volume on
+`/data`, so it keeps the image's default RDB snapshots and nothing more. Assume
+the queue is volatile there too.
 
 ## Troubleshooting
 
 | Symptom | Likely cause | Where to look |
 | --- | --- | --- |
-| Boot fails with `ImproperlyConfigured: Set the SECRET_KEY environment variable` | `SECRET_KEY` not set | environment variables in the Appliku dashboard |
-| Boot fails on `DATABASE_URL` | the `db` database is not attached | the `from_database` block in `appliku.yml`, database status |
-| `400 Bad Request` / `DisallowedHost` on every request | the domain is missing from `ALLOWED_HOSTS` | whether the domain is added in Appliku, so `from_domains` picks it up |
+| Boot fails with `ImproperlyConfigured: Set the SECRET_KEY environment variable` | `SECRET_KEY` not set | environment variables in the Appliku dashboard, or `.env` on the compose host |
+| Boot fails on `DATABASE_URL` | the `db` database is not attached | the `from_database` block in `appliku.yml`, or the `db` service and `POSTGRES_PASSWORD` on a compose host |
+| `400 Bad Request` / `DisallowedHost` on every request | the domain is missing from `ALLOWED_HOSTS` | whether the domain is added in Appliku, so `from_domains` picks it up; on compose, `ALLOWED_HOSTS` in `.env` (`localhost` included) |
 | `403 CSRF verification failed` on POST while GET works | the origin is missing from `CSRF_TRUSTED_ORIGINS` | set it manually, including the `https://` scheme |
 | `/healthz` returns 503 with `"redis": "error"` | Redis is down or `REDIS_URL` is wrong | Redis instance status, then the env var |
 | `/healthz` returns 503 with `"database": "error"` | Postgres is down or unreachable | database status, connection limit |
 | The app serves but jobs never run | the `worker` process is stopped or crash-looping | worker logs, then `/django-rq/` for queue depth |
-| A deploy succeeds but the schema is old | `release.sh` failed | release process logs |
+| A deploy succeeds but the schema is old | `release.sh` failed | release process logs, or `docker compose logs release` |
 | `ValueError: Missing staticfiles manifest entry` | a template references a static file that was not collected | the `collectstatic` step in the build log |
-| Redirect loop on https | `SECURE_PROXY_SSL_HEADER` is not receiving `X-Forwarded-Proto` | proxy configuration; expected to work as-is on Appliku |
+| Redirect loop on https | `SECURE_PROXY_SSL_HEADER` is not receiving `X-Forwarded-Proto` | proxy configuration; expected to work as-is on Appliku, has to be configured on the reverse proxy in front of a compose stack |
 
 ### Known project-specific failure modes
 

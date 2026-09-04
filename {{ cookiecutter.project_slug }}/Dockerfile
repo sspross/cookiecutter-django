@@ -41,3 +41,6 @@ RUN rm -f .env
 RUN chown -R app:app /app
 
 USER app
+
+# Only reached on an orchestrator that cannot override the command per process.
+CMD ["./web.sh"]

@@ -21,7 +21,9 @@ CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 
 PROJECT_NAME = "{{ cookiecutter.project_name }}"
 
-# Trusted because Appliku's proxy strips a client-supplied X-Forwarded-Proto.
+# Only safe while the proxy in front of the app strips a client-supplied
+# X-Forwarded-Proto. Appliku's does; a self-run reverse proxy has to be
+# configured to.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 INSTALLED_APPS = [

@@ -1,0 +1,90 @@
+# Deployment manifest for any docker-compose compatible host: a plain Docker
+# host behind a reverse proxy, Dokploy, Coolify. See
+# docs/adr/0004-deployment-targets.md. `appliku.yml` is the manifest for the
+# other target and has to stay coherent with this one.
+
+x-app: &app
+  build: .
+  image: "{{ cookiecutter.project_slug }}:latest"
+  env_file: .env
+  environment:
+    DEBUG: "false"
+    DATABASE_URL: "postgresql://{{ cookiecutter.project_slug }}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/{{ cookiecutter.project_slug }}"
+    REDIS_URL: redis://redis:6379/0
+    MEDIA_ROOT: /volumes/media
+    MEDIA_URL: /media/
+  volumes:
+    - media:/volumes/media
+
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "{{ cookiecutter.project_slug }}"
+      POSTGRES_USER: "{{ cookiecutter.project_slug }}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ cookiecutter.project_slug }} -d {{ cookiecutter.project_slug }}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  release:
+    <<: *app
+    command: ./release.sh
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    <<: *app
+    command: ./web.sh
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      release:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # ALLOWED_HOSTS must contain `localhost` or Django answers this with 400.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  worker:
+    <<: *app
+    command: ./worker.sh
+    restart: unless-stopped
+    depends_on:
+      release:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  redis-data:
+  media:
