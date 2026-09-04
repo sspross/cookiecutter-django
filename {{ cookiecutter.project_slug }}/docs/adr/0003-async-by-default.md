@@ -8,7 +8,7 @@ fan-out, an email send. Django's async views do not cover this — they solve
 concurrency, not deferred work; a long-running outbound call still wants to
 live off the request thread. Retrofitting an async runtime later is more
 painful than carrying it from day one — it touches `INSTALLED_APPS`,
-settings, Dockerfile, compose, deployment manifest, and CI shape.
+settings, Dockerfile, deployment manifest, and CI shape.
 
 The template ships *infrastructure* for async work, not jobs. There are
 no actual `@job`-decorated functions in the generated project — only the
@@ -21,9 +21,7 @@ The template ships:
 - `django-rq` in `INSTALLED_APPS` and `RQ_QUEUES` configured against
   `REDIS_URL`. RQ over Celery: one broker shape instead of Celery's
   broker-plus-result-backend, which keeps the mental model small.
-- `redis` service in `docker-compose.yml`, with healthcheck and
-  `depends_on` wiring on `web` and `worker`.
-- `redis` database in `appliku.yml`.
+- `redis` database in `appliku.yml`, Appliku's managed Redis.
 - `worker.sh` script: `uv run python manage.py rqworker default` — the
   *forking* worker (prod, Linux). Local dev uses `make worker.dev`, which
   runs the same queue with `--worker-class rq.worker.SimpleWorker`
@@ -31,7 +29,7 @@ The template ships:
   under **both**: don't rely on in-process state surviving between jobs,
   and don't rely on SimpleWorker's lack of a hard per-job timeout — prod's
   forking worker enforces `RQ_QUEUES` `DEFAULT_TIMEOUT` and kills the job.
-- `worker` service in compose, building from the same image as `web`,
+- `worker` service in `appliku.yml`, built from the same image as `web`,
   running `./worker.sh` instead of `./web.sh`.
 - The django-rq dashboard mounted at `/django-rq/` (gated to staff by
   django-rq itself).
@@ -47,8 +45,9 @@ persistence.
 Positive:
 
 - Adding a background job is a single-file change, not a refactor.
-- The local-dev story matches production: one `docker compose up`
-  starts the same web + worker + redis topology that runs in Appliku.
+- The local-dev topology matches production: `make worker.dev` against
+  a local `redis-server` runs the same web + worker + redis shape that
+  Appliku runs.
 - Test suites that need inline execution have one knob to flip.
 
 Negative:
@@ -58,8 +57,8 @@ Negative:
   lazily, only when the worker runs or a job is enqueued, and a freshly
   generated project has no jobs. So Redis is optional until the first
   job; once you have one, `make worker.dev` (and any `.delay()`) needs
-  `redis-server` locally or `docker compose up redis`.
-- A few extra lines in the Dockerfile/compose/appliku.yml that some
+  `redis-server` running locally.
+- A few extra lines in the Dockerfile and `appliku.yml` that some
   generated projects will never use.
 
 These costs are real but small, and the alternative is discovering you
