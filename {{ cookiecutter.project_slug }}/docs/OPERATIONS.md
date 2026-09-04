@@ -17,7 +17,7 @@ all declared in `appliku.yml`:
 | --- | --- | --- |
 | `web` | `./web.sh` | `gunicorn core.wsgi`, 5 workers, 120s timeout, logs to stdout |
 | `worker` | `./worker.sh` | `manage.py rqworker default`, the forking RQ worker |
-| `release` | `./release.sh` | `manage.py migrate`, runs once per deploy before the new processes start |
+| `release` | `./release.sh` | `manage.py migrate`, Appliku's managed release process, run once per deploy |
 
 Backing services, both provisioned by Appliku from `appliku.yml`:
 
@@ -30,10 +30,12 @@ Storage:
 - Static files are collected into the image at build time
   (`manage.py collectstatic`) and served by WhiteNoise from the web process.
   There is no CDN or object store in the default setup.
-- Uploaded media lives on the `media` volume, mounted at `/volumes/media` and
-  served at `/media/`. The volume declares `environment_variable: MEDIA`, and
-  Appliku expands that prefix into `MEDIA_ROOT` and `MEDIA_URL`, which is what
-  Django reads.
+- Uploaded media is written to the `media` volume, mounted at `/volumes/media`,
+  which `appliku.yml` declares with `url: /media/`. Django itself does not serve
+  it in production: `core/urls.py` uses `django.conf.urls.static.static()`,
+  which returns no patterns when `DEBUG` is false. **Unverified**: whether
+  Appliku's proxy serves the volume at that URL. Confirm before shipping a
+  feature that relies on user uploads being readable.
 
 The container port is 8000 and the web process is exposed. Appliku terminates
 TLS in front of it and forwards `X-Forwarded-Proto`, which
@@ -65,8 +67,6 @@ Notes:
 - Set `CSRF_TRUSTED_ORIGINS` yourself for every domain that posts forms or calls
   the API with a session cookie. Nothing populates it automatically, and a
   missing entry shows up as a 403 on POST, not as a boot failure.
-- The volume's `environment_variable` is a prefix, not a variable name. It has to
-  stay `MEDIA`; `MEDIA_ROOT` there would inject `MEDIA_ROOT_ROOT`.
 - Generate a `SECRET_KEY` with
   `python -c "import secrets; print(secrets.token_urlsafe(50))"`.
 
@@ -78,15 +78,18 @@ _Placeholder: list the API keys, webhook secrets, and third-party credentials th
 
 1. Push to `main`.
 2. Appliku builds the image from `Dockerfile`. The build installs dependencies,
-   builds the Vite frontend, and runs `collectstatic`. A build failure aborts the
-   deploy and leaves the running version untouched.
+   builds the Vite frontend, and runs `collectstatic`.
 3. Appliku runs the `release` process: `release.sh`, which is only
    `uv run ./manage.py migrate`.
-4. The new `web` and `worker` processes start.
+4. The `web` and `worker` processes run the new image.
 
-`release.sh` deliberately contains nothing but `migrate`. Anything else
-(seeding, backfills, one-off scripts) runs as a one-off command, so a redeploy
-never mutates account data. See ADR-0004.
+**Unverified**: what a failed build or a failed release process does to the
+version already running.
+
+Per ADR-0004, migrations and one-shot tasks belong in `release.sh` rather than
+in `web.sh`. `release.sh` currently holds nothing but `migrate`: it runs on
+every deploy, so anything added there has to stay safe to re-run. A one-time
+backfill belongs in a one-off command instead.
 
 Rolling back means deploying an earlier commit. Migrations do not roll back with
 it: a deploy that migrated the schema stays migrated, so a rollback is only safe
@@ -98,9 +101,10 @@ later).
 
 Deploys and one-off commands are triggered from the Appliku dashboard or its
 CLI; see [docs.appliku.com/docs/cli-sdk](https://docs.appliku.com/docs/cli-sdk/).
-A one-off command runs `uv run ./manage.py <command>` against the deployed image
-with the same environment as `web`. **Unverified**: whether one-off commands get
-their own container or attach to a running one, and how long they may run.
+Run management commands as `uv run ./manage.py <command>`, the same entry point
+the process scripts use. **Unverified**: which environment a one-off command
+receives, whether it gets its own container or attaches to a running one, and
+how long it may run.
 
 ## First superuser
 
@@ -112,8 +116,8 @@ uv run ./manage.py createsuperuser
 ```
 
 Then log in at `https://<your-domain>/admin/` and create further accounts there.
-`dumpdata.json` seeds a local admin for `make db.initialize` only and is never
-loaded in production.
+Nothing in the deploy path loads a fixture, so this is the only way an account
+exists in production.
 
 ## Health probing
 
@@ -152,7 +156,9 @@ _Placeholder: name the uptime checker, the alert channel, and who is on call._
 Everything logs to stdout and stderr, so the platform's log stream is the only
 log sink. There is no log file and nothing is written to disk.
 
-- gunicorn runs with `--log-file -`, so access and error logs go to stdout.
+- gunicorn runs with `--log-file -`, which is its **error** log only. `web.sh`
+  passes no `--access-logfile`, so there is no per-request access log. Add
+  `--access-logfile -` to `web.sh` if you need one; expect the volume.
 - Django logging is configured in `core/settings/base.py`: a single console
   handler, format `{levelname} {name} {message}`. Root is `WARNING`. The
   project's own apps (`core`, `api_keys`, `users`) and `django` log at `INFO`.
@@ -160,8 +166,8 @@ log sink. There is no log file and nothing is written to disk.
   `WARNING`) out of the stream.
 - Raising verbosity for one app means editing `LOGGING` and deploying. There is
   no env-var log-level knob.
-- Queue state is visible in the app itself at `/django-rq/`, gated to staff users
-  by django-rq. It lists queued, started, finished, and failed jobs.
+- Queue state is visible in the app itself at `/django-rq/`, django-rq's own
+  dashboard, gated to staff users by django-rq.
 
 **Unverified**: Appliku's log retention window, and whether log drains to an
 external service are available on the current plan.
@@ -189,8 +195,8 @@ command. Two options:
   dumping from inside a one-off command is the workflow you want.
 
 Run a restore drill at least once before you need it: restore a dump into a
-scratch database, point a local checkout at it, and run the app against it. A
-backup nobody has restored is a guess.
+scratch database, point a local checkout at it, and run the app against it. An
+untested backup is not a verified backup.
 
 ### Restore procedure
 
