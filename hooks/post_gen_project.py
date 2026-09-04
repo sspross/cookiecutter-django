@@ -66,10 +66,11 @@ def _print_instructions(project_slug):
     click.secho("\t1. Navigate to your project directory:", fg="blue")
     click.secho(f"\t   cd {project_slug}", fg="cyan")
     click.echo()
-    click.secho("\t2. Install dependencies:", fg="blue")
+    click.secho("\t2. Install dependencies (creates both lockfiles):", fg="blue")
     click.secho("\t   uv sync", fg="cyan")
+    click.secho("\t   make frontend.install", fg="cyan")
     click.echo()
-    click.secho("\t3. Put project under version control", fg="blue")
+    click.secho("\t3. Put project under version control, lockfiles included", fg="blue")
     click.secho("\t   git init", fg="cyan")
     click.secho("\t   git add --all", fg="cyan")
     click.secho(
