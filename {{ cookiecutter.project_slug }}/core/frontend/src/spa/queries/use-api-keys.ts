@@ -4,6 +4,7 @@ import {
   type ApiKeyCreateIn,
   type ApiKeyMintOut,
   apiClient,
+  requireData,
 } from "@/api/client";
 
 export const apiKeyKeys = {
@@ -20,7 +21,7 @@ export function useApiKeysList() {
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/api-keys/", {});
       if (error) throw error;
-      return data!;
+      return requireData(data, "GET /api/api-keys/");
     },
   });
 }
@@ -35,7 +36,7 @@ export function useMintApiKey() {
       if (error || !response.ok) {
         throw new Error(`Mint failed: ${response.status}`);
       }
-      return data!;
+      return requireData(data, "POST /api/api-keys/");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: apiKeyKeys.list() });
@@ -54,7 +55,7 @@ export function useRevokeApiKey() {
       if (error || !response.ok) {
         throw new Error(`Revoke failed: ${response.status}`);
       }
-      return data!;
+      return requireData(data, "POST /api/api-keys/{api_key_id}/revoke/");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: apiKeyKeys.list() });

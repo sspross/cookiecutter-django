@@ -6,7 +6,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { apiClient, type Me } from "@/api/client";
+import { apiClient, type Me, requireData } from "@/api/client";
 
 export const meKeys = {
   me: () => ["me"] as const,
@@ -18,7 +18,7 @@ export function useMe() {
     queryFn: async () => {
       const { data, error } = await apiClient.GET("/api/me", {});
       if (error) throw error;
-      return data!;
+      return requireData(data, "GET /api/me");
     },
   });
 }
