@@ -13,6 +13,7 @@ urlpatterns = [
     path("", views.app_view, name="home"),
     path("api-access/", views.app_view),
     path("api/", api.urls),
+    path("healthz", views.healthz, name="healthz"),
     # Mounted one by one rather than `include("django.contrib.auth.urls")`:
     # the rest of that URLconf has no template here. See CONTEXT.md.
     path("accounts/login/", auth_views.LoginView.as_view(), name="login"),
