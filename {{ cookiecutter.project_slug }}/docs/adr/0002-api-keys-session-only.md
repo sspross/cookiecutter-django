@@ -49,6 +49,20 @@ listing is how a user finds the key to revoke. Rate-limiting either one
 would let an attacker who burns the budget block the user's own cleanup,
 which costs more than the abuse it would prevent.
 
+### One router override, not a pattern
+
+The override above is the only one. `/api/*` serves a single audience, the
+project's own users, reaching it from the SPA (session) or from their own
+scripts (bearer), and one exception to a global default is still readable.
+
+A second audience (a partner API, a machine-to-machine integration, an internal
+ops API) gets its own `NinjaAPI` instance on its own path prefix with its own
+`auth=` list, and its keys carry a scope naming the surface they may call. It
+does not get another `auth=` override on this instance. Two exceptions on one
+default stop being an exception and start being a rule nobody can state, and a
+separate instance keeps each audience's OpenAPI document separate, so the SPA's
+generated `schema.d.ts` keeps describing only what the SPA can call.
+
 ## Consequences
 
 Positive:

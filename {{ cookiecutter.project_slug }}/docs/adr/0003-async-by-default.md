@@ -34,6 +34,16 @@ The template ships:
 - The django-rq dashboard mounted at `/django-rq/` (gated to staff by
   django-rq itself).
 
+Scheduling is off by default. `worker.sh` runs `rqworker default` without
+`--with-scheduler`, so a delayed job (`enqueue_in()`, `enqueue_at()`) is
+persisted but never moved onto the queue. Add `--with-scheduler` to `worker.sh`
+the moment the project enqueues its first delayed job; that one-line change is
+the whole migration. It is off until then because the flag starts a scheduler
+that polls Redis on an interval for the lifetime of every worker, and a freshly
+generated project has no delayed jobs for it to find. Leaving it on by default
+would mean the shipped default is a moving part nobody in a new project can
+observe or reason about.
+
 The first job a developer writes goes in `<their_app>/jobs.py`,
 decorated with `@django_rq.job("default")`, and is enqueued via
 `.delay(...)`. Tests can flip async off by overriding the queue's

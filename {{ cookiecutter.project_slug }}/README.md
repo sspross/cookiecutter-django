@@ -61,3 +61,5 @@ First-time setup:
    local admin for `make db.initialize` only and is never loaded in production.
 
 See [docs.appliku.com/docs/cli-sdk](https://docs.appliku.com/docs/cli-sdk/) for the Appliku CLI/SDK reference.
+
+`docs/OPERATIONS.md` is the runbook: environment variables, health probing, logs, backups, troubleshooting.
