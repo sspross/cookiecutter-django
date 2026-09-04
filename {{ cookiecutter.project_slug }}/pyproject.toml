@@ -29,6 +29,7 @@ dev = [
 	"pre-commit",
 	"playwright",
 	"pytest-playwright",
+	"pytest-timeout",
 	"tach>=0.28.0",
 	"pip-audit>=2.10.0",
 	"deptry>=0.25.1",
@@ -56,6 +57,7 @@ select = [
 DJANGO_SETTINGS_MODULE = "core.settings.test"
 python_files = ["test_*.py", "*_test.py", "tests.py"]
 addopts = "-v --tb=short --tracing=retain-on-failure --screenshot=only-on-failure"
+timeout = 120
 
 [tool.coverage.run]
 source = ["core", "api_keys", "users"]
