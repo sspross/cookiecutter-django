@@ -53,6 +53,7 @@ HTML pages:
   mints `UserApiKey` rows through the standard add form, and revokes them via a
   custom admin action.
 - `/django-rq/` — django-rq queue dashboard, gated to staff users by django-rq itself.
+- `/healthz` — anonymous JSON probe (`{database, redis}`, each `ok` or `error`); 200 when both respond, 503 otherwise; never sets a cookie; exempt from the SSL redirect.
 
 API (django-ninja, dual auth, CSRF on session-authed writes):
 

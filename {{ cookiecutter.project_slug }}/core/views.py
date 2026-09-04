@@ -1,7 +1,34 @@
+import django_rq
 from django.contrib.auth.decorators import login_required
-from django.http import HttpRequest, HttpResponse
+from django.db import connection
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.http import require_safe
+
+
+def _database_status() -> str:
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+    except Exception:
+        return "error"
+    return "ok"
+
+
+def _redis_status() -> str:
+    try:
+        django_rq.get_connection("default").ping()
+    except Exception:
+        return "error"
+    return "ok"
+
+
+@require_safe
+def healthz(request: HttpRequest) -> JsonResponse:
+    checks = {"database": _database_status(), "redis": _redis_status()}
+    all_ok = all(status == "ok" for status in checks.values())
+    return JsonResponse(checks, status=200 if all_ok else 503)
 
 
 @login_required

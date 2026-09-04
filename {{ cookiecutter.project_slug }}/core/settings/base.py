@@ -21,6 +21,7 @@ CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 
 PROJECT_NAME = "{{ cookiecutter.project_name }}"
 
+# Trusted because Appliku's proxy strips a client-supplied X-Forwarded-Proto.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 INSTALLED_APPS = [
@@ -139,3 +140,15 @@ RQ_QUEUES = {
         "DEFAULT_TIMEOUT": 360,
     },
 }
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_REDIRECT_EXEMPT = [r"^healthz$"]
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
+
+# HSTS is scoped to this host: no subdomains, no browser preload list entry.
+SILENCED_SYSTEM_CHECKS = ["security.W005", "security.W021"]

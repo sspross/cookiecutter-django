@@ -12,6 +12,12 @@ DEBUG = False
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 CSRF_TRUSTED_ORIGINS = ["http://localhost", "http://127.0.0.1"]
 
+# The test client and live_server speak plain HTTP.
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
+SECURE_SSL_REDIRECT = False
+SECURE_HSTS_SECONDS = 0
+
 # Read the Vite manifest from the per-app build output rather than STATIC_ROOT,
 # so `make test` only needs `make frontend.build` (no `collectstatic` step).
 DJANGO_VITE["default"]["dev_mode"] = False  # noqa: F405

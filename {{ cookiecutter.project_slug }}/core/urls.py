@@ -12,6 +12,7 @@ urlpatterns = [
     path("", views.app_view, name="home"),
     path("api-access/", views.app_view),
     path("api/", api.urls),
+    path("healthz", views.healthz, name="healthz"),
     path("accounts/", include("django.contrib.auth.urls")),
     path("admin/", admin.site.urls),
     # django-rq gates this dashboard to staff itself, so no decorator here.
