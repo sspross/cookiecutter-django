@@ -45,6 +45,17 @@ After adding/changing ninja API endpoints, regenerate the SPA's typed schema:
 Two targets are supported, both on the same image and the same process scripts
 (`web.sh`, `worker.sh`, `release.sh`). See ADR-0004.
 
+### Release
+
+A release is a semver git tag on `main`: `git tag v1.2.3 && git push origin v1.2.3`.
+The `image` workflow builds `Dockerfile` on that tag and pushes
+`ghcr.io/<owner>/<repo>:1.2.3` and `:latest`. Pull requests build the same image
+without pushing it, so a broken `Dockerfile` or a stale lockfile fails CI.
+
+Appliku ignores tags and deploys on every push to `main`; a compose host that
+deploys `compose.yaml` from git builds the checked-out commit. Only a separate
+infra repo owning the production compose file pins the published tag.
+
 ### Appliku
 
 `appliku.yml` is the source of truth for this target. Push to `main`; Appliku

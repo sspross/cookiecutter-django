@@ -3,7 +3,8 @@
 The runbook for running `{{ cookiecutter.project_slug }}` in production.
 
 Facts here are taken from the repo (`appliku.yml`, `compose.yaml`, `Dockerfile`,
-`core/settings/base.py`, `core/views.py`, `release.sh`, `web.sh`, `worker.sh`).
+`.github/workflows/image.yml`, `core/settings/base.py`, `core/views.py`,
+`release.sh`, `web.sh`, `worker.sh`).
 Anything that depends on the Appliku account or the hosting plan rather than on
 this repo is marked **unverified**: confirm it in the Appliku dashboard and
 correct this file.
@@ -97,6 +98,32 @@ Notes:
 _Placeholder: list the API keys, webhook secrets, and third-party credentials this project adds, and where each one is provisioned._
 
 ## Deploy flow
+
+### Releases and the published image
+
+A release is a semver git tag on `main`:
+
+```
+git tag v1.2.3 && git push origin v1.2.3
+```
+
+`.github/workflows/image.yml` builds `Dockerfile` on that tag and pushes
+`ghcr.io/<owner>/<repo>:1.2.3` and `ghcr.io/<owner>/<repo>:latest` to GitHub
+Container Registry, authenticated with the workflow's own `GITHUB_TOKEN`. On a
+pull request the same workflow builds the image and does not push it, so a
+`Dockerfile` that no longer builds, or an uncommitted lockfile change, fails CI
+instead of a release.
+
+Who consumes the tag depends on the target:
+
+- Appliku ignores tags entirely and builds from `main` on push.
+- A compose host that deploys this repo from git also ignores them and builds
+  locally (`docker compose up -d --build`).
+- A separate infra repo, where one exists, pins the tag in its production
+  compose file. Bumping that pin is the deploy. See ADR-0004.
+
+**Unverified**: whether the GHCR package is private by default for this
+project's account, and which pull credentials a compose host therefore needs.
 
 On Appliku:
 
