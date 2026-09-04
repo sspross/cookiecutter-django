@@ -27,7 +27,6 @@ class TestMeEndpoint:
         assert response.status_code == 401
 
     def test_bearer_of_inactive_user_is_rejected(self, client):
-        """Deactivating a user kills bearer access without revoking each key."""
         user = UserFactory(username="carol")
         result = mint(user, name="laptop-cli")
         user.is_active = False

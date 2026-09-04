@@ -2,7 +2,7 @@ from datetime import datetime
 
 from ninja import Field, Schema
 
-from api_keys.models import NAME_MAX_LENGTH
+from api_keys.models import UserApiKey
 
 
 class ApiKeyOut(Schema):
@@ -24,9 +24,13 @@ class ApiKeyOut(Schema):
 class ApiKeyCreateIn(Schema):
     """Body for ``POST /api/api-keys/``."""
 
-    # Bound at the model's column width so an oversized name is a 422 from
-    # ninja, not a database error at insert time.
-    name: str = Field(max_length=NAME_MAX_LENGTH)
+    name: str = Field(
+        max_length=UserApiKey.NAME_MAX_LENGTH,
+        description=(
+            "Label for the key, bounded at the model's column width of "
+            f"{UserApiKey.NAME_MAX_LENGTH} characters."
+        ),
+    )
 
 
 class ApiKeyMintOut(Schema):

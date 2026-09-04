@@ -23,8 +23,7 @@ class TestHomeView:
 
 @pytest.mark.django_db
 class TestAuthRoutes:
-    """Only login and logout are mounted under `/accounts/`; every other auth
-    URL must 404 rather than 500 on a template this project does not ship."""
+    """An unmounted auth URL must 404, not 500 on a missing template."""
 
     def test_login_is_mounted(self, client):
         response = client.get(reverse("login"))

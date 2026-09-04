@@ -1,8 +1,6 @@
 from django.conf import settings
 from django.db import models
 
-NAME_MAX_LENGTH = 128
-
 
 class UserApiKey(models.Model):
     """A bearer credential for the headless API path.
@@ -12,6 +10,8 @@ class UserApiKey(models.Model):
     a key without revealing it. `revoked_at` is visible-but-marked soft-delete:
     the row stays listed, `verify()` rejects it. See CONTEXT.md.
     """
+
+    NAME_MAX_LENGTH = 128
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

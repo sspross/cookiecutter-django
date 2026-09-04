@@ -11,7 +11,7 @@ import pytest
 from django.test import Client
 
 from api_keys import services as api_keys
-from api_keys.models import NAME_MAX_LENGTH, UserApiKey
+from api_keys.models import UserApiKey
 from api_keys.tests.factories import UserFactory
 
 
@@ -128,14 +128,12 @@ class TestCreateApiKey:
         assert UserApiKey.objects.filter(user=user).count() == 1
 
     def test_name_longer_than_the_column_returns_422(self, client):
-        """The schema bound matches the model column, so an oversized name is
-        a validation error rather than a database error."""
         user = UserFactory()
         client.force_login(user)
 
         response = client.post(
             "/api/api-keys/",
-            data={"name": "x" * (NAME_MAX_LENGTH + 1)},
+            data={"name": "x" * (UserApiKey.NAME_MAX_LENGTH + 1)},
             content_type="application/json",
         )
 
