@@ -189,20 +189,16 @@ LOGGING = {
         "handlers": ["console"],
         "level": "WARNING",
     },
+    # Level only, no "handlers" key: that drops the handlers Django's own
+    # logging config puts on these loggers, leaving root as the one place a
+    # record is printed. See docs/OPERATIONS.md, "Logs and monitoring".
     "loggers": {
         "core": {"level": "INFO"},
         "api_keys": {"level": "INFO"},
         "users": {"level": "INFO"},
-        # Django keeps its own console handler on these two, so without an
-        # explicit entry every record would be printed twice: once there and
-        # once by the root handler.
-        "django": {"handlers": ["console"], "level": "INFO", "propagate": False},
-        # ERROR keeps bot 404 probes, which Django logs at WARNING, out.
-        "django.request": {
-            "handlers": ["console"],
-            "level": "ERROR",
-            "propagate": False,
-        },
+        "django": {"level": "WARNING"},
+        "django.request": {"level": "ERROR"},
+        "rq": {"level": "WARNING"},
     },
 }
 
