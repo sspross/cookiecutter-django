@@ -36,9 +36,7 @@ REQUEST_ID_HEADER = "X-Request-ID"
 
 SOURCE_WEB = "web"
 
-# Empty on purpose: every path a generated project ships reads `web`. A second
-# API surface per audience (the growth path in ADR-0002) adds one tuple here and
-# touches nothing else.
+# Ships empty; see CONTEXT.md "Observability" for what a second entry buys.
 EXTERNAL_SOURCES: tuple[tuple[str, str], ...] = ()
 
 request_id: ContextVar[str] = ContextVar("request_id")
@@ -74,13 +72,17 @@ def _unbind(binding: Binding) -> None:
 @contextmanager
 def bound(new_request_id: str, new_request_source: str) -> Iterator[None]:
     """For work whose extent really is a block, such as a worker job. A request's
-    binding is not a block; see :class:`RequestContextMiddleware`."""
+    binding is not a block; see :class:`RequestContextMiddleware`.
 
-    binding = _bind(new_request_id, new_request_source)
-    try:
-        yield
-    finally:
-        _unbind(binding)
+    The forked isolation scope is what takes the Sentry tags off again at the end
+    of the block. A request gets that for free from ``DjangoIntegration``."""
+
+    with sentry_sdk.isolation_scope():
+        binding = _bind(new_request_id, new_request_source)
+        try:
+            yield
+        finally:
+            _unbind(binding)
 
 
 class RequestContextMiddleware:

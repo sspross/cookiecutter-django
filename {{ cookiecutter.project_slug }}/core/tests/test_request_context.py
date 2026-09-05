@@ -5,9 +5,11 @@ from unittest import mock
 
 import pytest
 import redis
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.test import Client, override_settings
 from django.urls import path
+from pytest_django.fixtures import Settings
 
 from api_keys.tests.factories import UserFactory
 from core.tests.probes import PROBE_MESSAGE
@@ -24,7 +26,6 @@ DISALLOWED_HOST_LOGGER = "django.security.DisallowedHost"
 # reading it raises ``DisallowedHost`` inside the middleware stack.
 UNKNOWN_HOST = "not-an-allowed-host.example.com"
 
-# Every door a generated project ships answers `web`; see core/request_context.py.
 SURFACES = ("spa page", "internal api", "healthz", "admin")
 
 type Call = Callable[..., HttpResponse]
@@ -44,7 +45,7 @@ def _healthz(client: Client, **extra: str) -> HttpResponse:
 
 
 @pytest.fixture
-def probed(settings) -> None:
+def probed(settings: Settings) -> None:
     # Appended last so the probe runs innermost, inside the request-id binding.
     settings.MIDDLEWARE = [
         *settings.MIDDLEWARE,
@@ -63,16 +64,16 @@ def call(db: None, client: Client, probed: None) -> dict[str, Call]:
     }
 
 
-def _probe_record(caplog: pytest.LogCaptureFixture) -> logging.LogRecord:
-    records = [record for record in caplog.records if record.name == PROBE_LOGGER]
-    assert [record.getMessage() for record in records] == [PROBE_MESSAGE]
-    return records[0]
-
-
 def _only_record(caplog: pytest.LogCaptureFixture, logger: str) -> logging.LogRecord:
     records = [record for record in caplog.records if record.name == logger]
     assert len(records) == 1, [record.getMessage() for record in records]
     return records[0]
+
+
+def _probe_record(caplog: pytest.LogCaptureFixture) -> logging.LogRecord:
+    record = _only_record(caplog, PROBE_LOGGER)
+    assert record.getMessage() == PROBE_MESSAGE
+    return record
 
 
 @pytest.mark.django_db
@@ -210,3 +211,23 @@ class TestSentryTags:
         tags = sentry.event_with("request context boom")["tags"]
         assert tags["request_id"] == response["X-Request-ID"]
         assert tags["request_source"] == "web"
+
+
+class TestLoggingWiring:
+    """The behaviour tests above cover what leaves the process. These three lines
+    are the wiring those tests depend on, named so a reshuffle says why it broke."""
+
+    def test_the_middleware_runs_first(self) -> None:
+        assert settings.MIDDLEWARE[0] == "core.request_context.RequestContextMiddleware"
+
+    def test_the_filter_is_on_the_console_handler(self) -> None:
+        assert settings.LOGGING["handlers"]["console"]["filters"] == ["request_context"]
+        assert settings.LOGGING["filters"]["request_context"] == {
+            "()": "core.request_context.RequestContextFilter"
+        }
+
+    def test_the_formatter_prints_both_fields(self) -> None:
+        assert settings.LOGGING["formatters"]["console"]["format"] == (
+            "%(asctime)s %(levelname)s "
+            "[%(request_id)s %(request_source)s] %(name)s %(message)s"
+        )
