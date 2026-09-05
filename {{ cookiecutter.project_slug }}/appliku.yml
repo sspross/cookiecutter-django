@@ -18,6 +18,8 @@ build_settings:
       from_domains: true
     - name: SECRET_KEY
       source: manual
+    - name: SENTRY_DSN
+      source: manual
 
 services:
   web:

@@ -3,8 +3,8 @@
 The runbook for running `{{ cookiecutter.project_slug }}` in production.
 
 Facts here are taken from the repo (`appliku.yml`, `compose.yaml`, `Dockerfile`,
-`.github/workflows/image.yml`, `core/settings/base.py`, `core/views.py`,
-`release.sh`, `web.sh`, `worker.sh`).
+`.github/workflows/image.yml`, `core/settings/base.py`, `core/observability.py`,
+`core/views.py`, `release.sh`, `web.sh`, `worker.sh`).
 Anything that depends on the Appliku account or the hosting plan rather than on
 this repo is marked **unverified**: confirm it in the Appliku dashboard and
 correct this file.
@@ -73,6 +73,8 @@ host's `.env` on a compose deployment.
 | `MEDIA_URL` | no | `media/` | injected from the `media` volume's `MEDIA` prefix | `compose.yaml`, `/media/` |
 | `PORT` | no | `8000` | **unverified** whether Appliku injects it; `container_port` is 8000 either way | unset, `web.sh` falls back to 8000 |
 | `DJANGO_VITE_DEV_MODE` | no | unset, follows `DEBUG` | not set in production | not set in production |
+| `SENTRY_DSN` | no | blank, the Sentry SDK stays uninitialized | set manually in Appliku (`source: manual`) | `compose.yaml` passes it through from `.env` on the host, blank default |
+| `SENTRY_ENVIRONMENT` | no | `production` | not declared in `appliku.yml`, set it manually for a second deployment | `.env` on the host |
 
 `PORT` is not a Django setting: `web.sh` reads it to bind gunicorn
 (`0.0.0.0:${PORT:-8000}`). Changing it means changing `container_port` in
@@ -251,7 +253,29 @@ external service are available on the current plan.
 
 ### Error tracking
 
-_Placeholder: no error tracker is wired in the template. Record which one this project uses and where its DSN is set._
+Sentry, through `sentry-sdk` (`core/observability.py`, initialized from
+`CoreConfig.ready`). It is on when `SENTRY_DSN` is set and off when it is blank
+or unset: with no DSN the SDK is never initialized, so dev machines, CI and a
+deploy without Sentry are unchanged.
+
+- **What arrives as an event**: an unhandled exception in a web request, plain
+  Django view or django-ninja endpoint alike, reported by the SDK's Django
+  integration. Nothing else: the app calls `capture_exception` nowhere on
+  purpose, and no log line at any level becomes an event (`event_level=None`).
+  See ADR-0007.
+- **What stays a log**: `logger.error` and `logger.exception` ship to Sentry
+  Logs, where they are queryable, and never to the issue stream.
+- **What is never sent**: tracing (no `traces_sample_rate`) and session
+  tracking are off; `/healthz` produces no Sentry traffic.
+- **Where the DSN lives**: `SENTRY_DSN` is a manual environment variable in the
+  Appliku dashboard, and comes from `.env` on a compose host. `SENTRY_ENVIRONMENT`
+  defaults to `production`; set it only on a second deployment (staging) that
+  shares the Sentry project.
+- **Alerting** is a Sentry-side rule on the issue stream or on a Logs query,
+  not app code.
+
+**Unverified**: which Sentry organization and project this deployment reports
+to, and who receives its alerts.
 
 ## Database backups and restore
 
