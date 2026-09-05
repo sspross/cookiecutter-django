@@ -75,10 +75,11 @@ First-time setup:
 5. Add a domain in Appliku; `ALLOWED_HOSTS` is auto-populated from `from_domains: true`.
 6. Deploy.
 7. Create the first superuser with a one-off command in Appliku. One-off
-   commands are not interactive, so pass the credentials non-interactively:
-   `DJANGO_SUPERUSER_PASSWORD='<password>' uv run ./manage.py createsuperuser --noinput --username admin --email you@example.com`.
-   If the runner rejects the inline prefix, set `DJANGO_SUPERUSER_PASSWORD` as
-   an app environment variable for the run and remove it afterwards. The
+   commands run without a terminal and without a shell, so pass the
+   credentials through the environment and wrap the command in `sh -c`:
+   `sh -c "DJANGO_SUPERUSER_PASSWORD='<password>' uv run ./manage.py createsuperuser --noinput --username admin --email you@example.com"`.
+   Alternatively set `DJANGO_SUPERUSER_PASSWORD` as an app environment
+   variable, run the plain command, and remove the variable afterwards. The
    `dumpdata.json` fixture seeds a local admin for `make db.initialize` only
    and is never loaded in production.
 

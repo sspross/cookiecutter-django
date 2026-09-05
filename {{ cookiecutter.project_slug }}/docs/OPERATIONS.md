@@ -171,16 +171,17 @@ throwaway container from the same image with the same environment.
 
 After the first successful deploy, create the first superuser with a one-off
 command in Appliku. One-off commands have no terminal attached, so the
-interactive prompts fail; pass the credentials through the environment
-variables Django reads with `--noinput`:
+interactive prompts fail, and the command is passed to the container without a
+shell, so a `VAR=value` prefix is treated as the executable. Wrap the command in
+`sh -c` and pass the credentials through the environment variables Django reads
+with `--noinput`:
 
 ```
-DJANGO_SUPERUSER_PASSWORD='<password>' uv run ./manage.py createsuperuser --noinput --username admin --email you@example.com
+sh -c "DJANGO_SUPERUSER_PASSWORD='<password>' uv run ./manage.py createsuperuser --noinput --username admin --email you@example.com"
 ```
 
-If the runner rejects the inline prefix, set `DJANGO_SUPERUSER_PASSWORD` as an
-app environment variable, run the command without it, and remove the variable
-afterwards.
+Alternatively set `DJANGO_SUPERUSER_PASSWORD` as an app environment variable,
+run the command without the prefix, and remove the variable afterwards.
 
 On a compose host, interactive or with the same `--noinput` form:
 
