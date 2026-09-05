@@ -189,8 +189,6 @@ LOGGING = {
         "handlers": ["console"],
         "level": "WARNING",
     },
-    # These levels are the whole policy for both sinks: a record below its
-    # logger's level reaches neither the console handler nor Sentry.
     # Level only, no "handlers" key: that drops the handlers Django's own
     # logging config puts on these loggers, leaving root as the one place a
     # record is printed. See docs/OPERATIONS.md, "Logs and monitoring".

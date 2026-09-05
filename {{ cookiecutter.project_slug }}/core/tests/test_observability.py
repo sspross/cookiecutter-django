@@ -19,7 +19,12 @@ from django.test import Client, RequestFactory, override_settings
 from django.urls import path
 from ninja import NinjaAPI
 
-from core.observability import DEFAULT_ENVIRONMENT, init_sentry, sentry_options
+from core.observability import (
+    DEFAULT_ENVIRONMENT,
+    IGNORED_LOGGERS,
+    init_sentry,
+    sentry_options,
+)
 from core.tests.sentry_capture import TEST_DSN, CapturingTransport, flush_sentry
 
 BOOT_PROBE = """
@@ -255,13 +260,12 @@ class TestIgnoredLoggers:
         assert "Internal Server Error: /boom" in sentry.log_bodies()
         assert printed.getvalue().count("Internal Server Error: /boom") == 1
 
-    def test_a_disallowed_host_ships_no_log_and_no_event(
-        self, sentry: CapturingTransport
+    @pytest.mark.parametrize("name", IGNORED_LOGGERS)
+    def test_a_muted_logger_prints_but_ships_no_sentry_item(
+        self, name: str, sentry: CapturingTransport
     ) -> None:
         with console_output() as printed:
-            logging.getLogger("django.security.DisallowedHost").error(
-                "Invalid HTTP_HOST header: '203.0.113.10'."
-            )
+            logging.getLogger(name).error("Invalid HTTP_HOST header: '203.0.113.10'.")
             flush_sentry()
         assert sentry.item_types() == []
         assert printed.getvalue().count("Invalid HTTP_HOST header:") == 1
