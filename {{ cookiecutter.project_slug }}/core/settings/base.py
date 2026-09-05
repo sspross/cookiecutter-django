@@ -2,12 +2,16 @@ from pathlib import Path
 
 import environ
 
+from core.observability import DEFAULT_ENVIRONMENT as SENTRY_DEFAULT_ENVIRONMENT
+
 env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, []),
     CSRF_TRUSTED_ORIGINS=(list, []),
     REDIS_URL=(str, "redis://localhost:6379/0"),
     DJANGO_VITE_DEV_MODE=(bool, None),
+    SENTRY_DSN=(str, ""),
+    SENTRY_ENVIRONMENT=(str, SENTRY_DEFAULT_ENVIRONMENT),
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -201,3 +205,6 @@ LOGGING = {
         },
     },
 }
+
+SENTRY_DSN = env("SENTRY_DSN")
+SENTRY_ENVIRONMENT = env("SENTRY_ENVIRONMENT")

@@ -18,6 +18,7 @@ Run these before declaring work complete:
 - **Module boundaries are enforced by `tach`** (`tach.toml`). A `from other_app.models import X` that `tach check` rejects at runtime is **still allowed under a `TYPE_CHECKING` guard for type-hinting only** — annotations create no runtime dependency. Keep such an import pointing the same direction as the runtime arrow; never invert a boundary behind the guard. See ADR-0005.
 - **Type-hint everything.** Annotate all function signatures and any non-obvious variable; the goal is maximal coverage, not just the easy cases.
 - **Put units in names** — `TIMEOUT_SECONDS`, `MAX_SIZE_MB`, `DELAY_MS`.
+- **No `sentry_sdk.capture_exception` for expected failures.** A Sentry event means an unhandled exception. An expected failure is a log line plus recorded state. See ADR-0007.
 - **While iterating run only the tests you touched; run the full suite once at the end.**
 - **No TODOs without an issue number.**
 - **Never `--no-verify`, and never skip or delete a failing test to go green** — fix the underlying problem.
