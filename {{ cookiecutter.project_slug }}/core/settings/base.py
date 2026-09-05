@@ -2,12 +2,16 @@ from pathlib import Path
 
 import environ
 
+from core.observability import DEFAULT_ENVIRONMENT as SENTRY_DEFAULT_ENVIRONMENT
+
 env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, []),
     CSRF_TRUSTED_ORIGINS=(list, []),
     REDIS_URL=(str, "redis://localhost:6379/0"),
     DJANGO_VITE_DEV_MODE=(bool, None),
+    SENTRY_DSN=(str, ""),
+    SENTRY_ENVIRONMENT=(str, SENTRY_DEFAULT_ENVIRONMENT),
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -43,6 +47,8 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
+    # Must stay first; see core/request_context.py.
+    "core.request_context.RequestContextMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -171,33 +177,40 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "console": {
-            "format": "{levelname} {name} {message}",
-            "style": "{",
+            "format": (
+                "%(asctime)s %(levelname)s "
+                "[%(request_id)s %(request_source)s] %(name)s %(message)s"
+            ),
+        },
+    },
+    "filters": {
+        "request_context": {
+            "()": "core.request_context.RequestContextFilter",
         },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "console",
+            "filters": ["request_context"],
         },
     },
     "root": {
         "handlers": ["console"],
         "level": "WARNING",
     },
+    # Level only, no "handlers" key: that drops the handlers Django's own
+    # logging config puts on these loggers, leaving root as the one place a
+    # record is printed. See docs/OPERATIONS.md, "Logs and monitoring".
     "loggers": {
         "core": {"level": "INFO"},
         "api_keys": {"level": "INFO"},
         "users": {"level": "INFO"},
-        # Django keeps its own console handler on these two, so without an
-        # explicit entry every record would be printed twice: once there and
-        # once by the root handler.
-        "django": {"handlers": ["console"], "level": "INFO", "propagate": False},
-        # ERROR keeps bot 404 probes, which Django logs at WARNING, out.
-        "django.request": {
-            "handlers": ["console"],
-            "level": "ERROR",
-            "propagate": False,
-        },
+        "django": {"level": "WARNING"},
+        "django.request": {"level": "ERROR"},
+        "rq": {"level": "WARNING"},
     },
 }
+
+SENTRY_DSN = env("SENTRY_DSN")
+SENTRY_ENVIRONMENT = env("SENTRY_ENVIRONMENT")

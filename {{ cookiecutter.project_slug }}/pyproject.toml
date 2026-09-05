@@ -14,6 +14,7 @@ dependencies = [
 	"django-ninja>=1.7",
 	"django-rq>=4.2",
 	"redis>=8",
+	"sentry-sdk>=2.68",
 ]
 
 [dependency-groups]
@@ -82,6 +83,7 @@ extend_exclude = [
     # Test code legitimately imports dev-group tools (pytest, factory-boy,
     # playwright); scanning it would raise spurious DEP004 misplaced-dev errors.
     ".*/tests/.*",
+    "conftest.py",
 ]
 
 [tool.deptry.per_rule_ignores]

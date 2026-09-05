@@ -7,7 +7,7 @@
 - `uv` (https://docs.astral.sh/uv/)
 - (Optional) Local Postgres Server, if SQLite is not enough
 - (Optional) tmux for `make dev` experience: `brew install tmux`
-- (Optional) Local Redis Server for async worker: `brew install redis`
+- Local Redis Server for the async worker and for `make test`, whose worker tests perform a real job: `brew install redis`
 
 ### Setup
 

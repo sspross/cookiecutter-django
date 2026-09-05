@@ -38,6 +38,35 @@ pattern that matches the desired visibility — never invent a third name. Both
 patterns share the same field shape: a nullable `DateTimeField` plus an `is_*`
 `@property`.
 
+### Observability
+Two sinks carry what the app says about itself, and one policy decides both. An
+**error event** is an unhandled exception, reported by the Sentry SDK's Django
+integration (a request) or RQ integration (a job), and nothing else: the app
+calls `capture_exception` nowhere on purpose (ADR-0007). An expected failure is
+a **log**, a line plus recorded state; `logger.error` and
+`logger.exception` stay logs and never become issues.
+
+Every log line and every Sentry item is stamped by `core/request_context.py`
+with a request id and a request source.
+
+**Request id**: a uuid4 hex generated at the start of every HTTP request, never
+read from an inbound `X-Request-ID`, and echoed back in the `X-Request-ID`
+response header. It names everything the request causes, so filtering stdout or
+Sentry by one id shows the whole request.
+
+**Request source**: which door the request came through. Every path a generated
+project ships reads `web`, the SPA pages, `/api/`, `/healthz`, the admin and the
+auth views alike. The classification table (`EXTERNAL_SOURCES`) ships empty; a
+project adding a second API surface per audience (the growth path in ADR-0002)
+names that door with one tuple and touches nothing else.
+
+Outside any request (management commands, worker startup) both read `-`. A job
+binds its own pair with `bound()`: the RQ job id as the request id and `worker`
+as the request source, the convention `docs/OPERATIONS.md` "Correlating a job"
+shows. Neither field appears in any UI.
+
+*Avoid*: "correlation id", the library term. The word here is request id.
+
 ## Surfaces
 
 Routes (all login-required except `/accounts/login/` and `/admin/`):
@@ -94,6 +123,8 @@ core/                # settings package and Django app in one (namespace package
   models.py          # empty — scaffold for your own models
   api.py             # NinjaAPI mount; [ApiKeyBearer(), django_auth]; GET /api/me
   context.py         # template context_processor: project_name
+  observability.py   # init_sentry / sentry_options / IGNORED_LOGGERS; a DSN turns the SDK on. See ADR-0007
+  request_context.py # request id + source: middleware, log filter, bound()
   schemas.py         # MeOut — the /api/me wire shape
   settings/
     base.py          # env-driven settings
@@ -113,6 +144,11 @@ core/                # settings package and Django app in one (namespace package
   tests/
     test_views.py
     test_api.py      # /api/me (session + bearer + anonymous)
+    test_observability.py  # Sentry: no DSN means no client, error events vs logs, level policy, muted loggers, RQ job failures, silent /healthz
+    sentry_capture.py      # CapturingTransport + TEST_DSN behind the `sentry` fixture
+    test_request_context.py  # X-Request-ID, stamped log records, middleware placement, bound()
+    probes.py              # LoggingProbeMiddleware, appended innermost by tests
+conftest.py          # `sentry` fixture: real SDK client on a capturing transport
 api_keys/
   __init__.py
   apps.py

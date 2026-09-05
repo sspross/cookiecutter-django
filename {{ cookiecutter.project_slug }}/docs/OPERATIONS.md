@@ -3,8 +3,8 @@
 The runbook for running `{{ cookiecutter.project_slug }}` in production.
 
 Facts here are taken from the repo (`appliku.yml`, `compose.yaml`, `Dockerfile`,
-`.github/workflows/image.yml`, `core/settings/base.py`, `core/views.py`,
-`release.sh`, `web.sh`, `worker.sh`).
+`.github/workflows/image.yml`, `core/settings/base.py`, `core/observability.py`,
+`core/request_context.py`, `core/views.py`, `release.sh`, `web.sh`, `worker.sh`).
 Anything that depends on the Appliku account or the hosting plan rather than on
 this repo is marked **unverified**: confirm it in the Appliku dashboard and
 correct this file.
@@ -73,6 +73,8 @@ host's `.env` on a compose deployment.
 | `MEDIA_URL` | no | `media/` | injected from the `media` volume's `MEDIA` prefix | `compose.yaml`, `/media/` |
 | `PORT` | no | `8000` | **unverified** whether Appliku injects it; `container_port` is 8000 either way | unset, `web.sh` falls back to 8000 |
 | `DJANGO_VITE_DEV_MODE` | no | unset, follows `DEBUG` | not set in production | not set in production |
+| `SENTRY_DSN` | no | blank, the Sentry SDK stays uninitialized | set manually in Appliku (`source: manual`) | `compose.yaml` passes it through from `.env` on the host, blank default |
+| `SENTRY_ENVIRONMENT` | no | `production` | not declared in `appliku.yml`, set it manually for a second deployment | `.env` on the host |
 
 `PORT` is not a Django setting: `web.sh` reads it to bind gunicorn
 (`0.0.0.0:${PORT:-8000}`). Changing it means changing `container_port` in
@@ -230,28 +232,140 @@ _Placeholder: name the uptime checker, the alert channel, and who is on call._
 
 ## Logs and monitoring
 
-Everything logs to stdout and stderr, so the platform's log stream is the only
-log sink. There is no log file and nothing is written to disk.
+A log record has two sinks: the platform's log stream, fed by a single console
+handler on the root logger, and Sentry Logs, when `SENTRY_DSN` is set. There is
+no log file and nothing is written to disk.
+
+The `LOGGING` dict in `core/settings/base.py` is the whole level policy for
+both. A record below its logger's level reaches neither sink, and raising or
+lowering one logger moves stdout and Sentry Logs together. The levels:
+
+| Logger | Level |
+| --- | --- |
+| root | `WARNING` |
+| `core`, `api_keys`, `users` | `INFO` |
+| `django` | `WARNING` |
+| `django.request` | `ERROR` |
+| `rq` | `WARNING` |
+
+- The project's own apps ship at `INFO` and up; Django, RQ and libraries at
+  `WARNING` and up.
+- `django.request` sits above its parent because its `WARNING` is bot 404
+  probes (`Not Found: /.env`). A 500 is unaffected: it arrives in Sentry as an
+  error event from the Django integration, not as a log.
+- Every logger entry is level-only, with no handler of its own, so each record
+  is printed exactly once, by the root console handler.
+- The console format is
+  `%(asctime)s %(levelname)s [%(request_id)s %(request_source)s] %(name)s %(message)s`;
+  the bracket carries the request id and request source of the line, see
+  "Correlating a response with its logs and its Sentry items" below.
+- Sentry's own log threshold is `NOTSET` rather than its `INFO` default, so the
+  SDK adds no second policy on top of these levels.
+- Raising verbosity for one app means editing `LOGGING` and deploying. There is
+  no env-var log-level knob.
+Two things the `LOGGING` dict does not cover:
 
 - gunicorn runs with `--log-file -`, which is its **error** log only. `web.sh`
   passes no `--access-logfile`, so there is no per-request access log. Add
-  `--access-logfile -` to `web.sh` if you need one; expect the volume.
-- Django logging is configured in `core/settings/base.py`: a single console
-  handler, format `{levelname} {name} {message}`. Root is `WARNING`. The
-  project's own apps (`core`, `api_keys`, `users`) and `django` log at `INFO`.
-  `django.request` is at `ERROR`, which keeps bot 404 probes (logged at
-  `WARNING`) out of the stream.
-- Raising verbosity for one app means editing `LOGGING` and deploying. There is
-  no env-var log-level knob.
-- Queue state is visible in the app itself at `/django-rq/`, django-rq's own
-  dashboard, gated to staff users by django-rq.
+  `--access-logfile -` to `web.sh` if you need one; expect the volume. The
+  access log would live on stdout only, never in Sentry.
+- Queue state is not a log. It is visible in the app at `/django-rq/`; see
+  CONTEXT.md.
+
+**Muted for Sentry only, stdout untouched**: the loggers in `IGNORED_LOGGERS`
+(`core/observability.py`) are dropped by the SDK at every level, through both
+`ignore_logger` (events and breadcrumbs) and `ignore_logger_for_sentry_logs`
+(Sentry Logs). Today it holds `rq.worker`, `rq.scheduler` and `rq.job`, which
+RQ sets to `INFO` at worker startup over the `WARNING` in `LOGGING`, so unmuted
+they would ship every job start and finish line of every worker. It also holds
+`django.security.DisallowedHost`, whose lines are bots addressing the server by
+an invalid `Host`, which Django already answers with a 400. Every one of those
+lines still prints on stdout.
+
+Muting a logger does not mute the worker's failures: an unhandled exception in
+a job is reported by the RQ integration, not through the logger, so it arrives
+as an error event either way.
 
 **Unverified**: Appliku's log retention window, and whether log drains to an
 external service are available on the current plan.
 
 ### Error tracking
 
-_Placeholder: no error tracker is wired in the template. Record which one this project uses and where its DSN is set._
+Sentry, through `sentry-sdk` (`core/observability.py`, initialized from
+`CoreConfig.ready`). It is on when `SENTRY_DSN` is set and off when it is blank
+or unset: with no DSN the SDK is never initialized, so dev machines, CI and a
+deploy without Sentry are unchanged.
+
+- **What arrives as an error event**: an unhandled exception in a web
+  request, plain Django view or django-ninja endpoint alike, reported by the
+  SDK's Django integration, and an unhandled exception in an RQ job, reported
+  by the SDK's RQ integration from the worker's exception handler. The job
+  event carries the job id under `rq-job` in the event's extra data, which is
+  the handle to look the job up at `/django-rq/` or in the worker's stdout.
+  Nothing else: the app calls `capture_exception` nowhere on purpose, and no
+  log line at any level becomes an event (`event_level=None`). See ADR-0007.
+- **What stays a log**: `logger.error` and `logger.exception` ship to Sentry
+  Logs, where they are queryable, and never to the issue stream.
+- **What is never sent**: tracing (no `traces_sample_rate`) and session
+  tracking are off; `/healthz` produces no Sentry traffic.
+- **Where the DSN lives**: `SENTRY_DSN` is a manual environment variable in the
+  Appliku dashboard, and comes from `.env` on a compose host. `SENTRY_ENVIRONMENT`
+  defaults to `production`; set it only on a second deployment (staging) that
+  shares the Sentry project.
+- **Alerting** is a Sentry-side rule on the issue stream or on a Logs query,
+  not app code.
+
+**Unverified**: which Sentry organization and project this deployment reports
+to, and who receives its alerts.
+
+### Correlating a response with its logs and its Sentry items
+
+Every response carries an `X-Request-ID` header, a 32-character hex id the
+server generates per request. An inbound `X-Request-ID` is ignored, so the id in
+the header is always the one the server used.
+
+- **From a response to its log lines**: grep the platform log stream for the id.
+  Every line written while that request was served carries it, including
+  Django's own 4xx and 5xx line for the request, in the bracket after the level:
+  `2026-09-05 10:00:00,000 ERROR [4f3c... web] django.request ...`.
+- **From a response to Sentry**: search the issue stream for
+  `request_id:<the id>`. An event captured during the request carries
+  `request_id` and `request_source` as tags. `RequestContextFilter` puts the
+  same two fields on every log record, which is how they reach a Sentry Log
+  entry.
+- **Request source** names which door the request came through. Every request
+  path a generated project ships reads `web`; see CONTEXT.md. A job names its
+  own source, below.
+- A line written outside any request (a management command, worker startup)
+  reads `-` for both fields.
+
+Ask a caller reporting a problem for the `X-Request-ID` of the failing response.
+It is the only handle that ties their response to the lines behind it.
+
+#### Correlating a job
+
+A job runs outside any request, so its lines read `-` unless the job binds its
+own id and source. `bound()` in `core/request_context.py` does that for the
+extent of a block, for the log lines and the Sentry tags alike:
+
+```python
+import django_rq
+from rq import get_current_job
+
+from core.request_context import bound
+
+
+@django_rq.job("default")
+def refresh(brand_id: int) -> None:
+    with bound(get_current_job().id, "worker"):
+        ...
+```
+
+Inside the block every line carries the job id and `worker` in the bracket, and
+every Sentry item is stamped with the same pair; so is the error event RQ
+reports after the block has raised, which means an issue, the job's log lines
+and its `/django-rq/` entry share one handle. After the block the lines read
+`-` again.
 
 ## Database backups and restore
 
