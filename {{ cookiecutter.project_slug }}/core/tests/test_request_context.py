@@ -41,7 +41,6 @@ urlpatterns = [path("boom", boom)]
 
 
 def _healthz(client: Client, **extra: str) -> HttpResponse:
-    # The root CI job has no Redis, so the probe is mocked at that boundary.
     with mock.patch.object(redis.Redis, "ping", return_value=True):
         return client.get("/healthz", **extra)
 
@@ -241,6 +240,7 @@ class TestBound:
         assert (record.request_id, record.request_source) == ("-", "-")
 
     def test_the_tags_come_off_with_the_block(self, sentry: CapturingTransport) -> None:
+        sentry_sdk.capture_exception(RuntimeError("before boom"))
         with bound("job-1", "worker"):
             sentry_sdk.capture_exception(RuntimeError("inside boom"))
         sentry_sdk.capture_exception(RuntimeError("after boom"))
@@ -248,8 +248,9 @@ class TestBound:
         flush_sentry()
         inside = sentry.event_with("inside boom")["tags"]
         assert (inside["request_id"], inside["request_source"]) == ("job-1", "worker")
+        before = sentry.event_with("before boom").get("tags", {})
         after = sentry.event_with("after boom").get("tags", {})
-        assert after.get("request_id") != "job-1"
+        assert after == before
 
 
 class TestLoggingWiring:

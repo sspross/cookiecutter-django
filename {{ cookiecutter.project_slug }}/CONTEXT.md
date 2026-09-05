@@ -41,10 +41,10 @@ patterns share the same field shape: a nullable `DateTimeField` plus an `is_*`
 ### Observability
 Two sinks carry what the app says about itself, and one policy decides both. An
 **error event** is an unhandled exception, reported by the Sentry SDK's Django
-integration, and nothing else: the app calls `capture_exception` nowhere on
-purpose (ADR-0007). An expected failure is a **log**, a line plus the state it
-recorded; `logger.error` and `logger.exception` stay logs and never become
-issues.
+integration (a request) or RQ integration (a job), and nothing else: the app
+calls `capture_exception` nowhere on purpose (ADR-0007). An expected failure is
+a **log**, a line plus the state it recorded; `logger.error` and
+`logger.exception` stay logs and never become issues.
 
 Every log line and every Sentry item is stamped by `core/request_context.py`
 with a request id and a request source.
@@ -60,8 +60,10 @@ auth views alike. The classification table (`EXTERNAL_SOURCES`) ships empty; a
 project adding a second API surface per audience (the growth path in ADR-0002)
 names that door with one tuple and touches nothing else.
 
-Outside any request (management commands, worker startup) both read `-`. Neither
-appears in any UI.
+Outside any request (management commands, worker startup) both read `-`. A job
+binds its own pair with `bound()`: the RQ job id as the request id and `worker`
+as the request source, the convention `docs/OPERATIONS.md` "Correlating a job"
+shows. Neither field appears in any UI.
 
 *Avoid*: "correlation id", the library term. The word here is request id.
 

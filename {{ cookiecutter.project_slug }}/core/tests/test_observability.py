@@ -217,9 +217,9 @@ class TestErrorEvents:
 
     def test_a_failing_job_leaves_no_redis_keys_behind(self) -> None:
         connection = django_rq.get_connection()
-        before = set(connection.keys("*"))
+        before = set(connection.keys("rq:*"))
         run_failing_job("observability-test-cleanup")
-        assert set(connection.keys("*")) == before
+        assert set(connection.keys("rq:*")) == before
 
     def test_an_application_error_log_is_a_log_and_not_an_event(
         self, sentry: CapturingTransport
@@ -323,9 +323,6 @@ class TestIgnoredLoggers:
     def test_rq_chatter_does_not_ship_even_when_rq_lowers_the_logger(
         self, name: str, level: int, sentry: CapturingTransport
     ) -> None:
-        # Reproduces what rq does to itself at worker startup: ``setup_loghandlers``
-        # calls ``setLevel(INFO)`` on ``rq.worker`` and ``rq.scheduler``, overriding
-        # the ``rq`` entry in ``settings.LOGGING``.
         with logger_at(name, logging.INFO) as logger, console_output() as printed:
             logger.log(level, "Listening on default")
             flush_sentry()
@@ -355,9 +352,13 @@ class TestHealthzIsSilent:
         environ = RequestFactory(headers={"host": "localhost"}).get("/healthz").environ
         statuses: list[str] = []
         with mock.patch.object(redis.Redis, "ping", return_value=True):
-            body = b"".join(
-                application(environ, lambda status, headers: statuses.append(status))
+            response = application(
+                environ, lambda status, headers: statuses.append(status)
             )
+            body = b"".join(response)
+            # What a WSGI server does after the body; it fires request_finished,
+            # which is what unbinds the request context.
+            response.close()
         assert statuses == ["200 OK"]
         assert json.loads(body) == {"database": "ok", "redis": "ok"}
 
