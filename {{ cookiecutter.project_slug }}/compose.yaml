@@ -13,6 +13,7 @@ x-app: &app
     REDIS_URL: redis://redis:6379/0
     MEDIA_ROOT: /volumes/media
     MEDIA_URL: /media/
+    SENTRY_DSN: "${SENTRY_DSN:-}"
   volumes:
     - media:/volumes/media
 

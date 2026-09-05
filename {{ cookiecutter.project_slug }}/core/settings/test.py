@@ -51,6 +51,9 @@ STORAGES = {
 # directory at: staticfiles" because the test run never runs collectstatic.
 WHITENOISE_AUTOREFRESH = True
 
+# A DSN in the developer's shell must never make a test run report to Sentry.
+SENTRY_DSN = ""
+
 # The default PBKDF2 hasher is deliberately slow and dominated the suite:
 # ~0.13s per UserFactory-built test against ~0.005s of actual work. MD5 keeps
 # hashing and check_password honest. Re-profile before removing this.
