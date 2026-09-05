@@ -4,8 +4,10 @@ import os
 import subprocess
 import sys
 from typing import Any
+from unittest import mock
 
 import pytest
+import redis
 import sentry_sdk
 from django.conf import settings
 from django.core.wsgi import get_wsgi_application
@@ -159,9 +161,10 @@ class TestHealthzIsSilent:
         application = get_wsgi_application()
         environ = RequestFactory(headers={"host": "localhost"}).get("/healthz").environ
         statuses: list[str] = []
-        body = b"".join(
-            application(environ, lambda status, headers: statuses.append(status))
-        )
+        with mock.patch.object(redis.Redis, "ping", return_value=True):
+            body = b"".join(
+                application(environ, lambda status, headers: statuses.append(status))
+            )
         assert statuses == ["200 OK"]
         assert json.loads(body) == {"database": "ok", "redis": "ok"}
 
