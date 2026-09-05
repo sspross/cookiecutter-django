@@ -47,6 +47,8 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
+    # Must stay first; see core/request_context.py.
+    "core.request_context.RequestContextMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -175,14 +177,22 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "console": {
-            "format": "{levelname} {name} {message}",
-            "style": "{",
+            "format": (
+                "%(asctime)s %(levelname)s "
+                "[%(request_id)s %(request_source)s] %(name)s %(message)s"
+            ),
+        },
+    },
+    "filters": {
+        "request_context": {
+            "()": "core.request_context.RequestContextFilter",
         },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "console",
+            "filters": ["request_context"],
         },
     },
     "root": {

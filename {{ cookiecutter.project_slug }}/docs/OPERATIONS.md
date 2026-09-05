@@ -255,6 +255,10 @@ lowering one logger moves stdout and Sentry Logs together. The levels:
   error event from the Django integration, not as a log.
 - Every logger entry is level-only, with no handler of its own, so each record
   is printed exactly once, by the root console handler.
+- The console format is
+  `%(asctime)s %(levelname)s [%(request_id)s %(request_source)s] %(name)s %(message)s`;
+  the bracket carries the request id and request source of the line, see
+  "Correlating a response with its logs and its Sentry items" below.
 - Sentry's own log threshold is `NOTSET` rather than its `INFO` default, so the
   SDK adds no second policy on top of these levels.
 - Raising verbosity for one app means editing `LOGGING` and deploying. There is
@@ -302,6 +306,27 @@ deploy without Sentry are unchanged.
 
 **Unverified**: which Sentry organization and project this deployment reports
 to, and who receives its alerts.
+
+### Correlating a response with its logs and its Sentry items
+
+Every response carries an `X-Request-ID` header, a 32-character hex id the
+server generates per request. An inbound `X-Request-ID` is ignored, so the id in
+the header is always the one the server used.
+
+- **From a response to its log lines**: grep the platform log stream for the id.
+  Every line written while that request was served carries it, including
+  Django's own 4xx and 5xx line for the request, in the bracket after the level:
+  `2026-09-05 10:00:00,000 ERROR [4f3c... web] django.request ...`.
+- **From a response to Sentry**: search issues or logs for
+  `request_id:<the id>`. Every event and log entry captured during the request
+  carries `request_id` and `request_source` tags.
+- **Request source** names which door the request came through. A generated
+  project has one door, so it always reads `web`; see CONTEXT.md.
+- A line written outside any request (a management command, worker startup)
+  reads `-` for both fields.
+
+Ask a caller reporting a problem for the `X-Request-ID` of the failing response.
+It is the only handle that ties their response to the lines behind it.
 
 ## Database backups and restore
 
