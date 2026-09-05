@@ -13,7 +13,7 @@ is that it pages someone.
 ## Decision
 
 **A Sentry error event means unexpected behaviour: an unhandled exception, reported by an
-SDK integration** (`DjangoIntegration` for web requests). The app captures nothing on
+SDK integration** (`DjangoIntegration` for web requests, `RqIntegration` for jobs). The app captures nothing on
 purpose, and the logging integration's `event_level` is `None`, so no log line at any level
 becomes an event either.
 

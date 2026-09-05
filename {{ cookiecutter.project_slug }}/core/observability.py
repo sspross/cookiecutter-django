@@ -15,6 +15,7 @@ from sentry_sdk.integrations.logging import (
     ignore_logger,
     ignore_logger_for_sentry_logs,
 )
+from sentry_sdk.integrations.rq import RqIntegration
 
 __all__ = [
     "DEFAULT_ENVIRONMENT",
@@ -25,9 +26,10 @@ __all__ = [
 
 DEFAULT_ENVIRONMENT = "production"
 
-# Muted for Sentry at every level, console handler untouched: an invalid
-# HTTP_HOST is a bot Django already answers with a 400.
-IGNORED_LOGGERS = ("django.security.DisallowedHost",)
+# Muted for Sentry at every level, console handler untouched: rq's worker and
+# scheduler set their own INFO level at startup and ignore settings.LOGGING, and
+# an invalid HTTP_HOST is a bot Django already answers with a 400.
+IGNORED_LOGGERS = ("rq.worker", "rq.scheduler", "django.security.DisallowedHost")
 
 
 def _apply_ignored_loggers() -> None:
@@ -49,6 +51,7 @@ def sentry_options(dsn: str, environment: str = DEFAULT_ENVIRONMENT) -> dict[str
         "environment": environment,
         "integrations": [
             DjangoIntegration(),
+            RqIntegration(),
             # Listed explicitly because `capture_sentry_logs` defaults to off;
             # `enable_logs`, its old switch, became a no-op in sentry-sdk 2.68.
             # Both levels override SDK defaults that would otherwise be a second
