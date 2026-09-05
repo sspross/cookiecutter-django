@@ -26,10 +26,16 @@ __all__ = [
 
 DEFAULT_ENVIRONMENT = "production"
 
-# Muted for Sentry at every level, console handler untouched: rq's worker and
-# scheduler set their own INFO level at startup and ignore settings.LOGGING, and
-# an invalid HTTP_HOST is a bot Django already answers with a 400.
-IGNORED_LOGGERS = ("rq.worker", "rq.scheduler", "django.security.DisallowedHost")
+# Muted for Sentry at every level, console handler untouched: rq's worker,
+# scheduler and job loggers set their own INFO level at startup and ignore
+# settings.LOGGING, and an invalid HTTP_HOST is a bot Django already answers
+# with a 400.
+IGNORED_LOGGERS = (
+    "rq.worker",
+    "rq.scheduler",
+    "rq.job",
+    "django.security.DisallowedHost",
+)
 
 
 def _apply_ignored_loggers() -> None:

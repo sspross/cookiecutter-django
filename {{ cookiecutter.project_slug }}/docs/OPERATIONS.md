@@ -275,9 +275,9 @@ Two things the `LOGGING` dict does not cover:
 **Muted for Sentry only, stdout untouched**: the loggers in `IGNORED_LOGGERS`
 (`core/observability.py`) are dropped by the SDK at every level, through both
 `ignore_logger` (events and breadcrumbs) and `ignore_logger_for_sentry_logs`
-(Sentry Logs). Today it holds `rq.worker` and `rq.scheduler`, which RQ sets to
-`INFO` at worker startup over the `WARNING` in `LOGGING`, so unmuted they would
-ship every job start and finish line of every worker. It also holds
+(Sentry Logs). Today it holds `rq.worker`, `rq.scheduler` and `rq.job`, which
+RQ sets to `INFO` at worker startup over the `WARNING` in `LOGGING`, so unmuted
+they would ship every job start and finish line of every worker. It also holds
 `django.security.DisallowedHost`, whose lines are bots addressing the server by
 an invalid `Host`, which Django already answers with a 400. Every one of those
 lines still prints on stdout.

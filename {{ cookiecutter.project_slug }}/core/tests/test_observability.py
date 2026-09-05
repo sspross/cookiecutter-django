@@ -318,7 +318,7 @@ class TestIgnoredLoggers:
         assert sentry.item_types() == []
         assert printed.getvalue().count("Invalid HTTP_HOST header:") == 1
 
-    @pytest.mark.parametrize("name", ["rq.worker", "rq.scheduler"])
+    @pytest.mark.parametrize("name", ["rq.worker", "rq.scheduler", "rq.job"])
     @pytest.mark.parametrize("level", [logging.INFO, logging.WARNING])
     def test_rq_chatter_does_not_ship_even_when_rq_lowers_the_logger(
         self, name: str, level: int, sentry: CapturingTransport
