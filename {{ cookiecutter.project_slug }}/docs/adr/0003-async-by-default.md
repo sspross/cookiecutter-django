@@ -49,7 +49,9 @@ The first job a developer writes goes in `<their_app>/jobs.py`,
 decorated with `@django_rq.job("default")`, and is enqueued via
 `.delay(...)`. Tests can flip async off by overriding the queue's
 `ASYNC` setting; Redis is still required at enqueue time for Job
-persistence.
+persistence. A job runs outside any request, so wrap its body in `bound()`
+from `core/request_context.py` to give its log lines and Sentry items a
+request id and source; see "Correlating a job" in `docs/OPERATIONS.md`.
 
 ## Consequences
 

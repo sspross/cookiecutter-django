@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from typing import Any
 from unittest import mock
 
+import django_rq
 import pytest
 import redis
 import sentry_sdk
@@ -18,6 +19,9 @@ from django.http import HttpRequest, HttpResponse
 from django.test import Client, RequestFactory, override_settings
 from django.urls import path
 from ninja import NinjaAPI
+from rq import Queue, SimpleWorker
+from rq.job import Job
+from rq.results import Result
 
 from core.observability import (
     DEFAULT_ENVIRONMENT,
@@ -94,6 +98,33 @@ def logger_at(name: str, level: int) -> Iterator[logging.Logger]:
         logger.setLevel(previous)
 
 
+def failing_job() -> None:
+    raise RuntimeError("job boom")
+
+
+def run_failing_job(queue_name: str) -> str:
+    # RQ's integration reports from ``Worker.handle_exception`` alone, which the
+    # synchronous enqueue of the test settings never reaches. Each caller passes
+    # its own queue name so tests share no Redis keys.
+    connection = django_rq.get_connection()
+    queue = Queue(queue_name, connection=connection)
+    job = Job.create(func=failing_job, connection=connection, origin=queue.name)
+    job.save()
+    worker = SimpleWorker([queue], connection=connection)
+    try:
+        worker.perform_job(job, queue)
+    finally:
+        # Redis is real here (pytest-django's rollback covers SQL only) and a
+        # failed job carries RQ's default one-year failure_ttl, so without this
+        # every suite run leaks job, result, registry and worker keys.
+        Result.delete_all(job)
+        job.delete()
+        worker.register_death()
+        connection.delete(worker.key, queue.failed_job_registry.key)
+        queue.delete()
+    return job.id
+
+
 def boot(settings_module: str, **environment: str) -> dict[str, Any]:
     # A child process because SDK initialization happens once per process during
     # ``django.setup()``, which the suite has already passed.
@@ -131,12 +162,14 @@ class TestInitialization:
         assert settings.SENTRY_ENVIRONMENT == "production"
         assert sentry_options(TEST_DSN)["environment"] == "production"
 
-    def test_the_options_carry_the_django_and_logging_integrations(self) -> None:
+    def test_the_options_carry_the_django_rq_and_logging_integrations(self) -> None:
         integrations = {
             type(integration).__name__
             for integration in sentry_options(TEST_DSN, "test")["integrations"]
         }
-        assert {"DjangoIntegration", "LoggingIntegration"} <= integrations
+        assert {"DjangoIntegration", "RqIntegration", "LoggingIntegration"} <= (
+            integrations
+        )
 
     def test_nothing_is_traced(self) -> None:
         options = sentry_options(TEST_DSN, "test")
@@ -172,6 +205,21 @@ class TestErrorEvents:
         assert len(sentry.events()) == 1
         event = sentry.event_with("api boom")
         assert event["transaction"] == "/test-api/boom"
+
+    def test_an_unhandled_job_exception_becomes_an_event(
+        self, sentry: CapturingTransport
+    ) -> None:
+        job_id = run_failing_job("observability-test")
+        flush_sentry()
+        assert len(sentry.events()) == 1
+        event = sentry.event_with("job boom")
+        assert event["extra"]["rq-job"]["job_id"] == job_id
+
+    def test_a_failing_job_leaves_no_redis_keys_behind(self) -> None:
+        connection = django_rq.get_connection()
+        before = set(connection.keys("*"))
+        run_failing_job("observability-test-cleanup")
+        assert set(connection.keys("*")) == before
 
     def test_an_application_error_log_is_a_log_and_not_an_event(
         self, sentry: CapturingTransport
@@ -269,6 +317,30 @@ class TestIgnoredLoggers:
             flush_sentry()
         assert sentry.item_types() == []
         assert printed.getvalue().count("Invalid HTTP_HOST header:") == 1
+
+    @pytest.mark.parametrize("name", ["rq.worker", "rq.scheduler"])
+    @pytest.mark.parametrize("level", [logging.INFO, logging.WARNING])
+    def test_rq_chatter_does_not_ship_even_when_rq_lowers_the_logger(
+        self, name: str, level: int, sentry: CapturingTransport
+    ) -> None:
+        # Reproduces what rq does to itself at worker startup: ``setup_loghandlers``
+        # calls ``setLevel(INFO)`` on ``rq.worker`` and ``rq.scheduler``, overriding
+        # the ``rq`` entry in ``settings.LOGGING``.
+        with logger_at(name, logging.INFO) as logger, console_output() as printed:
+            logger.log(level, "Listening on default")
+            flush_sentry()
+        assert sentry.item_types() == []
+        assert printed.getvalue().count("Listening on default") == 1
+
+    def test_a_muted_rq_worker_still_reports_an_unhandled_job_exception(
+        self, sentry: CapturingTransport
+    ) -> None:
+        with logger_at("rq.worker", logging.INFO):
+            job_id = run_failing_job("observability-test-muted")
+            flush_sentry()
+        event = sentry.event_with("job boom")
+        assert event["extra"]["rq-job"]["job_id"] == job_id
+        assert sentry.log_bodies() == []
 
 
 @pytest.mark.django_db

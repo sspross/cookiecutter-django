@@ -267,9 +267,18 @@ lowering one logger moves stdout and Sentry Logs together. The levels:
 **Muted for Sentry only, stdout untouched**: the loggers in `IGNORED_LOGGERS`
 (`core/observability.py`) are dropped by the SDK at every level, through both
 `ignore_logger` (events and breadcrumbs) and `ignore_logger_for_sentry_logs`
-(Sentry Logs). Today that is `django.security.DisallowedHost`: a request with
-an invalid `Host` header is a bot Django already answers with a 400, and the
-line still appears on stdout.
+(Sentry Logs). Today that is:
+
+- `rq.worker` and `rq.scheduler`. RQ sets both to `INFO` at worker startup,
+  over the `WARNING` in `LOGGING`, so without the mute every job start and
+  finish line of every worker would ship to Sentry Logs. Their lines still
+  appear on the worker's stdout.
+- `django.security.DisallowedHost`: a request with an invalid `Host` header is
+  a bot Django already answers with a 400, and the line still appears on stdout.
+
+Muting a logger does not mute the worker's failures: an unhandled exception in
+a job is reported by the RQ integration, not through the logger, so it arrives
+as an error event either way.
 
 - gunicorn runs with `--log-file -`, which is its **error** log only. `web.sh`
   passes no `--access-logfile`, so there is no per-request access log. Add
@@ -290,9 +299,12 @@ deploy without Sentry are unchanged.
 
 - **What arrives as an event**: an unhandled exception in a web request, plain
   Django view or django-ninja endpoint alike, reported by the SDK's Django
-  integration. Nothing else: the app calls `capture_exception` nowhere on
-  purpose, and no log line at any level becomes an event (`event_level=None`).
-  See ADR-0007.
+  integration, and an unhandled exception in an RQ job, reported by the SDK's
+  RQ integration from the worker's exception handler. The job event carries the
+  job id under `rq-job` in the event's extra data, which is the handle to look
+  the job up at `/django-rq/` or in the worker's stdout. Nothing else: the app
+  calls `capture_exception` nowhere on purpose, and no log line at any level
+  becomes an event (`event_level=None`). See ADR-0007.
 - **What stays a log**: `logger.error` and `logger.exception` ship to Sentry
   Logs, where they are queryable, and never to the issue stream.
 - **What is never sent**: tracing (no `traces_sample_rate`) and session
@@ -327,6 +339,30 @@ the header is always the one the server used.
 
 Ask a caller reporting a problem for the `X-Request-ID` of the failing response.
 It is the only handle that ties their response to the lines behind it.
+
+**Correlating a job**: a job runs outside any request, so its lines read `-`
+unless the job binds its own id and source. `bound()` in
+`core/request_context.py` does that for the extent of a block, for the log
+lines and the Sentry tags alike:
+
+```python
+import django_rq
+from rq import get_current_job
+
+from core.request_context import bound
+
+
+@django_rq.job("default")
+def refresh(brand_id: int) -> None:
+    with bound(get_current_job().id, "worker"):
+        ...
+```
+
+Inside the block every line carries the job id and `worker` in the bracket, and
+every Sentry item carries them as `request_id` and `request_source`. After the
+block both read `-` again. The job id is what the error event for the job's
+failure carries too, so an issue, the job's log lines and its `/django-rq/`
+entry share one handle.
 
 ## Database backups and restore
 

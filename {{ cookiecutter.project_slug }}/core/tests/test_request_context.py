@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytest
 import redis
+import sentry_sdk
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.test import Client, override_settings
@@ -12,6 +13,7 @@ from django.urls import path
 from pytest_django.fixtures import Settings
 
 from api_keys.tests.factories import UserFactory
+from core.request_context import bound
 from core.tests.probes import PROBE_MESSAGE
 from core.tests.sentry_capture import CapturingTransport, flush_sentry
 
@@ -211,6 +213,43 @@ class TestSentryTags:
         tags = sentry.event_with("request context boom")["tags"]
         assert tags["request_id"] == response["X-Request-ID"]
         assert tags["request_source"] == "web"
+
+
+class TestBound:
+    def test_records_inside_the_block_carry_the_given_id_and_source(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        with (
+            caplog.at_level(logging.INFO, logger=PROBE_LOGGER),
+            bound("job-1", "worker"),
+        ):
+            logging.getLogger(PROBE_LOGGER).info(PROBE_MESSAGE)
+
+        record = _probe_record(caplog)
+        assert (record.request_id, record.request_source) == ("job-1", "worker")
+
+    def test_records_after_the_block_read_dashes(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        with bound("job-1", "worker"):
+            pass
+
+        with caplog.at_level(logging.INFO, logger=PROBE_LOGGER):
+            logging.getLogger(PROBE_LOGGER).info(PROBE_MESSAGE)
+
+        record = _probe_record(caplog)
+        assert (record.request_id, record.request_source) == ("-", "-")
+
+    def test_the_tags_come_off_with_the_block(self, sentry: CapturingTransport) -> None:
+        with bound("job-1", "worker"):
+            sentry_sdk.capture_exception(RuntimeError("inside boom"))
+        sentry_sdk.capture_exception(RuntimeError("after boom"))
+
+        flush_sentry()
+        inside = sentry.event_with("inside boom")["tags"]
+        assert (inside["request_id"], inside["request_source"]) == ("job-1", "worker")
+        after = sentry.event_with("after boom").get("tags", {})
+        assert after.get("request_id") != "job-1"
 
 
 class TestLoggingWiring:
