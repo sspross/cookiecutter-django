@@ -43,7 +43,7 @@ Two sinks carry what the app says about itself, and one policy decides both. An
 **error event** is an unhandled exception, reported by the Sentry SDK's Django
 integration (a request) or RQ integration (a job), and nothing else: the app
 calls `capture_exception` nowhere on purpose (ADR-0007). An expected failure is
-a **log**, a line plus the state it recorded; `logger.error` and
+a **log**, a line plus recorded state; `logger.error` and
 `logger.exception` stay logs and never become issues.
 
 Every log line and every Sentry item is stamped by `core/request_context.py`
@@ -144,9 +144,9 @@ core/                # settings package and Django app in one (namespace package
   tests/
     test_views.py
     test_api.py      # /api/me (session + bearer + anonymous)
-    test_observability.py  # Sentry: no DSN means no client, events vs logs, level policy, muted loggers, silent /healthz
+    test_observability.py  # Sentry: no DSN means no client, error events vs logs, level policy, muted loggers, RQ job failures, silent /healthz
     sentry_capture.py      # CapturingTransport + TEST_DSN behind the `sentry` fixture
-    test_request_context.py  # X-Request-ID, stamped log records, middleware placement
+    test_request_context.py  # X-Request-ID, stamped log records, middleware placement, bound()
     probes.py              # LoggingProbeMiddleware, appended innermost by tests
 conftest.py          # `sentry` fixture: real SDK client on a capturing transport
 api_keys/
