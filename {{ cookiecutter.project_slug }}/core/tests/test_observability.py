@@ -51,26 +51,6 @@ def api_boom(request: HttpRequest) -> None:
 urlpatterns = [path("boom", boom), path("test-api/", test_api.urls)]
 
 
-class RecordingHandler(logging.Handler):
-    def __init__(self) -> None:
-        super().__init__()
-        self.records: list[logging.LogRecord] = []
-
-    def emit(self, record: logging.LogRecord) -> None:
-        self.records.append(record)
-
-
-@contextmanager
-def console_records() -> Iterator[list[logging.LogRecord]]:
-    handler = RecordingHandler()
-    root = logging.getLogger()
-    root.addHandler(handler)
-    try:
-        yield handler.records
-    finally:
-        root.removeHandler(handler)
-
-
 @contextmanager
 def console_output() -> Iterator[io.StringIO]:
     """Points every stream handler in the logging tree at one buffer, so a record
@@ -263,33 +243,29 @@ class TestIgnoredLoggers:
     def test_a_scanner_404_ships_to_neither_sink(
         self, sentry: CapturingTransport
     ) -> None:
-        with console_records() as records:
+        with console_output() as printed:
             logging.getLogger("django.request").warning("Not Found: /.env")
             flush_sentry()
         assert sentry.log_bodies() == []
-        assert [record.getMessage() for record in records] == []
+        assert printed.getvalue() == ""
 
     def test_a_request_error_still_ships(self, sentry: CapturingTransport) -> None:
-        with console_records() as records:
+        with console_output() as printed:
             logging.getLogger("django.request").error("Internal Server Error: /boom")
             flush_sentry()
         assert "Internal Server Error: /boom" in sentry.log_bodies()
-        assert [record.getMessage() for record in records] == [
-            "Internal Server Error: /boom"
-        ]
+        assert printed.getvalue().count("Internal Server Error: /boom") == 1
 
     def test_a_disallowed_host_ships_no_log_and_no_event(
         self, sentry: CapturingTransport
     ) -> None:
-        with console_records() as records:
+        with console_output() as printed:
             logging.getLogger("django.security.DisallowedHost").error(
                 "Invalid HTTP_HOST header: '203.0.113.10'."
             )
             flush_sentry()
         assert sentry.item_types() == []
-        assert [record.getMessage() for record in records] == [
-            "Invalid HTTP_HOST header: '203.0.113.10'."
-        ]
+        assert printed.getvalue().count("Invalid HTTP_HOST header:") == 1
 
 
 @pytest.mark.django_db
