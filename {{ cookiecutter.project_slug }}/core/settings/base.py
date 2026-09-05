@@ -191,16 +191,14 @@ LOGGING = {
     },
     # These levels are the whole policy for both sinks: a record below its
     # logger's level reaches neither the console handler nor Sentry.
+    # Level only, no "handlers" key: that drops the handlers Django's own
+    # logging config puts on these loggers, leaving root as the one place a
+    # record is printed. See docs/OPERATIONS.md, "Logs and monitoring".
     "loggers": {
         "core": {"level": "INFO"},
         "api_keys": {"level": "INFO"},
         "users": {"level": "INFO"},
-        # An entry without a "handlers" key drops the handlers Django's own
-        # config put on the logger, so the record is printed once, by the root
-        # handler, and passes every filter attached there.
         "django": {"level": "WARNING"},
-        # Above its parent, because its WARNING is bot 404 probes. A 500 is
-        # unaffected: it arrives as an event through DjangoIntegration, not a log.
         "django.request": {"level": "ERROR"},
         "rq": {"level": "WARNING"},
     },

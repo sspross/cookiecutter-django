@@ -94,7 +94,7 @@ core/                # settings package and Django app in one (namespace package
   models.py          # empty — scaffold for your own models
   api.py             # NinjaAPI mount; [ApiKeyBearer(), django_auth]; GET /api/me
   context.py         # template context_processor: project_name
-  observability.py   # init_sentry / sentry_options; a DSN turns the SDK on. See ADR-0007
+  observability.py   # init_sentry / sentry_options / IGNORED_LOGGERS; a DSN turns the SDK on. See ADR-0007
   schemas.py         # MeOut — the /api/me wire shape
   settings/
     base.py          # env-driven settings
@@ -114,7 +114,7 @@ core/                # settings package and Django app in one (namespace package
   tests/
     test_views.py
     test_api.py      # /api/me (session + bearer + anonymous)
-    test_observability.py  # Sentry: no DSN means no client, events vs logs, silent /healthz
+    test_observability.py  # Sentry: no DSN means no client, events vs logs, level policy, muted loggers, silent /healthz
     sentry_capture.py      # CapturingTransport + TEST_DSN behind the `sentry` fixture
 conftest.py          # `sentry` fixture: real SDK client on a capturing transport
 api_keys/

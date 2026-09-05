@@ -53,11 +53,10 @@ urlpatterns = [path("boom", boom), path("test-api/", test_api.urls)]
 
 @contextmanager
 def console_output() -> Iterator[io.StringIO]:
-    """Points every stream handler in the logging tree at one buffer, so a record
-    printed by two handlers shows up as two lines. Swapping the streams rather
-    than reading captured stderr, because a handler holds the ``sys.stderr`` it
-    was built with, which pytest's capture fixtures replaced later. pytest's own
-    handlers are left out; only what the project configured counts."""
+    """Swaps the streams rather than reading captured stderr, because a handler
+    holds the ``sys.stderr`` it was built with, which pytest replaced later.
+    Every handler in the tree, so a record printed twice shows up as two lines;
+    pytest's own handlers are left out."""
 
     stream = io.StringIO()
     loggers = [logging.getLogger(), *logging.getLogger().manager.loggerDict.values()]

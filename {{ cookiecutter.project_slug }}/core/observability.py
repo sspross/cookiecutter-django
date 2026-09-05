@@ -25,8 +25,8 @@ __all__ = [
 
 DEFAULT_ENVIRONMENT = "production"
 
-# Muted for Sentry at every level, console handler untouched (ADR-0007): an
-# invalid HTTP_HOST is a bot Django already answers with a 400.
+# Muted for Sentry at every level, console handler untouched: an invalid
+# HTTP_HOST is a bot Django already answers with a 400.
 IGNORED_LOGGERS = ("django.security.DisallowedHost",)
 
 
