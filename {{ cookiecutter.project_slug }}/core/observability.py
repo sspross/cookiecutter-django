@@ -10,17 +10,40 @@ from typing import Any
 
 import sentry_sdk
 from sentry_sdk.integrations.django import DjangoIntegration
-from sentry_sdk.integrations.logging import LoggingIntegration
+from sentry_sdk.integrations.logging import (
+    LoggingIntegration,
+    ignore_logger,
+    ignore_logger_for_sentry_logs,
+)
 
-__all__ = ["DEFAULT_ENVIRONMENT", "init_sentry", "sentry_options"]
+__all__ = [
+    "DEFAULT_ENVIRONMENT",
+    "IGNORED_LOGGERS",
+    "init_sentry",
+    "sentry_options",
+]
 
 DEFAULT_ENVIRONMENT = "production"
+
+# Muted for Sentry at every level, console handler untouched (ADR-0007): an
+# invalid HTTP_HOST is a bot Django already answers with a 400.
+IGNORED_LOGGERS = ("django.security.DisallowedHost",)
+
+
+def _apply_ignored_loggers() -> None:
+    """``ignore_logger`` covers events and breadcrumbs only; Sentry Logs are
+    filtered against a second list, so both calls are needed to mute a logger."""
+
+    for name in IGNORED_LOGGERS:
+        ignore_logger(name)
+        ignore_logger_for_sentry_logs(name)
 
 
 def sentry_options(dsn: str, environment: str = DEFAULT_ENVIRONMENT) -> dict[str, Any]:
     """Split out of :func:`init_sentry` so tests can build a client on the real
     options with a capturing transport."""
 
+    _apply_ignored_loggers()
     return {
         "dsn": dsn,
         "environment": environment,

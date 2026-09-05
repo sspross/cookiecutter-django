@@ -232,19 +232,45 @@ _Placeholder: name the uptime checker, the alert channel, and who is on call._
 
 ## Logs and monitoring
 
-Everything logs to stdout and stderr, so the platform's log stream is the only
-log sink. There is no log file and nothing is written to disk.
+A log record has two sinks: the platform's log stream, fed by a single console
+handler on the root logger, and Sentry Logs, when `SENTRY_DSN` is set. There is
+no log file and nothing is written to disk.
+
+The `LOGGING` dict in `core/settings/base.py` is the whole level policy for
+both. A record below its logger's level reaches neither sink, and raising or
+lowering one logger moves stdout and Sentry Logs together. The levels:
+
+| Logger | Level |
+| --- | --- |
+| root | `WARNING` |
+| `core`, `api_keys`, `users` | `INFO` |
+| `django` | `WARNING` |
+| `django.request` | `ERROR` |
+| `rq` | `WARNING` |
+
+- The project's own apps ship at `INFO` and up; Django, RQ and libraries at
+  `WARNING` and up.
+- `django.request` sits above its parent because its `WARNING` is bot 404
+  probes (`Not Found: /.env`). A 500 is unaffected: it arrives in Sentry as an
+  error event from the Django integration, not as a log.
+- Every logger entry is level-only, with no handler of its own, so each record
+  is printed exactly once, by the root console handler.
+- Sentry's own log threshold is `NOTSET` rather than its `INFO` default, so the
+  SDK adds no second policy on top of these levels.
+- Raising verbosity for one app means editing `LOGGING` and deploying. There is
+  no env-var log-level knob.
+
+**Muted for Sentry only, stdout untouched**: the loggers in `IGNORED_LOGGERS`
+(`core/observability.py`) are dropped by the SDK at every level, through both
+`ignore_logger` (events and breadcrumbs) and `ignore_logger_for_sentry_logs`
+(Sentry Logs). Today that is `django.security.DisallowedHost`: a request with
+an invalid `Host` header is a bot Django already answers with a 400, and the
+line still appears on stdout.
 
 - gunicorn runs with `--log-file -`, which is its **error** log only. `web.sh`
   passes no `--access-logfile`, so there is no per-request access log. Add
-  `--access-logfile -` to `web.sh` if you need one; expect the volume.
-- Django logging is configured in `core/settings/base.py`: a single console
-  handler, format `{levelname} {name} {message}`. Root is `WARNING`. The
-  project's own apps (`core`, `api_keys`, `users`) and `django` log at `INFO`.
-  `django.request` is at `ERROR`, which keeps bot 404 probes (logged at
-  `WARNING`) out of the stream.
-- Raising verbosity for one app means editing `LOGGING` and deploying. There is
-  no env-var log-level knob.
+  `--access-logfile -` to `web.sh` if you need one; expect the volume. The
+  access log would live on stdout only, never in Sentry.
 - Queue state is visible in the app itself at `/django-rq/`, django-rq's own
   dashboard, gated to staff users by django-rq.
 
