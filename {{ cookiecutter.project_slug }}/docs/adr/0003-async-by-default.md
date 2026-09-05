@@ -65,12 +65,12 @@ Positive:
 
 Negative:
 
-- A Redis dependency for projects that may never need it. It is *not*
-  needed for `runserver` or ordinary requests — RQ connects to Redis
-  lazily, only when the worker runs or a job is enqueued, and a freshly
-  generated project has no jobs. So Redis is optional until the first
-  job; once you have one, `make worker.dev` (and any `.delay()`) needs
-  `redis-server` running locally.
+- A Redis dependency, including for projects that never write a job.
+  It is *not* needed for `runserver` or ordinary requests: RQ connects
+  to Redis lazily, only when the worker runs or a job is enqueued.
+  `make test` does need it from the start, because the observability
+  suite runs a real worker against a real queue, and so do
+  `make worker.dev` and any `.delay()`.
 - A few extra lines in the Dockerfile and in both deployment manifests that
   some generated projects will never use.
 

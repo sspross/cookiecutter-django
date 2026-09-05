@@ -4,7 +4,7 @@ The runbook for running `{{ cookiecutter.project_slug }}` in production.
 
 Facts here are taken from the repo (`appliku.yml`, `compose.yaml`, `Dockerfile`,
 `.github/workflows/image.yml`, `core/settings/base.py`, `core/observability.py`,
-`core/views.py`, `release.sh`, `web.sh`, `worker.sh`).
+`core/request_context.py`, `core/views.py`, `release.sh`, `web.sh`, `worker.sh`).
 Anything that depends on the Appliku account or the hosting plan rather than on
 this repo is marked **unverified**: confirm it in the Appliku dashboard and
 correct this file.
@@ -263,29 +263,28 @@ lowering one logger moves stdout and Sentry Logs together. The levels:
   SDK adds no second policy on top of these levels.
 - Raising verbosity for one app means editing `LOGGING` and deploying. There is
   no env-var log-level knob.
-
-**Muted for Sentry only, stdout untouched**: the loggers in `IGNORED_LOGGERS`
-(`core/observability.py`) are dropped by the SDK at every level, through both
-`ignore_logger` (events and breadcrumbs) and `ignore_logger_for_sentry_logs`
-(Sentry Logs). Today that is:
-
-- `rq.worker` and `rq.scheduler`. RQ sets both to `INFO` at worker startup,
-  over the `WARNING` in `LOGGING`, so without the mute every job start and
-  finish line of every worker would ship to Sentry Logs. Their lines still
-  appear on the worker's stdout.
-- `django.security.DisallowedHost`: a request with an invalid `Host` header is
-  a bot Django already answers with a 400, and the line still appears on stdout.
-
-Muting a logger does not mute the worker's failures: an unhandled exception in
-a job is reported by the RQ integration, not through the logger, so it arrives
-as an error event either way.
+Two things the `LOGGING` dict does not cover:
 
 - gunicorn runs with `--log-file -`, which is its **error** log only. `web.sh`
   passes no `--access-logfile`, so there is no per-request access log. Add
   `--access-logfile -` to `web.sh` if you need one; expect the volume. The
   access log would live on stdout only, never in Sentry.
-- Queue state is visible in the app itself at `/django-rq/`, django-rq's own
-  dashboard, gated to staff users by django-rq.
+- Queue state is not a log. It is visible in the app at `/django-rq/`; see
+  CONTEXT.md.
+
+**Muted for Sentry only, stdout untouched**: the loggers in `IGNORED_LOGGERS`
+(`core/observability.py`) are dropped by the SDK at every level, through both
+`ignore_logger` (events and breadcrumbs) and `ignore_logger_for_sentry_logs`
+(Sentry Logs). Today it holds `rq.worker` and `rq.scheduler`, which RQ sets to
+`INFO` at worker startup over the `WARNING` in `LOGGING`, so unmuted they would
+ship every job start and finish line of every worker. It also holds
+`django.security.DisallowedHost`, whose lines are bots addressing the server by
+an invalid `Host`, which Django already answers with a 400. Every one of those
+lines still prints on stdout.
+
+Muting a logger does not mute the worker's failures: an unhandled exception in
+a job is reported by the RQ integration, not through the logger, so it arrives
+as an error event either way.
 
 **Unverified**: Appliku's log retention window, and whether log drains to an
 external service are available on the current plan.
@@ -297,14 +296,14 @@ Sentry, through `sentry-sdk` (`core/observability.py`, initialized from
 or unset: with no DSN the SDK is never initialized, so dev machines, CI and a
 deploy without Sentry are unchanged.
 
-- **What arrives as an event**: an unhandled exception in a web request, plain
-  Django view or django-ninja endpoint alike, reported by the SDK's Django
-  integration, and an unhandled exception in an RQ job, reported by the SDK's
-  RQ integration from the worker's exception handler. The job event carries the
-  job id under `rq-job` in the event's extra data, which is the handle to look
-  the job up at `/django-rq/` or in the worker's stdout. Nothing else: the app
-  calls `capture_exception` nowhere on purpose, and no log line at any level
-  becomes an event (`event_level=None`). See ADR-0007.
+- **What arrives as an error event**: an unhandled exception in a web
+  request, plain Django view or django-ninja endpoint alike, reported by the
+  SDK's Django integration, and an unhandled exception in an RQ job, reported
+  by the SDK's RQ integration from the worker's exception handler. The job
+  event carries the job id under `rq-job` in the event's extra data, which is
+  the handle to look the job up at `/django-rq/` or in the worker's stdout.
+  Nothing else: the app calls `capture_exception` nowhere on purpose, and no
+  log line at any level becomes an event (`event_level=None`). See ADR-0007.
 - **What stays a log**: `logger.error` and `logger.exception` ship to Sentry
   Logs, where they are queryable, and never to the issue stream.
 - **What is never sent**: tracing (no `traces_sample_rate`) and session
@@ -329,21 +328,25 @@ the header is always the one the server used.
   Every line written while that request was served carries it, including
   Django's own 4xx and 5xx line for the request, in the bracket after the level:
   `2026-09-05 10:00:00,000 ERROR [4f3c... web] django.request ...`.
-- **From a response to Sentry**: search issues or logs for
-  `request_id:<the id>`. Every event and log entry captured during the request
-  carries `request_id` and `request_source` tags.
-- **Request source** names which door the request came through. A generated
-  project has one door, so it always reads `web`; see CONTEXT.md.
+- **From a response to Sentry**: search the issue stream for
+  `request_id:<the id>`. An event captured during the request carries
+  `request_id` and `request_source` as tags. `RequestContextFilter` puts the
+  same two fields on every log record, which is how they reach a Sentry Log
+  entry.
+- **Request source** names which door the request came through. Every request
+  path a generated project ships reads `web`; see CONTEXT.md. A job names its
+  own source, below.
 - A line written outside any request (a management command, worker startup)
   reads `-` for both fields.
 
 Ask a caller reporting a problem for the `X-Request-ID` of the failing response.
 It is the only handle that ties their response to the lines behind it.
 
-**Correlating a job**: a job runs outside any request, so its lines read `-`
-unless the job binds its own id and source. `bound()` in
-`core/request_context.py` does that for the extent of a block, for the log
-lines and the Sentry tags alike:
+#### Correlating a job
+
+A job runs outside any request, so its lines read `-` unless the job binds its
+own id and source. `bound()` in `core/request_context.py` does that for the
+extent of a block, for the log lines and the Sentry tags alike:
 
 ```python
 import django_rq
@@ -359,10 +362,9 @@ def refresh(brand_id: int) -> None:
 ```
 
 Inside the block every line carries the job id and `worker` in the bracket, and
-every Sentry item carries them as `request_id` and `request_source`. After the
-block both read `-` again. The job id is what the error event for the job's
-failure carries too, so an issue, the job's log lines and its `/django-rq/`
-entry share one handle.
+every Sentry item is stamped with the same pair. After the block both read `-`
+again. The job id is what the error event for the job's failure carries too, so
+an issue, the job's log lines and its `/django-rq/` entry share one handle.
 
 ## Database backups and restore
 
