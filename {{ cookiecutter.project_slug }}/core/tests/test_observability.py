@@ -4,7 +4,7 @@ import logging
 import os
 import subprocess
 import sys
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from typing import Any
 from unittest import mock
@@ -19,7 +19,7 @@ from django.http import HttpRequest, HttpResponse
 from django.test import Client, RequestFactory, override_settings
 from django.urls import path
 from ninja import NinjaAPI
-from rq import Queue, SimpleWorker
+from rq import Queue, SimpleWorker, get_current_job
 from rq.job import Job
 from rq.results import Result
 
@@ -29,6 +29,7 @@ from core.observability import (
     init_sentry,
     sentry_options,
 )
+from core.request_context import bound
 from core.tests.sentry_capture import TEST_DSN, CapturingTransport, flush_sentry
 
 BOOT_PROBE = """
@@ -102,27 +103,45 @@ def failing_job() -> None:
     raise RuntimeError("job boom")
 
 
-def run_failing_job(queue_name: str) -> str:
-    # RQ's integration reports from ``Worker.handle_exception`` alone, which the
-    # synchronous enqueue of the test settings never reaches. Each caller passes
-    # its own queue name so tests share no Redis keys.
+def failing_bound_job() -> None:
+    # The pattern OPERATIONS.md "Correlating a job" documents.
+    job = get_current_job()
+    assert job is not None
+    with bound(job.id, "worker"):
+        raise RuntimeError("bound job boom")
+
+
+def perform_failing_jobs(queue_name: str, *funcs: Callable[[], None]) -> list[str]:
+    # One real worker, because RQ's integration reports from
+    # ``Worker.handle_exception`` alone, which the synchronous enqueue of the test
+    # settings never reaches. Each caller passes its own queue name so tests share
+    # no Redis keys.
     connection = django_rq.get_connection()
     queue = Queue(queue_name, connection=connection)
-    job = Job.create(func=failing_job, connection=connection, origin=queue.name)
-    job.save()
+    jobs = [
+        Job.create(func=func, connection=connection, origin=queue.name)
+        for func in funcs
+    ]
     worker = SimpleWorker([queue], connection=connection)
     try:
-        worker.perform_job(job, queue)
+        for job in jobs:
+            job.save()
+            worker.perform_job(job, queue)
     finally:
         # Redis is real here (pytest-django's rollback covers SQL only) and a
         # failed job carries RQ's default one-year failure_ttl, so without this
         # every suite run leaks job, result, registry and worker keys.
-        Result.delete_all(job)
-        job.delete()
+        for job in jobs:
+            Result.delete_all(job)
+            job.delete()
         worker.register_death()
         connection.delete(worker.key, queue.failed_job_registry.key)
         queue.delete()
-    return job.id
+    return [job.id for job in jobs]
+
+
+def run_failing_job(queue_name: str) -> str:
+    return perform_failing_jobs(queue_name, failing_job)[0]
 
 
 def boot(settings_module: str, **environment: str) -> dict[str, Any]:
@@ -242,6 +261,31 @@ class TestErrorEvents:
         sentry_sdk.capture_exception(RuntimeError("terminal boom"))
         flush_sentry()
         assert "terminal boom" in sentry.event_messages()
+
+
+@pytest.mark.django_db
+class TestJobCorrelation:
+    def test_a_job_that_raises_inside_bound_produces_a_correlated_event(
+        self, sentry: CapturingTransport
+    ) -> None:
+        # The block has already unwound when RQ reports the failure, so the
+        # tags must outlive it by exactly the job.
+        (job_id,) = perform_failing_jobs("observability-test-bound", failing_bound_job)
+        flush_sentry()
+        tags = sentry.event_with("bound job boom")["tags"]
+        assert (tags["request_id"], tags["request_source"]) == (job_id, "worker")
+
+    def test_the_next_job_on_the_same_worker_carries_no_tags(
+        self, sentry: CapturingTransport
+    ) -> None:
+        perform_failing_jobs(
+            "observability-test-bound-next", failing_bound_job, failing_job
+        )
+        flush_sentry()
+        assert len(sentry.events()) == 2
+        tags = sentry.event_with("job boom").get("tags", {})
+        assert "request_id" not in tags
+        assert "request_source" not in tags
 
 
 class TestLevelPolicy:

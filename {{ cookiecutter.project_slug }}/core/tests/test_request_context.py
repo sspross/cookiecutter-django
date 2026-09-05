@@ -1,6 +1,9 @@
+import asyncio
+import contextvars
 import logging
 import re
 from collections.abc import Callable
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -8,18 +11,21 @@ import redis
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
-from django.test import Client, override_settings
+from django.test import Client, RequestFactory, override_settings
 from django.urls import path
 from pytest_django.fixtures import Settings
 
 from api_keys.tests.factories import UserFactory
+from core.asgi import application as asgi_application
 from core.request_context import bound
 from core.tests.probes import PROBE_MESSAGE
 from core.tests.sentry_capture import CapturingTransport, flush_sentry
+from core.wsgi import application as wsgi_application
 
 REQUEST_ID = re.compile(r"\A[0-9a-f]{32}\Z")
 
 PROBE_LOGGER = "core.tests.probes"
+CLOSE_PROBE_MESSAGE = "response close probe"
 
 REQUEST_LOGGER = "django.request"
 DISALLOWED_HOST_LOGGER = "django.security.DisallowedHost"
@@ -37,7 +43,97 @@ def boom(request: HttpRequest) -> HttpResponse:
     raise RuntimeError("request context boom")
 
 
-urlpatterns = [path("boom", boom)]
+class ClosingProbeResponse(HttpResponse):
+    def close(self) -> None:
+        logging.getLogger(PROBE_LOGGER).info(CLOSE_PROBE_MESSAGE)
+        super().close()
+
+
+def closing_probe(request: HttpRequest) -> HttpResponse:
+    return ClosingProbeResponse("ok")
+
+
+urlpatterns = [path("boom", boom), path("closing-probe", closing_probe)]
+
+
+async def asgi_get(path: str) -> dict[str, str]:
+    """Drives the real ``ASGIHandler`` (``AsyncClient`` bypasses ``handle()``,
+    where the response is closed from the parent task) and returns the response
+    headers."""
+
+    scope: dict[str, Any] = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "GET",
+        "scheme": "http",
+        "path": path,
+        "raw_path": path.encode(),
+        "query_string": b"",
+        "root_path": "",
+        "headers": [(b"host", b"localhost")],
+        "client": ("127.0.0.1", 12345),
+        "server": ("localhost", 80),
+    }
+    body_sent = False
+
+    async def receive() -> dict[str, Any]:
+        nonlocal body_sent
+        if not body_sent:
+            body_sent = True
+            return {"type": "http.request", "body": b"", "more_body": False}
+        # The disconnect listener waits here until the handler cancels it.
+        await asyncio.Event().wait()
+        raise AssertionError("unreachable")
+
+    sent: list[dict[str, Any]] = []
+
+    async def send(message: dict[str, Any]) -> None:
+        sent.append(message)
+
+    await asgi_application(scope, receive, send)
+    (start,) = [message for message in sent if message["type"] == "http.response.start"]
+    assert start["status"] == 200
+    return {name.decode().lower(): value.decode() for name, value in start["headers"]}
+
+
+def serve_wsgi(path: str) -> tuple[HttpResponse, dict[str, str]]:
+    """Sends the body, as a WSGI server does before it closes the response."""
+
+    # Not ``get_wsgi_application()``: that re-runs ``django.setup()``, whose logging
+    # ``dictConfig`` replaces the root handlers and takes caplog's with it.
+    environ = RequestFactory(headers={"host": "localhost"}).get(path).environ
+    headers: dict[str, str] = {}
+
+    def start_response(status: str, response_headers: list[tuple[str, str]]) -> None:
+        assert status == "200 OK"
+        headers.update({name.lower(): value for name, value in response_headers})
+
+    response = wsgi_application(environ, start_response)
+    b"".join(response)
+    return response, headers
+
+
+def wsgi_get(path: str) -> dict[str, str]:
+    response, headers = serve_wsgi(path)
+    response.close()
+    return headers
+
+
+def wsgi_get_closed_elsewhere(path: str) -> dict[str, str]:
+    """The close-from-a-foreign-context case without Django's ASGI machinery in
+    the way: served in a context of its own, as on a server thread, and closed
+    from one that never carried the binding."""
+
+    headers: dict[str, str] = {}
+
+    def serve() -> None:
+        response, served_headers = serve_wsgi(path)
+        headers.update(served_headers)
+        contextvars.Context().run(response.close)
+
+    contextvars.copy_context().run(serve)
+    return headers
 
 
 def _healthz(client: Client, **extra: str) -> HttpResponse:
@@ -171,6 +267,61 @@ class TestLogRecordAttributes:
 
 
 @pytest.mark.django_db
+class TestResponseClose:
+    """A response's ``close()`` runs after the handler has returned the response,
+    so anything it logs is the last chance for a line to carry the request id."""
+
+    def _records(
+        self, caplog: pytest.LogCaptureFixture, message: str
+    ) -> list[logging.LogRecord]:
+        return [
+            record
+            for record in caplog.records
+            if record.name == PROBE_LOGGER and record.getMessage() == message
+        ]
+
+    @pytest.mark.parametrize(
+        "get",
+        [
+            pytest.param(lambda path: asyncio.run(asgi_get(path)), id="asgi"),
+            pytest.param(wsgi_get, id="wsgi"),
+            pytest.param(wsgi_get_closed_elsewhere, id="wsgi-closed-elsewhere"),
+        ],
+    )
+    def test_the_close_line_carries_the_id(
+        self,
+        get: Callable[[str], dict[str, str]],
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        with (
+            caplog.at_level(logging.INFO, logger=PROBE_LOGGER),
+            override_settings(ROOT_URLCONF=__name__),
+        ):
+            headers = get("/closing-probe")
+
+        (record,) = self._records(caplog, CLOSE_PROBE_MESSAGE)
+        assert (record.request_id, record.request_source) == (
+            headers["x-request-id"],
+            "web",
+        )
+
+    def test_the_line_after_a_wsgi_close_reads_dashes(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        # WSGI only: the pooled thread that served the request is the one that
+        # writes the next line. An ASGI request never binds the caller's context.
+        with (
+            caplog.at_level(logging.INFO, logger=PROBE_LOGGER),
+            override_settings(ROOT_URLCONF=__name__),
+        ):
+            wsgi_get("/closing-probe")
+            logging.getLogger(PROBE_LOGGER).info(PROBE_MESSAGE)
+
+        (record,) = self._records(caplog, PROBE_MESSAGE)
+        assert (record.request_id, record.request_source) == ("-", "-")
+
+
+@pytest.mark.django_db
 class TestMiddlewarePlacement:
     @pytest.fixture
     def unknown_host(self, probed: None) -> Callable[[], HttpResponse]:
@@ -251,6 +402,29 @@ class TestBound:
         before = sentry.event_with("before boom").get("tags", {})
         after = sentry.event_with("after boom").get("tags", {})
         assert after == before
+
+    def test_an_exception_that_leaves_the_block_is_reported_with_its_tags(
+        self, sentry: CapturingTransport
+    ) -> None:
+        # Whoever reports it runs after the block: RQ's exception handler for a
+        # job, the excepthook for a command. Outside a worker here, so the proof
+        # is about the exception, not about RQ's per-job scope.
+        try:
+            with bound("job-1", "worker"):
+                raise RuntimeError("escaped boom")
+        except RuntimeError as escaped:
+            sentry_sdk.capture_exception(escaped)
+        sentry_sdk.capture_exception(RuntimeError("after boom"))
+
+        flush_sentry()
+        escaped_tags = sentry.event_with("escaped boom")["tags"]
+        assert (escaped_tags["request_id"], escaped_tags["request_source"]) == (
+            "job-1",
+            "worker",
+        )
+        after_tags = sentry.event_with("after boom").get("tags", {})
+        assert "request_id" not in after_tags
+        assert "request_source" not in after_tags
 
 
 class TestLoggingWiring:

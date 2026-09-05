@@ -17,6 +17,8 @@ from sentry_sdk.integrations.logging import (
 )
 from sentry_sdk.integrations.rq import RqIntegration
 
+from core.request_context import tag_event_from_exception
+
 __all__ = [
     "DEFAULT_ENVIRONMENT",
     "IGNORED_LOGGERS",
@@ -68,6 +70,7 @@ def sentry_options(dsn: str, environment: str = DEFAULT_ENVIRONMENT) -> dict[str
                 sentry_logs_level=logging.NOTSET,
             ),
         ],
+        "before_send": tag_event_from_exception,
         "auto_session_tracking": False,
     }
 

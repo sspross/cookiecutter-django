@@ -362,9 +362,10 @@ def refresh(brand_id: int) -> None:
 ```
 
 Inside the block every line carries the job id and `worker` in the bracket, and
-every Sentry item is stamped with the same pair. After the block both read `-`
-again. The job id is what the error event for the job's failure carries too, so
-an issue, the job's log lines and its `/django-rq/` entry share one handle.
+every Sentry item is stamped with the same pair; so is the error event RQ
+reports after the block has raised, which means an issue, the job's log lines
+and its `/django-rq/` entry share one handle. After the block the lines read
+`-` again.
 
 ## Database backups and restore
 
