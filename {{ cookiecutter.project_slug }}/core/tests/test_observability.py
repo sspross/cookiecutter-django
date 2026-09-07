@@ -384,7 +384,11 @@ class TestIgnoredLoggers:
         assert sentry.log_bodies() == []
 
 
-@pytest.mark.django_db
+# transaction=True: the real WSGI handler fires request_started, whose
+# close_old_connections closes a connection whose autocommit is off. Inside the
+# default test transaction that leaves the connection unusable on Postgres
+# (SQLite in-memory ignores close), so the database check would report 503.
+@pytest.mark.django_db(transaction=True)
 class TestHealthzIsSilent:
     def test_the_probe_generates_no_sentry_traffic(
         self, sentry: CapturingTransport
