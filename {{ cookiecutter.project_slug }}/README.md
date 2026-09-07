@@ -11,14 +11,20 @@
 
 ### Setup
 
-- (`cp .env.example .env`)
-- `uv sync`
-- `make frontend.install`
-- Commit `uv.lock` and `core/frontend/package-lock.json`: the image build and
-  CI install from them (`uv sync --frozen`, `npm ci`) and fail without them.
+Run once after generating the project, in this order. Later clones skip the
+`git init` and commit steps.
+
+- `cp .env.example .env`
+- `uv sync` (creates `uv.lock`)
+- `make frontend.install` (creates `core/frontend/package-lock.json`)
+- Put the project under version control, lockfiles included. The image build
+  and CI install from them (`uv sync --frozen`, `npm ci`) and fail without them:
+  - `git init`
+  - `git add --all`
+  - `git commit -m "Initial setup from django project template"`
 - `uv run pre-commit install`
 - `uv run playwright install chromium`
-- `make db.recreate` (Postgres only — skip if using SQLite)
+- `make db.recreate` (Postgres only, skip if using SQLite)
 - `make db.initialize`
 
 ### Work

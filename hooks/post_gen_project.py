@@ -63,21 +63,8 @@ def _print_instructions(project_slug):
     click.echo()
     click.secho("\tNext steps:", fg="yellow")
     click.echo()
-    click.secho("\t1. Navigate to your project directory:", fg="blue")
     click.secho(f"\t   cd {project_slug}", fg="cyan")
-    click.echo()
-    click.secho("\t2. Install dependencies (creates both lockfiles):", fg="blue")
-    click.secho("\t   uv sync", fg="cyan")
-    click.secho("\t   make frontend.install", fg="cyan")
-    click.echo()
-    click.secho("\t3. Put project under version control, lockfiles included", fg="blue")
-    click.secho("\t   git init", fg="cyan")
-    click.secho("\t   git add --all", fg="cyan")
-    click.secho(
-        '\t   git commit -m "Initial setup from django project template"', fg="cyan"
-    )
-    click.echo()
-    click.secho("\t4. Follow instructions in project README:", fg="blue")
+    click.secho("\t   Follow README.md > Development > Setup", fg="cyan")
     click.echo()
 
 
