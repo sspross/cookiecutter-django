@@ -49,7 +49,7 @@ The app side, all in this repo:
   settings, click deploy"; removing it and deploying again reverts. Values
   persist until removed. Excluded are `GITHUB_TOKEN` and the deploy plumbing,
   recognisable by prefix: `DEPLOY_*` (`DEPLOY_HOST`, `DEPLOY_URL`,
-  `DEPLOY_TAILNET_TAG`, `DEPLOY_SSH_KEY`) and `TS_OAUTH_*`.
+  `DEPLOY_TAILNET_TAG`, `DEPLOY_SSH_PRIVATE_KEY`) and `TS_OAUTH_*`.
 - **A deploy is gated on health.** `docker compose up --wait` fails when
   `release` exits non-zero or `web` never becomes healthy; with `DEPLOY_URL`
   set, a request to `<DEPLOY_URL>/healthz` through the reverse proxy has to
@@ -76,7 +76,7 @@ Positive:
 
 Negative:
 
-- The deploy credential in the repository (`DEPLOY_SSH_KEY`, or the
+- The deploy credential in the repository (`DEPLOY_SSH_PRIVATE_KEY`, or the
   `TS_OAUTH_*` pair) is the key to the host: whoever holds it can reach the
   docker daemon, which is root-equivalent there.
 - `compose.yaml` and `compose.prod.yaml` have to stay coherent when the

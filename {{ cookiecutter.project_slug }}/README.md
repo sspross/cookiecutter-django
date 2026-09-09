@@ -151,7 +151,7 @@ First-time setup in the repository settings (Secrets and variables > Actions):
    join the tailnet as `<something>-{{ cookiecutter.project_slug }}`).
 2. Secrets: `SECRET_KEY`
    (`python -c "import secrets; print(secrets.token_urlsafe(50))"`),
-   `POSTGRES_PASSWORD` (URL-safe). Without a tailnet: `DEPLOY_SSH_KEY`, the
+   `POSTGRES_PASSWORD` (URL-safe). Without a tailnet: `DEPLOY_SSH_PRIVATE_KEY`, the
    private half of the deploy key. With a tailnet: `TS_OAUTH_CLIENT_ID` and
    `TS_OAUTH_SECRET` of an OAuth client that may mint keys for the tag
    (org-level secrets shared with the repo work too).
