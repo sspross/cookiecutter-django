@@ -51,28 +51,21 @@ front of it to terminate TLS and forward `X-Forwarded-Proto`, which
 
 ### Releases and the image
 
-A release is a semver git tag on `main`. The `image` workflow builds the
-`Dockerfile` on that tag and pushes it to GHCR, so a deployable artefact exists
-outside the git history. Appliku ignores tags and builds from `main` itself.
-`docs/OPERATIONS.md` holds the flow.
+Every push to `main` is a release. The `image` workflow builds the
+`Dockerfile` on that commit and pushes it to GHCR tagged with the commit sha,
+so a deployable artefact exists outside the git history. Appliku ignores that
+image and builds from `main` itself. `docs/OPERATIONS.md` holds the flow.
 
-### When an infra repo owns production
+### The production compose file
 
-A compose deployment can be driven from a separate infra repo instead of from
-this one. That repo owns the production compose file and everything around it:
-the pinned GHCR image tag, the ingress network, the volumes, the restart policy
-and the secrets. It is deployed with its own tooling, and a version bump there
-is a change of the pinned tag.
-
-The image is the contract between the two repos: this repo produces tagged
-images, the infra repo consumes one.
-
-In that setup `compose.yaml` here keeps two roles. It stays the manifest for
-hosts that deploy compose straight from git (Dokploy, Coolify), and it is the
-reference shape the infra repo copies from: replace `build: .` with the pinned
-image, drop the published `ports` and join the ingress network instead, and keep
-the rest of the topology (the `release` service ordering, the healthchecks, the
-volumes) as it is here.
+For a docker host that this repo deploys to itself, it carries a third
+manifest, `compose.prod.yaml`; ADR-0008 records that. It is derived from
+`compose.yaml`: the image pinned to the GHCR tag of the commit instead of
+`build: .`, no published `ports`, `web` on the ingress network instead, and
+the rest of the topology (the `release` service ordering, the healthchecks,
+the volumes) unchanged. `compose.yaml` stays the manifest for hosts that
+deploy compose straight from git (Dokploy, Coolify) and the shape
+`compose.prod.yaml` is kept coherent with.
 
 ## Consequences
 
@@ -93,7 +86,5 @@ Negative:
   of them will not notice the other rotting.
 - Neither manifest covers the host itself. A compose deployment still needs
   someone to provision the machine, the proxy and the certificates.
-- With an infra repo in front, an app change that needs a new environment
-  variable or a new process takes two pull requests: one here, one there. They
-  land in that order, and the app has to boot with the variable still missing
-  until the second one is deployed.
+- A third manifest joins the coherence problem: `compose.prod.yaml` has to
+  follow `compose.yaml` when the topology changes, in the same pull request.

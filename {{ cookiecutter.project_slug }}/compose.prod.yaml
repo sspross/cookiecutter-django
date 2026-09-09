@@ -1,0 +1,96 @@
+# Production manifest for a docker host deployed by .github/workflows/deploy.yml, see docs/adr/0008-deploy-from-the-app-repo.md.
+# Differences to compose.yaml: pinned GHCR image instead of build, web joins the ingress network instead of publishing a port.
+
+name: {{ cookiecutter.project_slug }}
+
+x-app: &app
+  image: "${IMAGE:?set IMAGE}"
+  env_file: .env
+  environment:
+    DATABASE_URL: "postgresql://{{ cookiecutter.project_slug }}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/{{ cookiecutter.project_slug }}"
+    REDIS_URL: redis://redis:6379/0
+    MEDIA_ROOT: /volumes/media
+    MEDIA_URL: /media/
+    # localhost is what the web healthcheck uses
+    ALLOWED_HOSTS: "${ALLOWED_HOSTS:?set ALLOWED_HOSTS},localhost"
+  volumes:
+    - media:/volumes/media
+
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: "{{ cookiecutter.project_slug }}"
+      POSTGRES_USER: "{{ cookiecutter.project_slug }}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ cookiecutter.project_slug }} -d {{ cookiecutter.project_slug }}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  release:
+    <<: *app
+    command: ./release.sh
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    <<: *app
+    command: ./web.sh
+    restart: unless-stopped
+    networks:
+      default:
+      ingress:
+        aliases:
+          - {{ cookiecutter.project_slug }}-web
+    depends_on:
+      release:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  worker:
+    <<: *app
+    command: ./worker.sh
+    restart: unless-stopped
+    depends_on:
+      release:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  redis-data:
+  media:
+
+networks:
+  ingress:
+    external: true

@@ -23,7 +23,9 @@ This is a single-context repo:
 │   ├── 0003-async-by-default.md
 │   ├── 0004-deployment-targets.md
 │   ├── 0005-tach-boundaries.md
-│   └── 0006-boot-data-typed.md
+│   ├── 0006-boot-data-typed.md
+│   ├── 0007-sentry-error-events-are-unexpected-behaviour-only.md
+│   └── 0008-deploy-from-the-app-repo.md
 └── core/, api_keys/, ...
 ```
 

@@ -1,0 +1,118 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    env:
+      IMAGE: "{% raw %}ghcr.io/${{ github.repository }}:${{ github.sha }}{% endraw %}"
+      COMPOSE_FILE: compose.prod.yaml
+      DEPLOY_HOST: "{% raw %}${{ vars.DEPLOY_HOST }}{% endraw %}"
+      DEPLOY_SSH_KEY: "{% raw %}${{ secrets.DEPLOY_SSH_KEY }}{% endraw %}"
+    steps:
+      - name: Require the deploy target
+        if: env.DEPLOY_HOST == ''
+        run: |
+          echo "::error::the repository variable DEPLOY_HOST (user@host) is not set" >&2
+          exit 1
+
+      - uses: actions/checkout@v7
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4.6.0
+        with:
+          registry: ghcr.io
+          username: "{% raw %}${{ github.actor }}{% endraw %}"
+          password: "{% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}"
+
+      - name: Fail early when the image workflow has not finished
+        run: |
+          docker manifest inspect "$IMAGE" >/dev/null 2>&1 \
+            || { echo "::error::$IMAGE does not exist yet, the image workflow for this commit has not finished" >&2; exit 1; }
+
+      - name: Name the tailnet node after the tag
+        if: vars.DEPLOY_TAILNET_TAG != ''
+        env:
+          TAG: "{% raw %}${{ vars.DEPLOY_TAILNET_TAG }}{% endraw %}"
+        run: echo "TAILNET_NODE=${TAG#tag:}-{{ cookiecutter.project_slug }}" >> "$GITHUB_ENV"
+
+      - name: Join the tailnet
+        if: vars.DEPLOY_TAILNET_TAG != ''
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: "{% raw %}${{ secrets.TS_OAUTH_CLIENT_ID }}{% endraw %}"
+          oauth-secret: "{% raw %}${{ secrets.TS_OAUTH_SECRET }}{% endraw %}"
+          tags: "{% raw %}${{ vars.DEPLOY_TAILNET_TAG }}{% endraw %}"
+          hostname: "{% raw %}${{ env.TAILNET_NODE }}{% endraw %}"
+
+      - name: Install the deploy SSH key
+        if: env.DEPLOY_SSH_KEY != ''
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      # The runner is fresh every time, so a pinned host key would not survive anyway.
+      - name: Trust the host key on first contact
+        run: |
+          mkdir -p ~/.ssh
+          printf 'Host %s\n  StrictHostKeyChecking accept-new\n' "${DEPLOY_HOST#*@}" >> ~/.ssh/config
+
+      - name: Write .env from the repository variables and secrets
+        env:
+          VARS: "{% raw %}${{ toJSON(vars) }}{% endraw %}"
+          SECRETS: "{% raw %}${{ toJSON(secrets) }}{% endraw %}"
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+
+          entries = {}
+          entries.update(json.loads(os.environ["VARS"]) or {})
+          entries.update(json.loads(os.environ["SECRETS"]) or {})
+          entries = {
+              key: value
+              for key, value in entries.items()
+              if key.upper() != "GITHUB_TOKEN"
+              and not key.upper().startswith(("DEPLOY_", "TS_OAUTH_"))
+          }
+          entries["IMAGE"] = os.environ["IMAGE"]
+
+          # compose interpolates `$` in .env values; `$$` is the literal dollar
+          with open(".env", "w") as env_file:
+              for key in sorted(entries):
+                  env_file.write(f"{key}={entries[key].replace('$', '$$')}\n")
+          os.chmod(".env", 0o600)
+
+          print("keys written to .env: " + " ".join(sorted(entries)))
+          PY
+
+      - name: Pull the image
+        run: DOCKER_HOST="ssh://$DEPLOY_HOST" docker compose pull
+
+      - name: Start the stack
+        run: DOCKER_HOST="ssh://$DEPLOY_HOST" docker compose up -d --wait --remove-orphans
+
+      - name: Smoke test through the reverse proxy
+        if: vars.DEPLOY_URL != ''
+        run: curl -fsS --retry 5 --retry-delay 3 --retry-all-errors "{% raw %}${{ vars.DEPLOY_URL }}{% endraw %}/healthz"
+
+      - name: Show the stack on failure
+        if: failure()
+        run: |
+          export DOCKER_HOST="ssh://$DEPLOY_HOST"
+          docker compose ps || true
+          docker compose logs --tail 100 || true
