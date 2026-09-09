@@ -21,7 +21,7 @@ jobs:
       IMAGE: "{% raw %}ghcr.io/${{ github.repository }}:${{ github.sha }}{% endraw %}"
       COMPOSE_FILE: compose.prod.yaml
       DEPLOY_HOST: "{% raw %}${{ vars.DEPLOY_HOST }}{% endraw %}"
-      DEPLOY_SSH_KEY: "{% raw %}${{ secrets.DEPLOY_SSH_KEY }}{% endraw %}"
+      DEPLOY_SSH_PRIVATE_KEY: "{% raw %}${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}{% endraw %}"
     steps:
       - name: Require the deploy target
         if: env.DEPLOY_HOST == ''
@@ -59,10 +59,10 @@ jobs:
           hostname: "{% raw %}${{ env.TAILNET_NODE }}{% endraw %}"
 
       - name: Install the deploy SSH key
-        if: env.DEPLOY_SSH_KEY != ''
+        if: env.DEPLOY_SSH_PRIVATE_KEY != ''
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
       # The runner is fresh every time, so a pinned host key would not survive anyway.

@@ -161,7 +161,7 @@ from this repo.
    and press again.
 2. A GitHub-hosted runner reaches the host's docker daemon over SSH
    (`DOCKER_HOST=ssh://<DEPLOY_HOST>`), after joining the tailnet as an
-   ephemeral node when `DEPLOY_TAILNET_TAG` is set, or with `DEPLOY_SSH_KEY`
+   ephemeral node when `DEPLOY_TAILNET_TAG` is set, or with `DEPLOY_SSH_PRIVATE_KEY`
    otherwise. Nothing is copied to the host: `compose.prod.yaml` and `.env`
    stay on the runner.
 3. `.env` is assembled from the repository's Actions variables and secrets
