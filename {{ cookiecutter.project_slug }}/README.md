@@ -50,19 +50,22 @@ After adding/changing ninja API endpoints, regenerate the SPA's typed schema:
 
 ## Deployment
 
-Two targets are supported, both on the same image and the same process scripts
-(`web.sh`, `worker.sh`, `release.sh`). See ADR-0004.
+Three targets are supported, all on the same image and the same process
+scripts (`web.sh`, `worker.sh`, `release.sh`): Appliku, a compose host that
+builds from git, and a docker host this repo deploys to with a button. See
+ADR-0004 and ADR-0008.
 
 ### Release
 
-A release is a semver git tag on `main`: `git tag v1.2.3 && git push origin v1.2.3`.
-The `image` workflow builds `Dockerfile` on that tag and pushes
-`ghcr.io/<owner>/<repo>:1.2.3` and `:latest`. Pull requests build the same image
-without pushing it, so a broken `Dockerfile` or a stale lockfile fails CI.
+Every push to `main` is a release. The `image` workflow builds `Dockerfile`
+on that commit and pushes `ghcr.io/<owner>/<repo>:<sha>` and `:latest`, then
+prunes the package to the newest 10 versions. Pull requests build the same
+image without pushing it, so a broken `Dockerfile` or a stale lockfile fails
+CI.
 
-Appliku ignores tags and deploys on every push to `main`; a compose host that
-deploys `compose.yaml` from git builds the checked-out commit. Only a separate
-infra repo owning the production compose file pins the published tag.
+Appliku ignores that image and deploys on every push to `main`; a compose host
+that deploys `compose.yaml` from git builds the checked-out commit. Only the
+`deploy` workflow runs the published image.
 
 ### Appliku
 
@@ -119,5 +122,45 @@ terminates TLS, has to forward `X-Forwarded-Proto` (which
 Uploaded media lives in the `media` volume at `/volumes/media`; Django does not
 serve it with `DEBUG=false`, so point the proxy at that volume under `/media/`
 if the project uses uploads.
+
+### Docker host, deployed from this repo
+
+`compose.prod.yaml` is the manifest for a docker host that this repo deploys
+to itself: the `deploy` workflow (Actions tab, "Run workflow" on `main`)
+pulls the image of that commit on the host, runs `release`, recreates `web`
+and `worker`, and checks `/healthz`. Nothing is copied to the host; the
+repository's Actions secrets and variables are the production environment
+and land in the stack's `.env` on every deploy.
+
+The host has to provide (whoever runs it, an infra repo or a person):
+
+- SSH access for the workflow as a user in the `docker` group. Either the
+  host is in a tailnet with Tailscale SSH enabled for a tag the workflow may
+  join with, or it is reachable on a public address with a deploy key.
+- A reverse proxy on the docker network `ingress` (`docker network create
+  ingress`) that proxies the app's hostname to
+  `{{ cookiecutter.project_slug }}-web:8000`, terminates TLS and forwards
+  `X-Forwarded-Proto`.
+
+First-time setup in the repository settings (Secrets and variables > Actions):
+
+1. Variables: `DEPLOY_HOST` (`user@host`), `ALLOWED_HOSTS` (the domain, the
+   compose file adds `localhost`), `CSRF_TRUSTED_ORIGINS`
+   (`https://<domain>`). Optional: `DEPLOY_URL` (`https://<domain>`, turns on
+   the smoke test), `DEPLOY_TAILNET_TAG` (`tag:<something>`, makes the job
+   join the tailnet as `<something>-{{ cookiecutter.project_slug }}`).
+2. Secrets: `SECRET_KEY`
+   (`python -c "import secrets; print(secrets.token_urlsafe(50))"`),
+   `POSTGRES_PASSWORD` (URL-safe). Without a tailnet: `DEPLOY_SSH_KEY`, the
+   private half of the deploy key. With a tailnet: `TS_OAUTH_CLIENT_ID` and
+   `TS_OAUTH_SECRET` of an OAuth client that may mint keys for the tag
+   (org-level secrets shared with the repo work too).
+3. Merge to `main`, wait for the `image` workflow, run `deploy`.
+4. Create the first superuser from a device that may SSH to the host:
+   `DOCKER_HOST=ssh://<DEPLOY_HOST> docker exec -it {{ cookiecutter.project_slug }}-web-1 uv run ./manage.py createsuperuser`
+
+Any further variable or secret is a production setting: add `SENTRY_DSN` or
+`DEBUG=true`, deploy; remove it, deploy. Names starting with `DEPLOY_` and
+`TS_OAUTH_` are the workflow's own and never reach the stack.
 
 `docs/OPERATIONS.md` is the runbook: environment variables, health probing, logs, backups, troubleshooting.

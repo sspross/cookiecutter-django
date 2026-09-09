@@ -2,8 +2,9 @@
 
 The runbook for running `{{ cookiecutter.project_slug }}` in production.
 
-Facts here are taken from the repo (`appliku.yml`, `compose.yaml`, `Dockerfile`,
-`.github/workflows/image.yml`, `core/settings/base.py`, `core/observability.py`,
+Facts here are taken from the repo (`appliku.yml`, `compose.yaml`,
+`compose.prod.yaml`, `Dockerfile`, `.github/workflows/image.yml`,
+`.github/workflows/deploy.yml`, `core/settings/base.py`, `core/observability.py`,
 `core/request_context.py`, `core/views.py`, `release.sh`, `web.sh`, `worker.sh`).
 Anything that depends on the Appliku account or the hosting plan rather than on
 this repo is marked **unverified**: confirm it in the Appliku dashboard and
@@ -11,7 +12,9 @@ correct this file.
 
 Two deployment targets consume the same image and process scripts (ADR-0004):
 Appliku via `appliku.yml`, and any docker-compose compatible host via
-`compose.yaml`. Where the two differ, this runbook says which one it means.
+`compose.yaml`. A docker host this repo deploys to itself is a compose target
+with its own manifest, `compose.prod.yaml`, and the `deploy` workflow
+(ADR-0008). Where the targets differ, this runbook says which one it means.
 
 ## Architecture snapshot
 
@@ -49,8 +52,10 @@ Storage:
   relies on user uploads being readable.
 
 The container port is 8000 and the web process is exposed. Appliku terminates
-TLS in front of it; a compose deployment publishes it on `127.0.0.1:8000` and
-expects the reverse proxy to. Either way the proxy forwards
+TLS in front of it; `compose.yaml` publishes it on `127.0.0.1:8000` and
+expects the reverse proxy to, `compose.prod.yaml` puts `web` on the `ingress`
+network as `{{ cookiecutter.project_slug }}-web` for a reverse proxy on that
+network. Either way the proxy forwards
 `X-Forwarded-Proto`, which `SECURE_PROXY_SSL_HEADER` trusts. With `DEBUG=false`
 the app sets `SECURE_SSL_REDIRECT`, secure session and CSRF cookies, and one
 year of HSTS.
@@ -58,31 +63,38 @@ year of HSTS.
 ## Environment variables
 
 Names and defaults below come from `core/settings/base.py`; the production
-source comes from `appliku.yml` on Appliku and from `compose.yaml` plus the
-host's `.env` on a compose deployment.
+source comes from `appliku.yml` on Appliku and from a compose file plus `.env`
+on a compose deployment. With `compose.prod.yaml` the deploy workflow writes
+`.env` from the repository's Actions secrets and variables: every secret and
+every variable lands in it verbatim, under its own name, except
+`GITHUB_TOKEN` and the deploy plumbing (`DEPLOY_*`, `TS_OAUTH_*`). A generic
+compose host (`compose.yaml`) works the same way with a hand-written `.env`.
 
-| Variable | Required | Default (no value set) | Appliku source | Compose source |
+| Variable | Required | Default (no value set) | Appliku source | Compose source (`compose.prod.yaml`, or `compose.yaml` with a hand-written `.env`) |
 | --- | --- | --- | --- | --- |
-| `SECRET_KEY` | yes | none, the app fails to boot | set manually in Appliku (`source: manual`) | `.env` on the host |
-| `DEBUG` | no | `False` | `appliku.yml` pins it to `"false"` | `compose.yaml` pins it to `"false"` |
-| `DATABASE_URL` | yes | none, the app fails to boot | `db` database, private connection URL | `compose.yaml`, pointing at the `db` service with `${POSTGRES_PASSWORD}` |
-| `REDIS_URL` | no | `redis://localhost:6379/0` | `redis` database, private connection URL | `compose.yaml`, pointing at the `redis` service |
-| `ALLOWED_HOSTS` | no | `[]` (empty list) | `from_domains: true`, filled from the domains added in Appliku | `.env` on the host, needs `localhost` for the `web` healthcheck |
-| `CSRF_TRUSTED_ORIGINS` | no | `[]` (empty list) | not set by `appliku.yml`, set it manually | `.env` on the host |
-| `MEDIA_ROOT` | no | `<repo>/media` | injected from the `media` volume's `MEDIA` prefix | `compose.yaml`, `/volumes/media` |
-| `MEDIA_URL` | no | `media/` | injected from the `media` volume's `MEDIA` prefix | `compose.yaml`, `/media/` |
+| `SECRET_KEY` | yes | none, the app fails to boot | set manually in Appliku (`source: manual`) | repo secret |
+| `DEBUG` | no | `False` | `appliku.yml` pins it to `"false"` | `compose.yaml` pins it to `"false"`; with `compose.prod.yaml` a repo variable, unset in normal operation |
+| `DATABASE_URL` | yes | none, the app fails to boot | `db` database, private connection URL | the compose file, pointing at the `db` service with `${POSTGRES_PASSWORD}` |
+| `REDIS_URL` | no | `redis://localhost:6379/0` | `redis` database, private connection URL | the compose file, pointing at the `redis` service |
+| `ALLOWED_HOSTS` | no | `[]` (empty list) | `from_domains: true`, filled from the domains added in Appliku | repo variable, required; `compose.prod.yaml` appends `localhost` for the `web` healthcheck |
+| `CSRF_TRUSTED_ORIGINS` | no | `[]` (empty list) | not set by `appliku.yml`, set it manually | repo variable |
+| `MEDIA_ROOT` | no | `<repo>/media` | injected from the `media` volume's `MEDIA` prefix | the compose file, `/volumes/media` |
+| `MEDIA_URL` | no | `media/` | injected from the `media` volume's `MEDIA` prefix | the compose file, `/media/` |
 | `PORT` | no | `8000` | **unverified** whether Appliku injects it; `container_port` is 8000 either way | unset, `web.sh` falls back to 8000 |
 | `DJANGO_VITE_DEV_MODE` | no | unset, follows `DEBUG` | not set in production | not set in production |
-| `SENTRY_DSN` | no | blank, the Sentry SDK stays uninitialized | set manually in Appliku (`source: manual`) | `compose.yaml` passes it through from `.env` on the host, blank default |
-| `SENTRY_ENVIRONMENT` | no | `production` | not declared in `appliku.yml`, set it manually for a second deployment | `.env` on the host |
+| `SENTRY_DSN` | no | blank, the Sentry SDK stays uninitialized | set manually in Appliku (`source: manual`) | repo variable, unset until Sentry is wanted |
+| `SENTRY_ENVIRONMENT` | no | `production` | not declared in `appliku.yml`, set it manually for a second deployment | repo variable |
 
 `PORT` is not a Django setting: `web.sh` reads it to bind gunicorn
 (`0.0.0.0:${PORT:-8000}`). Changing it means changing `container_port` in
 `appliku.yml` or the port mapping in `compose.yaml` too.
 
-`POSTGRES_PASSWORD` is compose-only. It never reaches Django; `compose.yaml`
-interpolates it into the `db` service and into `DATABASE_URL`, without escaping,
-so it has to be URL-safe.
+`POSTGRES_PASSWORD` is compose-only, a repo secret with `compose.prod.yaml`.
+It never reaches Django; the compose files interpolate it into the `db`
+service and into `DATABASE_URL`, without escaping, so it has to be URL-safe.
+
+`IMAGE` is written by the deploy workflow (`ghcr.io/<owner>/<repo>:<sha>`)
+and read by `compose.prod.yaml` only.
 
 Notes:
 
@@ -95,37 +107,83 @@ Notes:
 - Generate a `SECRET_KEY` with
   `python -c "import secrets; print(secrets.token_urlsafe(50))"`.
 
+### Toggles
+
+With `compose.prod.yaml` every repository variable is a production setting.
+Turning Sentry on is adding the `SENTRY_DSN` variable in the repo settings and
+clicking deploy; debugging a bad request is a `DEBUG=true` variable and a
+deploy, then deleting it and deploying again. A setting stays in effect until
+it is removed, like a variable in the Appliku dashboard. The deploy log lists
+the key names it wrote, never the values.
+
+A value that `compose.prod.yaml` sets in `environment:` (`DATABASE_URL`,
+`REDIS_URL`, `MEDIA_*`, the `localhost` suffix of `ALLOWED_HOSTS`) wins over
+`.env`; a variable of that name has no effect.
+
 ### Project-specific variables
 
 _Placeholder: list the API keys, webhook secrets, and third-party credentials this project adds, and where each one is provisioned._
 
 ## Deploy flow
 
-### Releases and the published image
+### The published image
 
-A release is a semver git tag on `main`:
+Every push to `main` is a release candidate. `.github/workflows/image.yml`
+builds `Dockerfile` on that commit and pushes `ghcr.io/<owner>/<repo>:<sha>`
+and `:latest` to GitHub Container Registry, authenticated with the workflow's
+own `GITHUB_TOKEN`. The same run deletes untagged versions and keeps the
+newest 10, so an older commit can still be deployed for a while. On a pull
+request the workflow builds the image and does not push it, so a `Dockerfile`
+that no longer builds, or an uncommitted lockfile change, fails CI instead of
+a deploy.
 
-```
-git tag v1.2.3 && git push origin v1.2.3
-```
+Who consumes the image depends on the target:
 
-`.github/workflows/image.yml` builds `Dockerfile` on that tag and pushes
-`ghcr.io/<owner>/<repo>:1.2.3` and `ghcr.io/<owner>/<repo>:latest` to GitHub
-Container Registry, authenticated with the workflow's own `GITHUB_TOKEN`. On a
-pull request the same workflow builds the image and does not push it, so a
-`Dockerfile` that no longer builds, or an uncommitted lockfile change, fails CI
-instead of a release.
-
-Who consumes the tag depends on the target:
-
-- Appliku ignores tags entirely and builds from `main` on push.
-- A compose host that deploys this repo from git also ignores them and builds
+- Appliku ignores it entirely and builds from `main` on push.
+- A compose host that deploys this repo from git also ignores it and builds
   locally (`docker compose up -d --build`).
-- A separate infra repo, where one exists, pins the tag in its production
-  compose file. Bumping that pin is the deploy. See ADR-0004.
+- A docker host deployed by the `deploy` workflow runs it.
 
 **Unverified**: whether the GHCR package is private by default for this
-project's account, and which pull credentials a compose host therefore needs.
+project's account. A private package needs `packages: read` for the pull,
+which the deploy workflow's `GITHUB_TOKEN` has; a generic compose host needs
+a token of its own.
+
+### Deploying with the `deploy` workflow
+
+The deploy is the `deploy` workflow in the Actions tab: pick `main`, press
+"Run workflow". The job refuses any other branch. Two clicks queue, they never
+overlap. What it needs is in README.md > Deployment > Docker host, deployed
+from this repo.
+
+1. The job checks that the image for the commit exists, and stops with a
+   message if the `image` workflow of that push is still running. Wait for it
+   and press again.
+2. A GitHub-hosted runner reaches the host's docker daemon over SSH
+   (`DOCKER_HOST=ssh://<DEPLOY_HOST>`), after joining the tailnet as an
+   ephemeral node when `DEPLOY_TAILNET_TAG` is set, or with `DEPLOY_SSH_KEY`
+   otherwise. Nothing is copied to the host: `compose.prod.yaml` and `.env`
+   stay on the runner.
+3. `.env` is assembled from the repository's Actions variables and secrets
+   plus `IMAGE=ghcr.io/<owner>/<repo>:<sha>`.
+4. `docker compose pull`, then `docker compose up -d --wait --remove-orphans`.
+   `release` runs `release.sh` (`manage.py migrate`) first; `web` and `worker`
+   are recreated only after it exited 0.
+5. With `DEPLOY_URL` set, the runner requests `<DEPLOY_URL>/healthz` through
+   the reverse proxy. A non-200 fails the job.
+6. On failure the job prints `docker compose ps` and the last 100 log lines of
+   every service.
+
+What a failed deploy leaves running:
+
+- `release` failed: the previous `web` and `worker` keep running on the old
+  image, against whatever the migration left behind. Fix forward: a new
+  commit on `main`, deploy again.
+- `release` succeeded and `web` never became healthy: the new `web` is up but
+  unhealthy behind the proxy, which answers 502. Look at the logs the job
+  printed, fix forward, or deploy the previous state of `main`.
+- The smoke test failed with healthy containers: the reverse proxy or DNS,
+  on the host side.
 
 On Appliku:
 
@@ -139,33 +197,51 @@ On Appliku:
 **Unverified**: what a failed build or a failed release process does to the
 version already running.
 
-On a compose host: pull the new commit and run `docker compose up -d --build`.
-The build is the same one. `release` runs to completion first; `web` and
-`worker` are recreated only after it exited 0
-(`condition: service_completed_successfully`), so a failing migration leaves the
-previous containers running.
+On a generic compose host: pull the new commit and run
+`docker compose up -d --build`. The build is the same one. `release` runs to
+completion first; `web` and `worker` are recreated only after it exited 0
+(`condition: service_completed_successfully`), so a failing migration leaves
+the previous containers running.
 
 Per ADR-0004, migrations and one-shot tasks belong in `release.sh` rather than
 in `web.sh`. `release.sh` currently holds nothing but `migrate`: it runs on
 every deploy, so anything added there has to stay safe to re-run. A one-time
 backfill belongs in a one-off command instead.
 
-Rolling back means deploying an earlier commit. Migrations do not roll back with
-it: a deploy that migrated the schema stays migrated, so a rollback is only safe
-while the older code still runs against the new schema. Write migrations to stay
-backwards compatible for one release (add columns nullable, drop them a release
-later).
+Rolling back means deploying an earlier state of `main`: with the `deploy`
+workflow, revert the commit on `main` and deploy, since the workflow only runs
+on `main`. Migrations do not roll back with it: a deploy that migrated the
+schema stays migrated, so a rollback is only safe while the older code still
+runs against the new schema. Write migrations to stay backwards compatible for
+one release (add columns nullable, drop them a release later).
 
 ### Manual deploys and one-off commands
 
-Deploys and one-off commands are triggered from the Appliku dashboard or its
-CLI; see [docs.appliku.com/docs/cli-sdk](https://docs.appliku.com/docs/cli-sdk/).
+On Appliku, deploys and one-off commands are triggered from the dashboard or
+its CLI; see [docs.appliku.com/docs/cli-sdk](https://docs.appliku.com/docs/cli-sdk/).
 Run management commands as `uv run ./manage.py <command>`, the same entry point
 the process scripts use. **Unverified**: which environment a one-off command
 receives, whether it gets its own container or attaches to a running one, and
 how long it may run.
 
-On a compose host the equivalent is
+On a host deployed by the `deploy` workflow there is no compose file on the
+machine, so one-off commands run in the live `web` container with
+`docker exec`, from any device that may SSH to the host as the deploy user:
+
+```
+export DOCKER_HOST=ssh://<DEPLOY_HOST>
+docker exec -it {{ cookiecutter.project_slug }}-web-1 uv run ./manage.py showmigrations
+docker compose -p {{ cookiecutter.project_slug }} ps
+docker compose -p {{ cookiecutter.project_slug }} logs web --tail 100
+```
+
+`-p {{ cookiecutter.project_slug }}` names the running project; `ps` and
+`logs` need no compose file. A command that must not share the web process's
+container can run from the checkout with
+`docker compose -f compose.prod.yaml run --rm web ...`, given an `.env` with
+the same values the workflow writes.
+
+On a generic compose host the equivalent is
 `docker compose run --rm web uv run ./manage.py <command>`, which starts a
 throwaway container from the same image with the same environment.
 
@@ -185,7 +261,14 @@ sh -c "DJANGO_SUPERUSER_PASSWORD='<password>' uv run ./manage.py createsuperuser
 Alternatively set `DJANGO_SUPERUSER_PASSWORD` as an app environment variable,
 run the command without the prefix, and remove the variable afterwards.
 
-On a compose host, interactive or with the same `--noinput` form:
+On a host deployed by the `deploy` workflow, interactive, from a device that
+may SSH to the host:
+
+```
+DOCKER_HOST=ssh://<DEPLOY_HOST> docker exec -it {{ cookiecutter.project_slug }}-web-1 uv run ./manage.py createsuperuser
+```
+
+On a generic compose host, interactive or with the same `--noinput` form:
 
 ```
 docker compose run --rm web uv run ./manage.py createsuperuser
@@ -309,7 +392,8 @@ deploy without Sentry are unchanged.
 - **What is never sent**: tracing (no `traces_sample_rate`) and session
   tracking are off; `/healthz` produces no Sentry traffic.
 - **Where the DSN lives**: `SENTRY_DSN` is a manual environment variable in the
-  Appliku dashboard, and comes from `.env` on a compose host. `SENTRY_ENVIRONMENT`
+  Appliku dashboard, a repo variable with the `deploy` workflow, and `.env` on
+  a generic compose host. `SENTRY_ENVIRONMENT`
   defaults to `production`; set it only on a second deployment (staging) that
   shares the Sentry project.
 - **Alerting** is a Sentry-side rule on the issue stream or on a Logs query,
@@ -429,14 +513,16 @@ the queue is volatile there too.
 
 | Symptom | Likely cause | Where to look |
 | --- | --- | --- |
-| Boot fails with `ImproperlyConfigured: Set the SECRET_KEY environment variable` | `SECRET_KEY` not set | environment variables in the Appliku dashboard, or `.env` on the compose host |
-| Boot fails on `DATABASE_URL` | the `db` database is not attached | the `from_database` block in `appliku.yml`, or the `db` service and `POSTGRES_PASSWORD` on a compose host |
-| `400 Bad Request` / `DisallowedHost` on every request | the domain is missing from `ALLOWED_HOSTS` | whether the domain is added in Appliku, so `from_domains` picks it up; on compose, `ALLOWED_HOSTS` in `.env` (`localhost` included) |
+| Boot fails with `ImproperlyConfigured: Set the SECRET_KEY environment variable` | `SECRET_KEY` not set | environment variables in the Appliku dashboard, the `SECRET_KEY` repo secret (the deploy log lists the keys it wrote), or `.env` on a generic compose host |
+| Boot fails on `DATABASE_URL` | the `db` database is not attached | the `from_database` block in `appliku.yml`, or the `db` service and `POSTGRES_PASSWORD` (repo secret, or `.env` on a generic compose host) |
+| `400 Bad Request` / `DisallowedHost` on every request | the domain is missing from `ALLOWED_HOSTS` | whether the domain is added in Appliku, so `from_domains` picks it up; on compose, the `ALLOWED_HOSTS` repo variable or `.env` (`localhost` included) |
 | `403 CSRF verification failed` on POST while GET works | the origin is missing from `CSRF_TRUSTED_ORIGINS` | set it manually, including the `https://` scheme |
 | `/healthz` returns 503 with `"redis": "error"` | Redis is down or `REDIS_URL` is wrong | Redis instance status, then the env var |
 | `/healthz` returns 503 with `"database": "error"` | Postgres is down or unreachable | database status, connection limit |
 | The app serves but jobs never run | the `worker` process is stopped or crash-looping | worker logs, then `/django-rq/` for queue depth |
-| A deploy succeeds but the schema is old | `release.sh` failed | release process logs, or `docker compose logs release` |
+| The deploy job stops at "does not exist yet" | the `image` workflow of that commit is still running | the Actions tab; press deploy again when it is green |
+| The deploy job stops at "DEPLOY_HOST ... is not set" | the repository variable is missing | README.md > Deployment > Docker host, deployed from this repo |
+| A deploy succeeds but the schema is old | `release.sh` failed | release process logs, or `docker compose -p {{ cookiecutter.project_slug }} logs release` |
 | `ValueError: Missing staticfiles manifest entry` | a template references a static file that was not collected | the `collectstatic` step in the build log |
 | Redirect loop on https | `SECURE_PROXY_SSL_HEADER` is not receiving `X-Forwarded-Proto` | proxy configuration; expected to work as-is on Appliku, has to be configured on the reverse proxy in front of a compose stack |
 
