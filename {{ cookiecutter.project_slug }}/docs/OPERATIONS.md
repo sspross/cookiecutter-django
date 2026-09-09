@@ -131,8 +131,8 @@ _Placeholder: list the API keys, webhook secrets, and third-party credentials th
 Every push to `main` is a release candidate. `.github/workflows/image.yml`
 builds `Dockerfile` on that commit and pushes `ghcr.io/<owner>/<repo>:<sha>`
 and `:latest` to GitHub Container Registry, authenticated with the workflow's
-own `GITHUB_TOKEN`. The same run deletes untagged versions and keeps the
-newest 10, so an older commit can still be deployed for a while. On a pull
+own `GITHUB_TOKEN`. The same run keeps only the newest 10 versions, so an
+older commit can still be deployed for a while. On a pull
 request the workflow builds the image and does not push it, so a `Dockerfile`
 that no longer builds, or an uncommitted lockfile change, fails CI instead of
 a deploy.

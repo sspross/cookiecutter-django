@@ -62,16 +62,12 @@ jobs:
           labels: "{% raw %}${{ steps.meta.outputs.labels }}{% endraw %}"
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # One plain manifest per tag. With provenance, buildx pushes an index whose
+          # children show up as untagged versions on GHCR, and a version cleanup that
+          # removes untagged versions breaks the tagged image (actions/delete-package-versions#162).
+          provenance: false
 
       # GHCR never expires versions itself, and private packages count against the owner's quota.
-      - name: Delete untagged image versions
-        uses: actions/delete-package-versions@v5
-        with:
-          owner: "{% raw %}${{ github.repository_owner }}{% endraw %}"
-          package-name: "{% raw %}${{ github.event.repository.name }}{% endraw %}"
-          package-type: container
-          delete-only-untagged-versions: "true"
-
       - name: Keep the newest 10 image versions
         uses: actions/delete-package-versions@v5
         with:
