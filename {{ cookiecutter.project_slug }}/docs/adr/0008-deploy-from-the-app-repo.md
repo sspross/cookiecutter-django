@@ -35,9 +35,10 @@ The app side, all in this repo:
   deploy should be able to toggle; `DEBUG`, `SENTRY_DSN` and
   `CSRF_TRUSTED_ORIGINS` come from `.env`.
 - **Images are tagged by commit.** Every push to `main` builds and pushes
-  `ghcr.io/<owner>/<repo>:<sha>` and `:latest` (`image.yml`). The same workflow
-  deletes untagged versions and keeps the newest 10, because GHCR never
-  expires versions and private packages count against the owner's quota.
+  `ghcr.io/<owner>/<repo>:<sha>` and `:latest` (`image.yml`), one plain
+  manifest per tag. The same workflow keeps only the newest 10 versions,
+  because GHCR never expires versions and private packages count against the
+  owner's quota.
 - **The deploy is a button.** `deploy.yml` runs on `workflow_dispatch`, only
   on `main`, one at a time (`concurrency`). A GitHub-hosted runner drives the
   host's docker daemon over `DOCKER_HOST=ssh://<DEPLOY_HOST>`. Compose runs on
