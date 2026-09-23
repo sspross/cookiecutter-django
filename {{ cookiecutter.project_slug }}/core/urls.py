@@ -1,3 +1,4 @@
+from allauth.socialaccount.providers.google import views as google_views
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
@@ -22,3 +23,18 @@ urlpatterns = [
     # django-rq gates this dashboard to staff itself, so no decorator here.
     path("django-rq/", include("django_rq.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+if settings.SOCIALACCOUNT_PROVIDERS:
+    # Not allauth's URLconf: its other pages have no template here.
+    urlpatterns += [
+        path(
+            "accounts/google/login/",
+            google_views.oauth2_login,
+            name="google_login",
+        ),
+        path(
+            "accounts/google/login/callback/",
+            google_views.oauth2_callback,
+            name="google_callback",
+        ),
+    ]

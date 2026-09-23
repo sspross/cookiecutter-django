@@ -1,5 +1,5 @@
 {% extends "_base.html" %}
-{% load django_vite %}
+{% load django_vite socialaccount %}
 
 {% block title %}Log in · {{ project_name }}{% endblock title %}
 
@@ -15,6 +15,12 @@
       {% include "_logo.html" %}
     </div>
     <div class="w-full max-w-sm rounded-lg border border-border bg-card p-6 shadow-sm">
+      {% for message in messages %}
+        <p class="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+           data-testid="login-message">
+          {{ message }}
+        </p>
+      {% endfor %}
       {% if form.errors %}
         <p class="mb-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           The username and password didn't match. Please try again.
@@ -41,6 +47,21 @@
           Sign in
         </button>
       </form>
+
+      {% get_providers as socialaccount_providers %}
+      {% if socialaccount_providers %}
+        {# A POST skips allauth's "continue with Google?" confirmation page. #}
+        <form method="post"
+              action="{% provider_login_url 'google' %}"
+              class="mt-4 border-t border-border pt-4"
+              data-testid="google-login-form">
+          {% csrf_token %}
+          <button type="submit"
+                  class="inline-flex h-9 w-full items-center justify-center rounded-md border border-input bg-transparent px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
+            Sign in with Google
+          </button>
+        </form>
+      {% endif %}
     </div>
   </div>
 {% endblock body %}

@@ -54,6 +54,12 @@ WHITENOISE_AUTOREFRESH = True
 # A DSN in the developer's shell must never make a test run report to Sentry.
 SENTRY_DSN = ""
 
+# Google login is on, so its routes are mounted and the flow tests run; they
+# stub every call to Google. Tests state the allowlist they need.
+SOCIALACCOUNT_PROVIDERS = google_providers("test-client-id", "test-client-secret")  # noqa: F405
+SSO_ALLOWED_DOMAINS = []
+SSO_ALLOWED_EMAILS = []
+
 # The default PBKDF2 hasher is deliberately slow and dominated the suite:
 # ~0.13s per UserFactory-built test against ~0.005s of actual work. MD5 keeps
 # hashing and check_password honest. Re-profile before removing this.
