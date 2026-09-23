@@ -100,8 +100,7 @@ class SsoSocialAccountAdapter(DefaultSocialAccountAdapter):
         self, request: HttpRequest, sociallogin: SocialLogin, data: dict[str, Any]
     ) -> AbstractBaseUser:
         user = super().populate_user(request, sociallogin, data)
-        # Safe when taken: allauth's auto-signup then generates a unique one.
-        user.username = user.email.partition("@")[0]
+        user.username = user.email
         return user
 
     def save_user(

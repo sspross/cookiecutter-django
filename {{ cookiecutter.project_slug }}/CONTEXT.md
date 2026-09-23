@@ -34,7 +34,8 @@ password accounts are gated by the admin.
 
 The first Google login of an allowed identity creates its user, or links to
 the existing user with the same email (allauth then makes that user's password
-unusable, so it logs in with Google from then on). Only a user created for the
+unusable, so it logs in with Google from then on). A created user's username
+is its full email, as is the seed fixture's. Only a user created for the
 author email becomes superuser and staff; a login never promotes or demotes an
 existing user. See ADR-0009.
 

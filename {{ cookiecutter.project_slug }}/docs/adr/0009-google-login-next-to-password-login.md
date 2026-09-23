@@ -35,6 +35,11 @@ only; the admin stays the gate for password accounts.
 creating a second one. This is safe because Google verifies the email and an
 unverified one is rejected first.
 
+**A user created by Google login gets its full email as username**, and so
+does the author in the seed fixture. The email is unique, so
+`anna@company.com` and `anna@gmail.com` never clash, and the seeded author and
+the author's first Google login carry the same username.
+
 ## Consequences
 
 - Production needs no `createsuperuser`: the author's first Google login

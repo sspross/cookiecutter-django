@@ -13,6 +13,7 @@ class TestSeedFixture:
         call_command("loaddata", "dumpdata.json", verbosity=0)
 
         user = User.objects.get(email=settings.SSO_SUPERUSER_EMAIL)
+        assert user.username == settings.SSO_SUPERUSER_EMAIL
         assert user.is_superuser
         assert user.is_staff
         assert not user.has_usable_password()

@@ -105,8 +105,20 @@ class TestAllowedGoogleLogin:
         user = logged_in_user(client)
         assert user is not None
         assert user.email == "anna@company.com"
-        assert user.username == "anna"
+        assert user.username == "anna@company.com"
         assert not user.has_usable_password()
+
+    def test_same_local_part_on_two_domains_gets_two_usernames(
+        self, client, allowlist
+    ):
+        allowlist.SSO_ALLOWED_EMAILS = ["anna@gmail.com"]
+        sign_in_with_google(client, "anna@company.com", hd="company.com")
+        client.logout()
+
+        sign_in_with_google(client, "anna@gmail.com")
+
+        assert logged_in_user(client).username == "anna@gmail.com"
+        assert User.objects.filter(username="anna@company.com").exists()
 
     def test_single_email_logs_in(self, client, allowlist):
         sign_in_with_google(client, "Guest@gmail.com")

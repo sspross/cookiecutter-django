@@ -277,7 +277,7 @@ shell, so a `VAR=value` prefix is treated as the executable. Wrap the command in
 with `--noinput`:
 
 ```
-sh -c "DJANGO_SUPERUSER_PASSWORD='<password>' uv run ./manage.py createsuperuser --noinput --username admin --email you@example.com"
+sh -c "DJANGO_SUPERUSER_PASSWORD='<password>' uv run ./manage.py createsuperuser --noinput --username you@example.com --email you@example.com"
 ```
 
 Alternatively set `DJANGO_SUPERUSER_PASSWORD` as an app environment variable,

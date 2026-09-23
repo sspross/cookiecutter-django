@@ -40,7 +40,7 @@ Run once after generating the project, in this order. Later clones skip the
     plus `SSO_ALLOWED_DOMAINS` / `SSO_ALLOWED_EMAILS` for anyone besides the
     author (see `.env.example`).
 - Without Google login, give the seeded superuser a password instead:
-  `uv run ./manage.py changepassword {{ cookiecutter.author_email.split('@')[0] }}`
+  `uv run ./manage.py changepassword {{ cookiecutter.author_email }}`
 
 ### Work
 

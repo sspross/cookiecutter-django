@@ -6,7 +6,7 @@
             "password": "!",
             "last_login": null,
             "is_superuser": true,
-            "username": "{{ cookiecutter.author_email.split('@')[0] }}",
+            "username": "{{ cookiecutter.author_email }}",
             "first_name": "",
             "last_name": "",
             "email": "{{ cookiecutter.author_email }}",
