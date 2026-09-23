@@ -28,6 +28,8 @@ build_settings:
       source: manual
     - name: SSO_ALLOWED_EMAILS
       source: manual
+    - name: SSO_SUPERUSER_EMAILS
+      source: manual
 
 services:
   web:

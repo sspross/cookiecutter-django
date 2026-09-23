@@ -22,10 +22,12 @@ and one of these holds:
 - the Workspace domain in Google's `hd` claim is in `SSO_ALLOWED_DOMAINS`;
   the email suffix alone never matches, since a private Google account can
   carry a verified `name@company.com` address;
-- the email is in `SSO_ALLOWED_EMAILS`;
-- the email is the author email (`SSO_SUPERUSER_EMAIL`), always allowed.
+- the email is in `SSO_ALLOWED_EMAILS`.
 
-Both lists are env vars, comma-separated, case-insensitive. The rule runs on
+`SSO_ALLOWED_EMAILS` defaults to the author email, so a fresh project lets the
+author in. Being on `SSO_SUPERUSER_EMAILS` does not allow a login.
+
+The lists are env vars, comma-separated, case-insensitive. The rule runs on
 every Google login, so removing an entry blocks that account's next login (an
 open session lasts until it expires or the user is deactivated). An inactive
 user is rejected too. A rejection is a log line naming the email and the
@@ -35,9 +37,12 @@ password accounts are gated by the admin.
 The first Google login of an allowed identity creates its user, or links to
 the existing user with the same email (allauth then makes that user's password
 unusable, so it logs in with Google from then on). A created user's username
-is its full email, as is the seed fixture's. Only a user created for the
-author email becomes superuser and staff; a login never promotes or demotes an
-existing user. See ADR-0009.
+is its full email, as is the seed fixture's.
+
+Every allowed Google login of an email in `SSO_SUPERUSER_EMAILS` (default: the
+author email) makes its user superuser and staff, new or existing. A login
+never demotes: removing an email from the list leaves the user's rights alone,
+which stay the admin's job. See ADR-0009.
 
 *Avoid*: "whitelist", "SSO-only". Password login stays.
 

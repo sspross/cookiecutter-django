@@ -7,12 +7,13 @@ from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.models import SocialLogin
 from allauth.socialaccount.providers.base import AuthError, Provider
-from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.http import HttpRequest, HttpResponseRedirect
 from django.shortcuts import resolve_url
+
+from users.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +41,6 @@ def rejection_reason(identity: GoogleIdentity) -> str | None:
     """The SSO allowlist (see ADR-0009). `None` means the identity may sign in."""
     if not identity.email_verified:
         return "email not verified by Google"
-    if is_author_email(identity.email):
-        return None
     if identity.email in _normalized_set(settings.SSO_ALLOWED_EMAILS):
         return None
     if identity.hosted_domain in _normalized_set(settings.SSO_ALLOWED_DOMAINS):
@@ -49,12 +48,20 @@ def rejection_reason(identity: GoogleIdentity) -> str | None:
     return "not on the SSO allowlist"
 
 
-def is_author_email(email: str) -> bool:
-    return email.lower() == settings.SSO_SUPERUSER_EMAIL.lower()
+def _is_superuser_email(email: str) -> bool:
+    return email.lower() in _normalized_set(settings.SSO_SUPERUSER_EMAILS)
 
 
 def _normalized_set(values: list[str]) -> set[str]:
     return {value.strip().lower() for value in values if value.strip()}
+
+
+def _promote(user: User, *, save: bool) -> None:
+    """Never demotes: taking rights away stays the admin's job (see ADR-0009)."""
+    user.is_superuser = True
+    user.is_staff = True
+    if save:
+        user.save(update_fields=["is_superuser", "is_staff"])
 
 
 def _back_to_login(request: HttpRequest, message: str) -> HttpResponseRedirect:
@@ -79,6 +86,8 @@ class SsoSocialAccountAdapter(DefaultSocialAccountAdapter):
         if reason is not None:
             logger.info("Rejected Google login for %s: %s", identity.email, reason)
             raise ImmediateHttpResponse(_back_to_login(request, NOT_ALLOWED_MESSAGE))
+        if _is_superuser_email(identity.email):
+            _promote(user, save=sociallogin.is_existing)
 
     def on_authentication_error(
         self,
@@ -102,15 +111,3 @@ class SsoSocialAccountAdapter(DefaultSocialAccountAdapter):
         user = super().populate_user(request, sociallogin, data)
         user.username = user.email
         return user
-
-    def save_user(
-        self,
-        request: HttpRequest,
-        sociallogin: SocialLogin,
-        form: forms.Form | None = None,
-    ) -> AbstractBaseUser:
-        user = sociallogin.user
-        if is_author_email(user.email):
-            user.is_superuser = True
-            user.is_staff = True
-        return super().save_user(request, sociallogin, form)

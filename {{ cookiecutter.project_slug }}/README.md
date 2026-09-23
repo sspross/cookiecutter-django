@@ -37,8 +37,8 @@ Run once after generating the project, in this order. Later clones skip the
     audience. Private Gmail accounts need "External"; while it is in
     "Testing", only the listed test users can sign in, so publish it.
   - Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`,
-    plus `SSO_ALLOWED_DOMAINS` / `SSO_ALLOWED_EMAILS` for anyone besides the
-    author (see `.env.example`).
+    plus `SSO_ALLOWED_DOMAINS` / `SSO_ALLOWED_EMAILS` /
+    `SSO_SUPERUSER_EMAILS` for anyone besides the author (see `.env.example`).
 - Without Google login, give the seeded superuser a password instead:
   `uv run ./manage.py changepassword {{ cookiecutter.author_email }}`
 
@@ -99,11 +99,12 @@ First-time setup:
 5. Add a domain in Appliku; `ALLOWED_HOSTS` is auto-populated from `from_domains: true`.
 6. Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` (the OAuth
    client from Development > Setup, with the production redirect URI
-   registered), plus `SSO_ALLOWED_DOMAINS` / `SSO_ALLOWED_EMAILS` if anyone
-   besides the author signs in with Google.
+   registered), plus `SSO_ALLOWED_DOMAINS` / `SSO_ALLOWED_EMAILS` /
+   `SSO_SUPERUSER_EMAILS` if anyone besides the author signs in with Google.
 7. Deploy.
-8. Log in with Google as {{ cookiecutter.author_email }}. The first Google
-   login of the author email creates the first superuser. Without Google
+8. Log in with Google as {{ cookiecutter.author_email }}. Both email lists
+   default to the author email, so this first Google login creates the first
+   superuser. Without Google
    login, use the `createsuperuser` fallback in `docs/OPERATIONS.md`,
    "First superuser". The `dumpdata.json` fixture seeds a local admin for
    `make db.initialize` only and is never loaded in production.
@@ -174,7 +175,7 @@ First-time setup in the repository settings (Secrets and variables > Actions):
    (org-level secrets shared with the repo work too).
    For Google login: variable `GOOGLE_OAUTH_CLIENT_ID`, secret
    `GOOGLE_OAUTH_CLIENT_SECRET`, and optional variables
-   `SSO_ALLOWED_DOMAINS` / `SSO_ALLOWED_EMAILS`.
+   `SSO_ALLOWED_DOMAINS` / `SSO_ALLOWED_EMAILS` / `SSO_SUPERUSER_EMAILS`.
 3. Merge to `main`, wait for the `image` workflow, run `deploy`.
 4. Log in with Google as {{ cookiecutter.author_email }}, which creates the
    first superuser. Without Google login, from a device that may SSH to the

@@ -15,7 +15,8 @@ env = environ.Env(
     GOOGLE_OAUTH_CLIENT_ID=(str, ""),
     GOOGLE_OAUTH_CLIENT_SECRET=(str, ""),
     SSO_ALLOWED_DOMAINS=(list, []),
-    SSO_ALLOWED_EMAILS=(list, []),
+    SSO_ALLOWED_EMAILS=(list, ["{{ cookiecutter.author_email }}"]),
+    SSO_SUPERUSER_EMAILS=(list, ["{{ cookiecutter.author_email }}"]),
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -127,7 +128,7 @@ SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
 SSO_ALLOWED_DOMAINS = env("SSO_ALLOWED_DOMAINS")
 SSO_ALLOWED_EMAILS = env("SSO_ALLOWED_EMAILS")
-SSO_SUPERUSER_EMAIL = "{{ cookiecutter.author_email }}"
+SSO_SUPERUSER_EMAILS = env("SSO_SUPERUSER_EMAILS")
 
 AUTH_PASSWORD_VALIDATORS = [
     {

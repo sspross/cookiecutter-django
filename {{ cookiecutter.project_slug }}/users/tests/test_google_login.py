@@ -19,7 +19,6 @@ from users.models import User
 from users.sso import CANCELLED_MESSAGE, FAILED_MESSAGE, NOT_ALLOWED_MESSAGE
 
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-AUTHOR_EMAIL = settings.SSO_SUPERUSER_EMAIL
 
 
 def _start(client: Client, next_url: str | None) -> str:
@@ -90,6 +89,7 @@ def assert_rejected(client: Client, response: HttpResponse, message: str) -> Non
 def allowlist(settings):
     settings.SSO_ALLOWED_DOMAINS = ["company.com"]
     settings.SSO_ALLOWED_EMAILS = ["guest@gmail.com"]
+    settings.SSO_SUPERUSER_EMAILS = ["Boss@company.com"]
     return settings
 
 
@@ -132,13 +132,10 @@ class TestAllowedGoogleLogin:
 
         assert response["Location"] == "/api-access/"
 
-    def test_author_email_logs_in_with_empty_allowlists(self, client):
-        sign_in_with_google(client, AUTHOR_EMAIL)
-
-        assert logged_in_user(client).email == AUTHOR_EMAIL
-
-    def test_author_email_is_created_as_superuser_and_staff(self, client):
-        sign_in_with_google(client, AUTHOR_EMAIL)
+    def test_superuser_email_is_created_as_superuser_and_staff(
+        self, client, allowlist
+    ):
+        sign_in_with_google(client, "boss@company.com", hd="company.com")
 
         user = logged_in_user(client)
         assert user.is_superuser
@@ -169,14 +166,43 @@ class TestAllowedGoogleLogin:
 
         assert 'data-testid="login-message"' not in login_page.content.decode()
 
-    def test_linking_never_promotes_an_existing_user(self, client):
-        existing = UserFactory(username="author", email=AUTHOR_EMAIL)
+    def test_linking_promotes_an_existing_user_on_the_superuser_list(
+        self, client, allowlist
+    ):
+        existing = UserFactory(username="boss", email="boss@company.com")
 
-        sign_in_with_google(client, AUTHOR_EMAIL)
+        sign_in_with_google(client, "boss@company.com", hd="company.com")
 
         existing.refresh_from_db()
         assert logged_in_user(client) == existing
-        assert not existing.is_superuser
+        assert existing.is_superuser
+        assert existing.is_staff
+
+    def test_user_added_to_the_superuser_list_is_promoted_on_next_login(
+        self, client, allowlist
+    ):
+        sign_in_with_google(client, "guest@gmail.com")
+        client.logout()
+        allowlist.SSO_SUPERUSER_EMAILS = ["guest@gmail.com"]
+
+        sign_in_with_google(client, "guest@gmail.com")
+
+        user = logged_in_user(client)
+        assert user.is_superuser
+        assert user.is_staff
+
+    def test_removal_from_the_superuser_list_does_not_demote(
+        self, client, allowlist
+    ):
+        sign_in_with_google(client, "boss@company.com", hd="company.com")
+        client.logout()
+        allowlist.SSO_SUPERUSER_EMAILS = []
+
+        sign_in_with_google(client, "boss@company.com", hd="company.com")
+
+        user = logged_in_user(client)
+        assert user.is_superuser
+        assert user.is_staff
 
 
 @pytest.mark.django_db
@@ -186,6 +212,14 @@ class TestRejectedGoogleLogin:
 
         assert_rejected(client, response, NOT_ALLOWED_MESSAGE)
         assert not User.objects.filter(email="stranger@gmail.com").exists()
+
+    def test_superuser_email_alone_does_not_allow_a_login(self, client, allowlist):
+        allowlist.SSO_SUPERUSER_EMAILS = ["outsider@gmail.com"]
+
+        response = sign_in_with_google(client, "outsider@gmail.com")
+
+        assert_rejected(client, response, NOT_ALLOWED_MESSAGE)
+        assert not User.objects.filter(email="outsider@gmail.com").exists()
 
     def test_allowed_domain_without_hd_claim_is_rejected(self, client, allowlist):
         response = sign_in_with_google(client, "private@company.com")

@@ -87,7 +87,8 @@ compose host (`compose.yaml`) works the same way with a hand-written `.env`.
 | `GOOGLE_OAUTH_CLIENT_ID` | no | blank, Google login is off: no button, no Google routes | set manually in Appliku (`source: manual`) | repo variable |
 | `GOOGLE_OAUTH_CLIENT_SECRET` | no | blank | set manually in Appliku (`source: manual`) | repo secret |
 | `SSO_ALLOWED_DOMAINS` | no | `[]`, no Workspace domain is allowed | set manually in Appliku (`source: manual`) | repo variable |
-| `SSO_ALLOWED_EMAILS` | no | `[]`, only the author email may use Google login | set manually in Appliku (`source: manual`) | repo variable |
+| `SSO_ALLOWED_EMAILS` | no | the author email, the only email allowed to use Google login | set manually in Appliku (`source: manual`) | repo variable |
+| `SSO_SUPERUSER_EMAILS` | no | the author email, the only email promoted to superuser and staff | set manually in Appliku (`source: manual`) | repo variable |
 
 `PORT` is not a Django setting: `web.sh` reads it to bind gunicorn
 (`0.0.0.0:${PORT:-8000}`). Changing it means changing `container_port` in
@@ -102,10 +103,12 @@ and read by `compose.prod.yaml` only.
 
 Notes:
 
-- `SSO_ALLOWED_DOMAINS` and `SSO_ALLOWED_EMAILS` are comma-separated lists,
-  compared case-insensitively and checked on every Google login. A rejected
-  Google login is a log line from `users.sso` naming the email and the reason
-  (see "SSO allowlist" in `CONTEXT.md`).
+- `SSO_ALLOWED_DOMAINS`, `SSO_ALLOWED_EMAILS` and `SSO_SUPERUSER_EMAILS` are
+  comma-separated lists, compared case-insensitively and checked on every
+  Google login. Only the first two allow a login. Setting an email list
+  replaces its default, so keep the author email in it where it should stay.
+  A rejected Google login is a log line from `users.sso` naming the email and
+  the reason (see "SSO allowlist" in `CONTEXT.md`).
 - `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` are comma-separated lists.
   `CSRF_TRUSTED_ORIGINS` entries need the scheme (`https://app.example.com`),
   `ALLOWED_HOSTS` entries do not (`app.example.com`).
@@ -258,14 +261,20 @@ throwaway container from the same image with the same environment.
 Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` (and the SSO
 allowlist, if anyone besides the author signs in with Google), deploy, and log
 in at `https://<your-domain>/accounts/login/` with "Sign in with Google" as
-{{ cookiecutter.author_email }}. The first Google login of the author email
-creates its user as superuser and staff. The author email is always allowed,
-so a misconfigured allowlist cannot lock it out. The Google OAuth client and
-its redirect URI are described in README.md > Development > Setup.
+{{ cookiecutter.author_email }}. `SSO_ALLOWED_EMAILS` and
+`SSO_SUPERUSER_EMAILS` both default to the author email, so its first Google
+login creates its user as superuser and staff. If you set
+`SSO_ALLOWED_EMAILS`, keep the author email in it, or the author is locked out
+of Google login. The Google OAuth client and its redirect URI are described in
+README.md > Development > Setup.
 
-Promotion happens only when the user is created. If a user with the author
-email already exists, a Google login links to it without changing its
-superuser or staff flags, and makes its password unusable (see ADR-0009).
+Promotion happens on every Google login of an email in `SSO_SUPERUSER_EMAILS`.
+If a user with that email already exists, a Google login links to it, makes it
+superuser and staff, and makes its password unusable (see ADR-0009). To make
+someone else a superuser, add their email to `SSO_SUPERUSER_EMAILS` (and allow
+them via `SSO_ALLOWED_EMAILS` or `SSO_ALLOWED_DOMAINS`); they are promoted on
+their next Google login. Removing an email from the list never demotes;
+take the rights away in the admin.
 
 ### Fallback without Google login
 

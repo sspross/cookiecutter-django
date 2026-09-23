@@ -26,10 +26,17 @@ row, so there is no `django.contrib.sites` setup.
 
 **The SSO allowlist lives in env vars.** `SSO_ALLOWED_DOMAINS` matches Google's
 `hd` claim, never the email suffix. `SSO_ALLOWED_EMAILS` matches single
-verified emails. The author email is always allowed and is the only email
-whose user is created as superuser and staff. The rule runs on every Google
-login, in the social account adapter (`users/sso.py`). It gates Google login
-only; the admin stays the gate for password accounts.
+verified emails. The rule runs on every Google login, in the social account
+adapter (`users/sso.py`). It gates Google login only; the admin stays the gate
+for password accounts.
+
+**Superusers come from a third, independent list.** Every allowed Google login
+of an email in `SSO_SUPERUSER_EMAILS` makes its user superuser and staff, new
+or existing. Being on that list does not allow a login; the allowlist alone
+decides that. A login never demotes: removing an email from the list leaves
+the user's rights alone, and taking them away stays the admin's job.
+`SSO_ALLOWED_EMAILS` and `SSO_SUPERUSER_EMAILS` both default to the author
+email, so a fresh project lets the author in as superuser with no config.
 
 **A Google login links to an existing user with the same email** instead of
 creating a second one. This is safe because Google verifies the email and an
@@ -53,6 +60,10 @@ the author's first Google login carry the same username.
   user's password unusable, because the address was never verified by the app.
   That user logs in with Google from then on.
 - Changing the allowlist is a config change and a restart, not a data change.
+  Adding an email to `SSO_SUPERUSER_EMAILS` takes effect on that user's next
+  Google login; removing one needs the admin to take the rights away.
+- Setting `SSO_ALLOWED_EMAILS` replaces its default, so the author email has
+  to stay in the list to keep Google login for the author.
 
 ## Alternatives considered
 

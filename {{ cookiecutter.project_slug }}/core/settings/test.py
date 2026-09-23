@@ -59,6 +59,7 @@ SENTRY_DSN = ""
 SOCIALACCOUNT_PROVIDERS = google_providers("test-client-id", "test-client-secret")  # noqa: F405
 SSO_ALLOWED_DOMAINS = []
 SSO_ALLOWED_EMAILS = []
+SSO_SUPERUSER_EMAILS = []
 
 # The default PBKDF2 hasher is deliberately slow and dominated the suite:
 # ~0.13s per UserFactory-built test against ~0.005s of actual work. MD5 keeps
