@@ -25,8 +25,7 @@ urlpatterns = [
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.SOCIALACCOUNT_PROVIDERS:
-    # Only the two views of the redirect flow, not allauth's URLconf: its
-    # signup, password and email pages have no template here. See ADR-0009.
+    # Not allauth's URLconf: its other pages have no template here.
     urlpatterns += [
         path(
             "accounts/google/login/",

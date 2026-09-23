@@ -28,8 +28,9 @@ and one of these holds:
 Both lists are env vars, comma-separated, case-insensitive. The rule runs on
 every Google login, so removing an entry blocks that account's next login (an
 open session lasts until it expires or the user is deactivated). An inactive
-user is rejected too. It applies to Google login only: password accounts are
-gated by the admin.
+user is rejected too. A rejection is a log line naming the email and the
+reason, not a Sentry event (ADR-0007). It applies to Google login only:
+password accounts are gated by the admin.
 
 The first Google login of an allowed identity creates its user, or links to
 the existing user with the same email (allauth then makes that user's password
@@ -104,7 +105,7 @@ HTML pages:
 
 - `/` — Django shell that mounts the React SPA on the **Dashboard** route.
 - `/api-access/` — same SPA mount, react-router renders the **API Access** route.
-- `/accounts/login/` & `/accounts/logout/` — Django built-in auth views.
+- `/accounts/login/` & `/accounts/logout/`: Django built-in auth views.
   Password change and reset are not mounted (no templates, no mailer), so
   those URLs 404. The login page renders Django messages above the form (a
   rejected or cancelled Google login lands here with one) and, when Google
@@ -112,7 +113,7 @@ HTML pages:
   Load the SPA bundle so visual tokens match; `main.tsx` finds no `#app`
   node there and bails before mounting React.
 - `/accounts/google/login/` (POST from the button, carries `next`) and
-  `/accounts/google/login/callback/` (Google redirects back here) — allauth's
+  `/accounts/google/login/callback/` (Google redirects back here): allauth's
   Google redirect flow, mounted only when `GOOGLE_OAUTH_CLIENT_ID` is set. No
   other allauth page is mounted (no signup, password reset or email
   management). Every outcome that is not a login (allowlist rejection,

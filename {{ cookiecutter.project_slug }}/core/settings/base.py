@@ -103,9 +103,8 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 
-# Google login next to password login, gated by the SSO allowlist. Only the
-# Google part of allauth is mounted; see ADR-0009.
-def _google_providers(client_id: str, secret: str) -> dict:
+# Google login next to password login; see ADR-0009.
+def google_providers(client_id: str, secret: str) -> dict:
     if not client_id:
         return {}
     return {
@@ -117,9 +116,10 @@ def _google_providers(client_id: str, secret: str) -> dict:
     }
 
 
-SOCIALACCOUNT_PROVIDERS = _google_providers(
+SOCIALACCOUNT_PROVIDERS = google_providers(
     env("GOOGLE_OAUTH_CLIENT_ID"), env("GOOGLE_OAUTH_CLIENT_SECRET")
 )
+ACCOUNT_ADAPTER = "users.sso.SsoAccountAdapter"
 SOCIALACCOUNT_ADAPTER = "users.sso.SsoSocialAccountAdapter"
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True

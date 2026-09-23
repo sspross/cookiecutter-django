@@ -146,6 +146,16 @@ class TestAllowedGoogleLogin:
 
         assert logged_in_user(client) == existing
         assert User.objects.filter(email__iexact="guest@gmail.com").count() == 1
+        existing.refresh_from_db()
+        assert not existing.has_usable_password()
+
+    def test_leaves_no_message_for_the_next_login_page(self, client, allowlist):
+        sign_in_with_google(client, "guest@gmail.com")
+        client.post(reverse("logout"))
+
+        login_page = client.get(reverse("login"))
+
+        assert 'data-testid="login-message"' not in login_page.content.decode()
 
     def test_linking_never_promotes_an_existing_user(self, client):
         existing = UserFactory(username="author", email=AUTHOR_EMAIL)

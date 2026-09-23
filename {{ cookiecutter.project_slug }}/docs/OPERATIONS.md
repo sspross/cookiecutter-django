@@ -104,8 +104,8 @@ Notes:
 
 - `SSO_ALLOWED_DOMAINS` and `SSO_ALLOWED_EMAILS` are comma-separated lists,
   compared case-insensitively and checked on every Google login. A rejected
-  Google login is an INFO log line from `users.sso` naming the email and the
-  reason, never a Sentry event.
+  Google login is a log line from `users.sso` naming the email and the reason
+  (see "SSO allowlist" in `CONTEXT.md`).
 - `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` are comma-separated lists.
   `CSRF_TRUSTED_ORIGINS` entries need the scheme (`https://app.example.com`),
   `ALLOWED_HOSTS` entries do not (`app.example.com`).
@@ -264,8 +264,8 @@ so a misconfigured allowlist cannot lock it out. The Google OAuth client and
 its redirect URI are described in README.md > Development > Setup.
 
 Promotion happens only when the user is created. If a user with the author
-email already exists, a Google login links to it and changes none of its
-flags.
+email already exists, a Google login links to it without changing its
+superuser or staff flags, and makes its password unusable (see ADR-0009).
 
 ### Fallback without Google login
 
