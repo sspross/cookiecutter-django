@@ -12,6 +12,10 @@ env = environ.Env(
     DJANGO_VITE_DEV_MODE=(bool, None),
     SENTRY_DSN=(str, ""),
     SENTRY_ENVIRONMENT=(str, SENTRY_DEFAULT_ENVIRONMENT),
+    GOOGLE_OAUTH_CLIENT_ID=(str, ""),
+    GOOGLE_OAUTH_CLIENT_SECRET=(str, ""),
+    SSO_ALLOWED_DOMAINS=(list, []),
+    SSO_ALLOWED_EMAILS=(list, []),
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -39,6 +43,10 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_vite",
     "django_rq",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
     "users",
     "api_keys",
     "core",
@@ -57,6 +65,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -87,6 +96,38 @@ DATABASES = {
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "login"
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+
+# Google login next to password login, gated by the SSO allowlist. Only the
+# Google part of allauth is mounted; see ADR-0009.
+def _google_providers(client_id: str, secret: str) -> dict:
+    if not client_id:
+        return {}
+    return {
+        "google": {
+            "APP": {"client_id": client_id, "secret": secret},
+            "SCOPE": ["openid", "email", "profile"],
+            "OAUTH_PKCE_ENABLED": True,
+        },
+    }
+
+
+SOCIALACCOUNT_PROVIDERS = _google_providers(
+    env("GOOGLE_OAUTH_CLIENT_ID"), env("GOOGLE_OAUTH_CLIENT_SECRET")
+)
+SOCIALACCOUNT_ADAPTER = "users.sso.SsoSocialAccountAdapter"
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+# The allowlist rejects unverified emails, so allauth never has to send mail.
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
+SSO_ALLOWED_DOMAINS = env("SSO_ALLOWED_DOMAINS")
+SSO_ALLOWED_EMAILS = env("SSO_ALLOWED_EMAILS")
+SSO_SUPERUSER_EMAIL = "{{ cookiecutter.author_email }}"
 
 AUTH_PASSWORD_VALIDATORS = [
     {

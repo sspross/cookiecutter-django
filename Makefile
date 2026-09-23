@@ -75,7 +75,7 @@ test:
 	@echo "Testing cookiecutter template."
 	@echo "1. Setup:"
 	@echo ""
-	$(call run_step,uv run --with cookiecutter --with django python -m cookiecutter $(CURDIR) --no-input -o "$(TMPDIR)")
+	$(call run_step,uv run --with cookiecutter python -m cookiecutter $(CURDIR) --no-input -o "$(TMPDIR)")
 	$(call run_step,uv sync,Installed)
 	$(call run_step,make frontend.install,added)
 	$(call run_step,git init -q && git add --all && uv run pre-commit install,pre-commit installed)

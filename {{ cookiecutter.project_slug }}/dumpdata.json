@@ -3,10 +3,10 @@
         "model": "users.user",
         "pk": 1,
         "fields": {
-            "password": "replace-with-password-hash",
+            "password": "!",
             "last_login": null,
             "is_superuser": true,
-            "username": "{{ cookiecutter.django_username }}",
+            "username": "{{ cookiecutter.author_email.split('@')[0] }}",
             "first_name": "",
             "last_name": "",
             "email": "{{ cookiecutter.author_email }}",
