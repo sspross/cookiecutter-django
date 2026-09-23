@@ -25,9 +25,9 @@ Run once after generating the project, in this order. Later clones skip the
 - `uv run pre-commit install`
 - `uv run playwright install chromium`
 - `make db.recreate` (Postgres only, skip if using SQLite)
-- `make db.initialize` (seeds a superuser with the author email
-  {{ cookiecutter.author_email }} and no password)
-- (Optional) Turn on Google login, the way the seeded superuser logs in:
+- `make db.initialize` (runs the migrations)
+- (Optional) Turn on Google login. The first Google login of
+  {{ cookiecutter.author_email }} creates the superuser:
   - In the Google Cloud console, create an OAuth client of type "Web
     application" (APIs & Services > Credentials).
   - Register the redirect URIs
@@ -39,8 +39,8 @@ Run once after generating the project, in this order. Later clones skip the
   - Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`,
     plus `SSO_ALLOWED_DOMAINS` / `SSO_ALLOWED_EMAILS` /
     `SSO_SUPERUSER_EMAILS` for anyone besides the author (see `.env.example`).
-- Without Google login, give the seeded superuser a password instead:
-  `uv run ./manage.py changepassword {{ cookiecutter.author_email }}`
+- Without Google login, create a password superuser instead:
+  `uv run ./manage.py createsuperuser`
 
 ### Work
 
@@ -106,8 +106,7 @@ First-time setup:
    default to the author email, so this first Google login creates the first
    superuser. Without Google
    login, use the `createsuperuser` fallback in `docs/OPERATIONS.md`,
-   "First superuser". The `dumpdata.json` fixture seeds a local admin for
-   `make db.initialize` only and is never loaded in production.
+   "First superuser".
 
 See [docs.appliku.com/docs/cli-sdk](https://docs.appliku.com/docs/cli-sdk/) for the Appliku CLI/SDK reference.
 

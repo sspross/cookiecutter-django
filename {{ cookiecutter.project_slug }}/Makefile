@@ -72,7 +72,6 @@ db.recreate: # only work with local Postgres, not SQLite
 
 db.initialize:
 	uv run python manage.py migrate
-	uv run python manage.py loaddata dumpdata.json
 
 db.snapshot: # only work with local Postgres, not SQLite
 	dropdb --if-exists {{ cookiecutter.project_slug }}_snapshot

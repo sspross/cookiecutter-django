@@ -42,18 +42,16 @@ email, so a fresh project lets the author in as superuser with no config.
 creating a second one. This is safe because Google verifies the email and an
 unverified one is rejected first.
 
-**A user created by Google login gets its full email as username**, and so
-does the author in the seed fixture. The email is unique, so
-`anna@company.com` and `anna@gmail.com` never clash, and the seeded author and
-the author's first Google login carry the same username.
+**A user created by Google login gets its full email as username.** The
+email is unique, so `anna@company.com` and `anna@gmail.com` never clash.
 
 ## Consequences
 
 - Production needs no `createsuperuser`: the author's first Google login
   creates the first superuser. `createsuperuser` stays the fallback without
   Google credentials.
-- The seed fixture carries no password, and the template ships no default
-  password.
+- The template ships no seed fixture and no default password. Local
+  development without Google credentials uses `createsuperuser`.
 - Removing someone from the allowlist blocks their next login, not their open
   session. Deactivating the user in the admin ends both.
 - When a Google login links to a user created in the admin, allauth makes that

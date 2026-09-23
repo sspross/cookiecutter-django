@@ -307,7 +307,7 @@ docker compose run --rm web uv run ./manage.py createsuperuser
 
 Then log in at `https://<your-domain>/admin/`. Further accounts come from the
 SSO allowlist (created on their first Google login) or from the admin (with a
-password). Nothing in the deploy path loads a fixture.
+password).
 
 ## Health probing
 

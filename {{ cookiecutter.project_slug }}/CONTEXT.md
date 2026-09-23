@@ -37,7 +37,7 @@ password accounts are gated by the admin.
 The first Google login of an allowed identity creates its user, or links to
 the existing user with the same email (allauth then makes that user's password
 unusable, so it logs in with Google from then on). A created user's username
-is its full email, as is the seed fixture's.
+is its full email.
 
 Every allowed Google login of an email in `SSO_SUPERUSER_EMAILS` (default: the
 author email) makes its user superuser and staff, new or existing. A login
@@ -219,7 +219,7 @@ users/
   migrations/
     0001_initial.py
   tests/
-    test_users.py    # seed fixture (loaddata) and admin pages
+    test_users.py    # admin pages
     test_google_login.py  # Google login over HTTP, only Google's token endpoint stubbed
 ```
 
