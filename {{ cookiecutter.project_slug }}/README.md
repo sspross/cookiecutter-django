@@ -25,22 +25,28 @@ Run once after generating the project, in this order. Later clones skip the
 - `uv run pre-commit install`
 - `uv run playwright install chromium`
 - `make db.recreate` (Postgres only, skip if using SQLite)
-- `make db.initialize` (runs the migrations)
-- (Optional) Turn on Google login. The first Google login of
-  {{ cookiecutter.author_email }} creates the superuser:
-  - In the Google Cloud console, create an OAuth client of type "Web
-    application" (APIs & Services > Credentials).
-  - Register the redirect URIs
-    `http://localhost:8000/accounts/google/login/callback/` and
-    `https://<domain>/accounts/google/login/callback/`.
-  - On the OAuth consent screen, pick "Internal" for a Workspace-only
-    audience. Private Gmail accounts need "External"; while it is in
-    "Testing", only the listed test users can sign in, so publish it.
-  - Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`,
-    plus `SSO_ALLOWED_DOMAINS` / `SSO_ALLOWED_EMAILS` /
-    `SSO_SUPERUSER_EMAILS` for anyone besides the author (see `.env.example`).
-- Without Google login, create a password superuser instead:
-  `uv run ./manage.py createsuperuser`
+- `make db.migrate`
+- Create the first superuser: turn on Google login (see
+  [Google login](#google-login)), or run `uv run ./manage.py createsuperuser`.
+
+### Google login
+
+Optional. The first Google login of {{ cookiecutter.author_email }} creates
+the superuser.
+
+1. In the Google Cloud console, go to APIs & Services > Credentials and
+   create an OAuth client of type "Web application".
+2. Add the redirect URIs
+   `http://localhost:8000/accounts/google/login/callback/` and
+   `https://<domain>/accounts/google/login/callback/`.
+3. On the OAuth consent screen, pick "Internal" for a Workspace-only
+   audience. Pick "External" for private Gmail accounts, and publish the app:
+   while it is in "Testing", only the listed test users can sign in.
+4. Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`.
+5. To let anyone besides the author sign in, set `SSO_ALLOWED_DOMAINS`,
+   `SSO_ALLOWED_EMAILS` and `SSO_SUPERUSER_EMAILS` (see `.env.example`).
+6. Restart `make backend.dev` and log in at
+   http://localhost:8000/accounts/login/ with "Sign in with Google".
 
 ### Work
 
@@ -98,7 +104,7 @@ First-time setup:
    `python -c "import secrets; print(secrets.token_urlsafe(50))"`
 5. Add a domain in Appliku; `ALLOWED_HOSTS` is auto-populated from `from_domains: true`.
 6. Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` (the OAuth
-   client from Development > Setup, with the production redirect URI
+   client from Development > Google login, with the production redirect URI
    registered), plus `SSO_ALLOWED_DOMAINS` / `SSO_ALLOWED_EMAILS` /
    `SSO_SUPERUSER_EMAILS` if anyone besides the author signs in with Google.
 7. Deploy.

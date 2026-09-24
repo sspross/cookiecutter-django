@@ -266,11 +266,11 @@ in at `https://<your-domain>/accounts/login/` with "Sign in with Google" as
 login creates its user as superuser and staff. If you set
 `SSO_ALLOWED_EMAILS`, keep the author email in it, or the author is locked out
 of Google login. The Google OAuth client and its redirect URI are described in
-README.md > Development > Setup.
+README.md > Development > Google login.
 
 Promotion happens on every Google login of an email in `SSO_SUPERUSER_EMAILS`.
 If a user with that email already exists, a Google login links to it, makes it
-superuser and staff, and makes its password unusable (see ADR-0009). To make
+superuser and staff, and keeps its password (see ADR-0009). To make
 someone else a superuser, add their email to `SSO_SUPERUSER_EMAILS` (and allow
 them via `SSO_ALLOWED_EMAILS` or `SSO_ALLOWED_DOMAINS`); they are promoted on
 their next Google login. Removing an email from the list never demotes;
