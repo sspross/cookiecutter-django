@@ -39,6 +39,18 @@ class TestAuthRoutes:
         response = client.get("/accounts/password_reset/")
         assert response.status_code == 404
 
+    def test_admin_logs_in_through_the_login_page(self, client):
+        UserFactory(username="root", is_staff=True, is_superuser=True)
+
+        response = client.get("/admin/", follow=True)
+        assert response.redirect_chain[-1][0] == "/accounts/login/?next=%2Fadmin%2F"
+
+        response = client.post(
+            "/accounts/login/?next=/admin/",
+            {"username": "root", "password": "pw-12345!", "next": "/admin/"},
+        )
+        assert response["Location"] == "/admin/"
+
     def test_allauth_signup_is_not_mounted(self, client):
         response = client.get("/accounts/signup/")
         assert response.status_code == 404

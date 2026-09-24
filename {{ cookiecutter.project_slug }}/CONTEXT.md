@@ -110,7 +110,9 @@ HTML pages:
   Google redirect flow, mounted only when `GOOGLE_OAUTH_CLIENT_ID` is set. No
   other allauth page is mounted. Every outcome that is not a login redirects
   to `/accounts/login/` with a message.
-- `/admin/` — Django admin; superuser creates non-staff `User` accounts here,
+- `/admin/` — Django admin. `/admin/login/` redirects to `/accounts/login/`
+  (keeping `next`), so the admin has one login page with Google login too.
+  Superuser creates non-staff `User` accounts here,
   mints `UserApiKey` rows through the standard add form, and revokes them via a
   custom admin action.
 - `/django-rq/` — django-rq queue dashboard, gated to staff users by django-rq itself.
