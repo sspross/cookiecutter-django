@@ -226,6 +226,25 @@ class TestPasswordSurvivesGoogleLogin:
 
         log_in_with_password(client, "guest", "pw-12345!guest")
 
+    def test_user_added_in_the_admin_with_a_capitalized_email_is_linked(
+        self, client, admin_client, allowlist
+    ):
+        admin_client.post(
+            reverse("admin:users_user_add"),
+            {
+                "username": "guest",
+                "email": "Guest@gmail.com",
+                "usable_password": "true",
+                "password1": "pw-12345!guest",
+                "password2": "pw-12345!guest",
+            },
+        )
+
+        sign_in_with_google(client, "guest@gmail.com")
+
+        assert logged_in_user(client).username == "guest"
+        assert User.objects.filter(email__iexact="guest@gmail.com").count() == 1
+
     def test_user_from_createsuperuser(self, client, allowlist, monkeypatch):
         monkeypatch.setenv("DJANGO_SUPERUSER_PASSWORD", "pw-12345!boss")
         call_command(

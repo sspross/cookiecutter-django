@@ -36,7 +36,8 @@ password accounts are gated by the admin.
 
 The first Google login of an allowed identity creates its user, or links to
 the existing user with the same email (a password that user has keeps
-working). A created user's username
+working). `User.email` is stored lowercased on every save, so a user added
+as `Guest@gmail.com` is linked too. A created user's username
 is its full email.
 
 Every allowed Google login of an email in `SSO_SUPERUSER_EMAILS` (default: the
