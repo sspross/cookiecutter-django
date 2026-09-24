@@ -31,22 +31,19 @@ Run once after generating the project, in this order. Later clones skip the
 
 ### Google login
 
-Optional. The first Google login of {{ cookiecutter.author_email }} creates
-the superuser.
+Optional. The first Google login of an email in `SSO_SUPERUSER_EMAILS`
+creates the superuser.
 
 1. In the Google Cloud console, go to APIs & Services > Credentials and
    create an OAuth client of type "Web application".
 2. Add the redirect URIs
    `http://localhost:8000/accounts/google/login/callback/` and
    `https://<domain>/accounts/google/login/callback/`.
-3. On the OAuth consent screen, pick "Internal" for a Workspace-only
-   audience. Pick "External" for private Gmail accounts, and publish the app:
-   while it is in "Testing", only the listed test users can sign in.
-4. Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`.
-5. To let anyone besides the author sign in, set `SSO_ALLOWED_DOMAINS`,
+3. Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`.
+4. To let anyone besides the author sign in, set `SSO_ALLOWED_DOMAINS`,
    `SSO_ALLOWED_EMAILS` and `SSO_SUPERUSER_EMAILS` (see "SSO allowlist" in
    `CONTEXT.md`).
-6. Restart `make backend.dev` and log in at
+5. Restart `make backend.dev` and log in at
    http://localhost:8000/accounts/login/ with "Sign in with Google".
 
 ### Work
