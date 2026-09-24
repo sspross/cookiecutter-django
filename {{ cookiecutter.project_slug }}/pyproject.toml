@@ -32,6 +32,7 @@ dev = [
 	"playwright",
 	"pytest-playwright",
 	"pytest-timeout",
+	"pytest-xdist",
 	"tach>=0.28.0",
 	"pip-audit>=2.10.0",
 	"deptry>=0.25.1",

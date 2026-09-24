@@ -62,13 +62,6 @@ jobs:
       - name: Install Javascript and CSS dependencies
         run: make frontend.install.ci && make frontend.build
 
-      - name: Collect static files
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
-          REDIS_URL: redis://localhost:6379/0
-          SECRET_KEY: "test-secret-key-for-ci"
-        run: uv run python manage.py collectstatic --noinput
-
       - name: Check for missing migrations
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
@@ -90,7 +83,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
           REDIS_URL: redis://localhost:6379/0
           SECRET_KEY: "test-secret-key-for-ci"
-        run: uv run pytest -v
+        run: uv run pytest -n 4
 
       - name: Upload test artifacts on failure
         if: failure()

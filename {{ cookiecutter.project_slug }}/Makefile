@@ -1,6 +1,6 @@
 test: frontend.build
 	@echo "pytest running..."; \
-	output=$$(uv run pytest 2>&1); \
+	output=$$(uv run pytest -n 4 2>&1); \
 	status=$$?; \
 	if [ $$status -eq 0 ]; then \
 		echo "$$output" | tail -n 1; \
@@ -10,7 +10,7 @@ test: frontend.build
 	fi
 
 test.coverage: frontend.build # run the suite with a coverage report (config in pyproject.toml)
-	uv run pytest --cov --cov-report=term
+	uv run pytest -n 4 --cov --cov-report=term
 
 test.live.watch: frontend.build # run live (Playwright) tests with a visible, slowed-down browser
 	@dirs=$$(find . -type d -path '*/tests/live' -not -path '*/.venv/*' -not -path '*/node_modules/*'); \
