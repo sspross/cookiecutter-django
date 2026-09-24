@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from allauth.account.adapter import DefaultAccountAdapter
+from allauth.account.models import EmailAddress
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.socialaccount.models import SocialLogin
@@ -64,6 +65,13 @@ def _promote(user: User, *, save: bool) -> None:
         user.save(update_fields=["is_superuser", "is_staff"])
 
 
+def _trust_email_set_outside_google(user: User, email: str) -> None:
+    """Keeps allauth from wiping the linked user's password (see ADR-0009)."""
+    EmailAddress.objects.update_or_create(
+        user=user, email=email, defaults={"verified": True}
+    )
+
+
 def _back_to_login(request: HttpRequest, message: str) -> HttpResponseRedirect:
     messages.error(request, message)
     return HttpResponseRedirect(resolve_url(settings.LOGIN_URL))
@@ -86,6 +94,8 @@ class SsoSocialAccountAdapter(DefaultSocialAccountAdapter):
         if reason is not None:
             logger.info("Rejected Google login for %s: %s", identity.email, reason)
             raise ImmediateHttpResponse(_back_to_login(request, NOT_ALLOWED_MESSAGE))
+        if sociallogin.is_existing:
+            _trust_email_set_outside_google(user, identity.email)
         if _is_superuser_email(identity.email):
             _promote(user, save=sociallogin.is_existing)
 

@@ -10,6 +10,7 @@ import pytest
 import responses
 from django.conf import settings
 from django.contrib.auth import SESSION_KEY
+from django.core.management import call_command
 from django.http import HttpResponse
 from django.test import Client
 from django.urls import reverse
@@ -108,9 +109,7 @@ class TestAllowedGoogleLogin:
         assert user.username == "anna@company.com"
         assert not user.has_usable_password()
 
-    def test_same_local_part_on_two_domains_gets_two_usernames(
-        self, client, allowlist
-    ):
+    def test_same_local_part_on_two_domains_gets_two_usernames(self, client, allowlist):
         allowlist.SSO_ALLOWED_EMAILS = ["anna@gmail.com"]
         sign_in_with_google(client, "anna@company.com", hd="company.com")
         client.logout()
@@ -132,9 +131,7 @@ class TestAllowedGoogleLogin:
 
         assert response["Location"] == "/api-access/"
 
-    def test_superuser_email_is_created_as_superuser_and_staff(
-        self, client, allowlist
-    ):
+    def test_superuser_email_is_created_as_superuser_and_staff(self, client, allowlist):
         sign_in_with_google(client, "boss@company.com", hd="company.com")
 
         user = logged_in_user(client)
@@ -155,8 +152,6 @@ class TestAllowedGoogleLogin:
 
         assert logged_in_user(client) == existing
         assert User.objects.filter(email__iexact="guest@gmail.com").count() == 1
-        existing.refresh_from_db()
-        assert not existing.has_usable_password()
 
     def test_leaves_no_message_for_the_next_login_page(self, client, allowlist):
         sign_in_with_google(client, "guest@gmail.com")
@@ -191,9 +186,7 @@ class TestAllowedGoogleLogin:
         assert user.is_superuser
         assert user.is_staff
 
-    def test_removal_from_the_superuser_list_does_not_demote(
-        self, client, allowlist
-    ):
+    def test_removal_from_the_superuser_list_does_not_demote(self, client, allowlist):
         sign_in_with_google(client, "boss@company.com", hd="company.com")
         client.logout()
         allowlist.SSO_SUPERUSER_EMAILS = []
@@ -203,6 +196,50 @@ class TestAllowedGoogleLogin:
         user = logged_in_user(client)
         assert user.is_superuser
         assert user.is_staff
+
+
+def log_in_with_password(client: Client, username: str, password: str) -> None:
+    response = client.post(
+        reverse("login"), {"username": username, "password": password}
+    )
+    assert response.status_code == 302
+    assert logged_in_user(client).username == username
+
+
+@pytest.mark.django_db
+class TestPasswordSurvivesGoogleLogin:
+    def test_user_added_in_the_admin(self, client, admin_client, allowlist):
+        admin_client.post(
+            reverse("admin:users_user_add"),
+            {
+                "username": "guest",
+                "email": "guest@gmail.com",
+                "usable_password": "true",
+                "password1": "pw-12345!guest",
+                "password2": "pw-12345!guest",
+            },
+        )
+
+        sign_in_with_google(client, "guest@gmail.com")
+        assert logged_in_user(client).username == "guest"
+        client.logout()
+
+        log_in_with_password(client, "guest", "pw-12345!guest")
+
+    def test_user_from_createsuperuser(self, client, allowlist, monkeypatch):
+        monkeypatch.setenv("DJANGO_SUPERUSER_PASSWORD", "pw-12345!boss")
+        call_command(
+            "createsuperuser",
+            interactive=False,
+            username="boss",
+            email="boss@company.com",
+        )
+
+        sign_in_with_google(client, "boss@company.com", hd="company.com")
+        assert logged_in_user(client).username == "boss"
+        client.logout()
+
+        log_in_with_password(client, "boss", "pw-12345!boss")
 
 
 @pytest.mark.django_db

@@ -54,9 +54,12 @@ email is unique, so `anna@company.com` and `anna@gmail.com` never clash.
   development without Google credentials uses `createsuperuser`.
 - Removing someone from the allowlist blocks their next login, not their open
   session. Deactivating the user in the admin ends both.
-- When a Google login links to a user created in the admin, allauth makes that
-  user's password unusable, because the address was never verified by the app.
-  That user logs in with Google from then on.
+- A Google login that links to an existing user keeps its password. allauth
+  would make that password unusable, because nobody verified the address;
+  that guards against an attacker who signed up with a victim's email and set
+  the password. Here users only come from the admin, `createsuperuser` or
+  Google login, so the adapter marks the linked email as verified first
+  (allauth's `EmailAddress`), and such a user can use both logins.
 - Changing the allowlist is a config change and a restart, not a data change.
   Adding an email to `SSO_SUPERUSER_EMAILS` takes effect on that user's next
   Google login; removing one needs the admin to take the rights away.

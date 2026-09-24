@@ -35,8 +35,8 @@ reason, not a Sentry event (ADR-0007). It applies to Google login only:
 password accounts are gated by the admin.
 
 The first Google login of an allowed identity creates its user, or links to
-the existing user with the same email (allauth then makes that user's password
-unusable, so it logs in with Google from then on). A created user's username
+the existing user with the same email (a password that user has keeps
+working). A created user's username
 is its full email.
 
 Every allowed Google login of an email in `SSO_SUPERUSER_EMAILS` (default: the
