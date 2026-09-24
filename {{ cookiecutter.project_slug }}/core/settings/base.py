@@ -104,7 +104,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 
-# Google login next to password login; see ADR-0009.
+# See ADR-0009.
 def google_providers(client_id: str, secret: str) -> dict:
     if not client_id:
         return {}

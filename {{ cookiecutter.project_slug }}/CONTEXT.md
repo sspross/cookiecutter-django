@@ -10,42 +10,30 @@ apps reference it through `settings.AUTH_USER_MODEL` (foreign keys) or
 `get_user_model()` (code and factories). The `users` app itself depends on
 no other project app (see `tach.toml`).
 
-A user logs in one of two ways: with a username and password (an account a
-superuser created in the admin), or with Google, gated by the **SSO
-allowlist**. Both end in the same Django session.
+A user logs in with a username and password (an account created in the
+admin), or with Google, gated by the **SSO allowlist**.
 
 ### SSO allowlist
-The rule that decides whether a Google identity may log in
-(`users/sso.py`, `rejection_reason`). Allowed when Google verified the email
-and one of these holds:
+The rule that decides whether a Google identity may log in (`users/sso.py`).
+Allowed when Google verified the email, the user is not inactive, and one of
+these holds:
 
-- the Workspace domain in Google's `hd` claim is in `SSO_ALLOWED_DOMAINS`;
-  the email suffix alone never matches, since a private Google account can
-  carry a verified `name@company.com` address;
-- the email is in `SSO_ALLOWED_EMAILS`.
+- Google's `hd` claim is in `SSO_ALLOWED_DOMAINS` (the email suffix never
+  matches);
+- the email is in `SSO_ALLOWED_EMAILS` (default: the author email).
 
-`SSO_ALLOWED_EMAILS` defaults to the author email, so a fresh project lets the
-author in. Being on `SSO_SUPERUSER_EMAILS` does not allow a login.
+The lists are comma-separated, case-insensitive env vars, checked on every
+Google login. A rejection is a log line, not a Sentry event (ADR-0007).
 
-The lists are env vars, comma-separated, case-insensitive. The rule runs on
-every Google login, so removing an entry blocks that account's next login (an
-open session lasts until it expires or the user is deactivated). An inactive
-user is rejected too. A rejection is a log line naming the email and the
-reason, not a Sentry event (ADR-0007). It applies to Google login only:
-password accounts are gated by the admin.
-
-The first Google login of an allowed identity creates its user, or links to
-the existing user with the same email (a password that user has keeps
-working). `User.email` is stored lowercased on every save, so a user added
-as `Guest@gmail.com` is linked too. A created user's username
-is its full email.
+The first Google login creates a user with the full email as username, or
+links to the existing user with the same email and keeps its password.
+`User.email` is stored lowercased, so linking ignores case.
 
 Every allowed Google login of an email in `SSO_SUPERUSER_EMAILS` (default: the
-author email) makes its user superuser and staff, new or existing. A login
-never demotes: removing an email from the list leaves the user's rights alone,
-which stay the admin's job. See ADR-0009.
+author email) makes its user superuser and staff. That list alone does not
+allow a login, and a login never demotes. See ADR-0009.
 
-*Avoid*: "whitelist", "SSO-only". Password login stays.
+*Avoid*: "whitelist", "SSO-only".
 
 ### API Key
 A user-issued bearer credential for the headless API path. Stored as `UserApiKey`
@@ -114,18 +102,14 @@ HTML pages:
 - `/api-access/` — same SPA mount, react-router renders the **API Access** route.
 - `/accounts/login/` & `/accounts/logout/`: Django built-in auth views.
   Password change and reset are not mounted (no templates, no mailer), so
-  those URLs 404. The login page renders Django messages above the form (a
-  rejected or cancelled Google login lands here with one) and, when Google
-  login is configured, a "Sign in with Google" button below it.
+  those URLs 404. The login page shows Django messages and, when Google
+  login is on, a "Sign in with Google" button.
   Load the SPA bundle so visual tokens match; `main.tsx` finds no `#app`
   node there and bails before mounting React.
-- `/accounts/google/login/` (POST from the button, carries `next`) and
-  `/accounts/google/login/callback/` (Google redirects back here): allauth's
+- `/accounts/google/login/` and `/accounts/google/login/callback/`: allauth's
   Google redirect flow, mounted only when `GOOGLE_OAUTH_CLIENT_ID` is set. No
-  other allauth page is mounted (no signup, password reset or email
-  management). Every outcome that is not a login (allowlist rejection,
-  inactive user, cancel, provider error) redirects to `/accounts/login/` with a
-  message. See **SSO allowlist**.
+  other allauth page is mounted. Every outcome that is not a login redirects
+  to `/accounts/login/` with a message.
 - `/admin/` — Django admin; superuser creates non-staff `User` accounts here,
   mints `UserApiKey` rows through the standard add form, and revokes them via a
   custom admin action.
@@ -216,12 +200,12 @@ users/
   apps.py
   admin.py           # registers User with Django's stock UserAdmin
   models.py          # User(AbstractUser), the AUTH_USER_MODEL
-  sso.py             # SSO allowlist + allauth social account adapter. See ADR-0009
+  sso.py             # SSO allowlist and allauth adapters
   migrations/
     0001_initial.py
   tests/
     test_users.py    # admin pages
-    test_google_login.py  # Google login over HTTP, only Google's token endpoint stubbed
+    test_google_login.py  # Google login flow over HTTP
 ```
 
 SPA source layout under `core/frontend/src/`:

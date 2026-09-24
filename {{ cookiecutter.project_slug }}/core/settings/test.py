@@ -54,8 +54,7 @@ WHITENOISE_AUTOREFRESH = True
 # A DSN in the developer's shell must never make a test run report to Sentry.
 SENTRY_DSN = ""
 
-# Google login is on, so its routes are mounted and the flow tests run; they
-# stub every call to Google. Tests state the allowlist they need.
+# Google login on, so its routes are mounted. Tests set the allowlist they need.
 SOCIALACCOUNT_PROVIDERS = google_providers("test-client-id", "test-client-secret")  # noqa: F405
 SSO_ALLOWED_DOMAINS = []
 SSO_ALLOWED_EMAILS = []

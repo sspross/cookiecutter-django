@@ -44,7 +44,8 @@ the superuser.
    while it is in "Testing", only the listed test users can sign in.
 4. Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`.
 5. To let anyone besides the author sign in, set `SSO_ALLOWED_DOMAINS`,
-   `SSO_ALLOWED_EMAILS` and `SSO_SUPERUSER_EMAILS` (see `.env.example`).
+   `SSO_ALLOWED_EMAILS` and `SSO_SUPERUSER_EMAILS` (see "SSO allowlist" in
+   `CONTEXT.md`).
 6. Restart `make backend.dev` and log in at
    http://localhost:8000/accounts/login/ with "Sign in with Google".
 
@@ -103,16 +104,9 @@ First-time setup:
 4. Set `SECRET_KEY` in Appliku's environment variables (one-time):
    `python -c "import secrets; print(secrets.token_urlsafe(50))"`
 5. Add a domain in Appliku; `ALLOWED_HOSTS` is auto-populated from `from_domains: true`.
-6. Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` (the OAuth
-   client from Development > Google login, with the production redirect URI
-   registered), plus `SSO_ALLOWED_DOMAINS` / `SSO_ALLOWED_EMAILS` /
-   `SSO_SUPERUSER_EMAILS` if anyone besides the author signs in with Google.
+6. Set the [Google login](#google-login) variables.
 7. Deploy.
-8. Log in with Google as {{ cookiecutter.author_email }}. Both email lists
-   default to the author email, so this first Google login creates the first
-   superuser. Without Google
-   login, use the `createsuperuser` fallback in `docs/OPERATIONS.md`,
-   "First superuser".
+8. Create the first superuser, see "First superuser" in `docs/OPERATIONS.md`.
 
 See [docs.appliku.com/docs/cli-sdk](https://docs.appliku.com/docs/cli-sdk/) for the Appliku CLI/SDK reference.
 
@@ -131,10 +125,7 @@ Docker host behind a reverse proxy, Dokploy, Coolify. It runs `db`
    `compose.yaml`.
 3. `docker compose up -d`. `release` runs the migrations and exits; `web` and
    `worker` start once it succeeded.
-4. Create the first superuser: set the Google variables in `.env` and log in
-   with Google as {{ cookiecutter.author_email }}, as in the Appliku section.
-   Without Google login:
-   `docker compose run --rm web uv run ./manage.py createsuperuser`
+4. Create the first superuser, see "First superuser" in `docs/OPERATIONS.md`.
 5. Redeploy after a code change with `docker compose up -d --build`.
 
 `web` publishes port 8000 on the host's loopback interface only
@@ -178,14 +169,10 @@ First-time setup in the repository settings (Secrets and variables > Actions):
    private half of the deploy key. With a tailnet: `TS_OAUTH_CLIENT_ID` and
    `TS_OAUTH_SECRET` of an OAuth client that may mint keys for the tag
    (org-level secrets shared with the repo work too).
-   For Google login: variable `GOOGLE_OAUTH_CLIENT_ID`, secret
-   `GOOGLE_OAUTH_CLIENT_SECRET`, and optional variables
-   `SSO_ALLOWED_DOMAINS` / `SSO_ALLOWED_EMAILS` / `SSO_SUPERUSER_EMAILS`.
+   Optional: the [Google login](#google-login) variables, with
+   `GOOGLE_OAUTH_CLIENT_SECRET` as a secret.
 3. Merge to `main`, wait for the `image` workflow, run `deploy`.
-4. Log in with Google as {{ cookiecutter.author_email }}, which creates the
-   first superuser. Without Google login, from a device that may SSH to the
-   host:
-   `DOCKER_HOST=ssh://<DEPLOY_HOST> docker exec -it {{ cookiecutter.project_slug }}-web-1 uv run ./manage.py createsuperuser`
+4. Create the first superuser, see "First superuser" in `docs/OPERATIONS.md`.
 
 Any further variable or secret is a production setting: add `SENTRY_DSN` or
 `DEBUG=true`, deploy; remove it, deploy. Names starting with `DEPLOY_` and

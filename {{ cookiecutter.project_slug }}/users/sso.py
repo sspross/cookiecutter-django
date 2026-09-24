@@ -39,7 +39,7 @@ class GoogleIdentity:
 
 
 def rejection_reason(identity: GoogleIdentity) -> str | None:
-    """The SSO allowlist (see ADR-0009). `None` means the identity may sign in."""
+    """`None` means the identity may sign in."""
     if not identity.email_verified:
         return "email not verified by Google"
     if identity.email in _normalized_set(settings.SSO_ALLOWED_EMAILS):
@@ -58,7 +58,6 @@ def _normalized_set(values: list[str]) -> set[str]:
 
 
 def _promote(user: User, *, save: bool) -> None:
-    """Never demotes: taking rights away stays the admin's job (see ADR-0009)."""
     user.is_superuser = True
     user.is_staff = True
     if save:
