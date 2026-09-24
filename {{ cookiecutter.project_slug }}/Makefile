@@ -70,7 +70,7 @@ db.recreate: # only work with local Postgres, not SQLite
 	dropdb --if-exists --force {{ cookiecutter.project_slug }}
 	createdb {{ cookiecutter.project_slug }}
 
-db.initialize:
+db.migrate:
 	uv run python manage.py migrate
 
 db.snapshot: # only work with local Postgres, not SQLite
