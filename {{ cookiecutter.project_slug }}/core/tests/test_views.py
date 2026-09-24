@@ -63,6 +63,11 @@ class TestLoginPage:
         assert "Sign in with Google" in content
         assert 'action="/accounts/google/login/?next=%2Fapi-access%2F"' in content
 
+    def test_puts_the_google_button_above_the_password_form(self, client):
+        content = client.get(reverse("login")).content.decode()
+
+        assert content.index("google-login-form") < content.index('"login-form"')
+
     def test_hides_google_button_without_a_client_id(self, client, settings):
         settings.SOCIALACCOUNT_PROVIDERS = {}
 

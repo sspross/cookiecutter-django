@@ -19,7 +19,7 @@ def test_full_self_service_lifecycle(page: Page, live_server):
     page.goto(f"{live_server.url}/accounts/login/")
     page.fill('input[name="username"]', "alice")
     page.fill('input[name="password"]', "pw-12345!")
-    page.click('button[type="submit"], input[type="submit"]')
+    page.click('[data-testid="login-form"] button[type="submit"]')
     # Wait for the SPA shell rather than the discouraged "networkidle".
     sidebar = page.locator('[data-testid="sidebar"]')
     expect(sidebar).to_be_visible()

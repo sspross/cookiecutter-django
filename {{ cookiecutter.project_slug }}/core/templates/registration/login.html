@@ -27,6 +27,21 @@
         </p>
       {% endif %}
 
+      {% get_providers as socialaccount_providers %}
+      {% if socialaccount_providers %}
+        {# A POST skips allauth's "continue with Google?" confirmation page. #}
+        <form method="post"
+              action="{% provider_login_url 'google' %}"
+              class="mb-4 border-b border-border pb-4"
+              data-testid="google-login-form">
+          {% csrf_token %}
+          <button type="submit"
+                  class="inline-flex h-9 w-full items-center justify-center rounded-md border border-input bg-transparent px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
+            Sign in with Google
+          </button>
+        </form>
+      {% endif %}
+
       <form method="post" class="space-y-4" data-testid="login-form">
         {% csrf_token %}
         <div class="space-y-2">
@@ -47,21 +62,6 @@
           Sign in
         </button>
       </form>
-
-      {% get_providers as socialaccount_providers %}
-      {% if socialaccount_providers %}
-        {# A POST skips allauth's "continue with Google?" confirmation page. #}
-        <form method="post"
-              action="{% provider_login_url 'google' %}"
-              class="mt-4 border-t border-border pt-4"
-              data-testid="google-login-form">
-          {% csrf_token %}
-          <button type="submit"
-                  class="inline-flex h-9 w-full items-center justify-center rounded-md border border-input bg-transparent px-4 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
-            Sign in with Google
-          </button>
-        </form>
-      {% endif %}
     </div>
   </div>
 {% endblock body %}
