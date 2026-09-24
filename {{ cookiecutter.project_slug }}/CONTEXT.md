@@ -8,7 +8,32 @@ extra fields, wired in as `AUTH_USER_MODEL` from the first migration so a
 project can add fields later without migrating away from `auth.User`. Other
 apps reference it through `settings.AUTH_USER_MODEL` (foreign keys) or
 `get_user_model()` (code and factories). The `users` app itself depends on
-nothing (see `tach.toml`).
+no other project app (see `tach.toml`).
+
+A user logs in with a username and password (an account created in the
+admin), or with Google, gated by the **SSO allowlist**.
+
+### SSO allowlist
+The rule that decides whether a Google identity may log in (`users/sso.py`).
+Allowed when Google verified the email, the user is not inactive, and one of
+these holds:
+
+- Google's `hd` claim is in `SSO_ALLOWED_DOMAINS` (the email suffix never
+  matches);
+- the email is in `SSO_ALLOWED_EMAILS` (default: the author email).
+
+The lists are comma-separated, case-insensitive env vars, checked on every
+Google login. A rejection is a log line, not a Sentry event (ADR-0007).
+
+The first Google login creates a user with the full email as username, or
+links to the existing user with the same email and keeps its password.
+`User.email` is stored lowercased, so linking ignores case.
+
+Every allowed Google login of an email in `SSO_SUPERUSER_EMAILS` (default: the
+author email) makes its user superuser and staff. That list alone does not
+allow a login, and a login never demotes. See ADR-0009.
+
+*Avoid*: "whitelist", "SSO-only".
 
 ### API Key
 A user-issued bearer credential for the headless API path. Stored as `UserApiKey`
@@ -69,17 +94,22 @@ shows. Neither field appears in any UI.
 
 ## Surfaces
 
-Routes (all login-required except `/accounts/login/` and `/admin/`):
+Routes (all login-required except `/accounts/*` and `/admin/`):
 
 HTML pages:
 
 - `/` — Django shell that mounts the React SPA on the **Dashboard** route.
 - `/api-access/` — same SPA mount, react-router renders the **API Access** route.
-- `/accounts/login/` & `/accounts/logout/` — Django built-in auth views, the
-  only two mounted under `/accounts/`. Password change and reset are not
-  mounted (no templates, no mailer), so those URLs 404.
+- `/accounts/login/` & `/accounts/logout/`: Django built-in auth views.
+  Password change and reset are not mounted (no templates, no mailer), so
+  those URLs 404. The login page shows Django messages and, when Google
+  login is on, a "Sign in with Google" button.
   Load the SPA bundle so visual tokens match; `main.tsx` finds no `#app`
   node there and bails before mounting React.
+- `/accounts/google/login/` and `/accounts/google/login/callback/`: allauth's
+  Google redirect flow, mounted only when `GOOGLE_OAUTH_CLIENT_ID` is set. No
+  other allauth page is mounted. Every outcome that is not a login redirects
+  to `/accounts/login/` with a message.
 - `/admin/` — Django admin; superuser creates non-staff `User` accounts here,
   mints `UserApiKey` rows through the standard add form, and revokes them via a
   custom admin action.
@@ -128,7 +158,7 @@ core/                # settings package and Django app in one (namespace package
   schemas.py         # MeOut — the /api/me wire shape
   settings/
     base.py          # env-driven settings
-    test.py          # test overrides (async guard, MD5 hasher, vite manifest, dummy cache)
+    test.py          # test overrides (async guard, MD5 hasher, vite manifest, dummy cache, Google login on)
   management/commands/
     export_openapi_schema.py  # offline OpenAPI JSON dump (make schema / guard)
   migrations/
@@ -170,10 +200,12 @@ users/
   apps.py
   admin.py           # registers User with Django's stock UserAdmin
   models.py          # User(AbstractUser), the AUTH_USER_MODEL
+  sso.py             # SSO allowlist and allauth adapters
   migrations/
     0001_initial.py
   tests/
-    test_users.py    # seed fixture (loaddata) and admin pages
+    test_users.py    # admin pages
+    test_google_login.py  # Google login flow over HTTP
 ```
 
 SPA source layout under `core/frontend/src/`:

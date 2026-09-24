@@ -84,6 +84,11 @@ compose host (`compose.yaml`) works the same way with a hand-written `.env`.
 | `DJANGO_VITE_DEV_MODE` | no | unset, follows `DEBUG` | not set in production | not set in production |
 | `SENTRY_DSN` | no | blank, the Sentry SDK stays uninitialized | set manually in Appliku (`source: manual`) | repo variable, unset until Sentry is wanted |
 | `SENTRY_ENVIRONMENT` | no | `production` | not declared in `appliku.yml`, set it manually for a second deployment | repo variable |
+| `GOOGLE_OAUTH_CLIENT_ID` | no | blank, Google login is off | set manually in Appliku (`source: manual`) | repo variable |
+| `GOOGLE_OAUTH_CLIENT_SECRET` | no | blank | set manually in Appliku (`source: manual`) | repo secret |
+| `SSO_ALLOWED_DOMAINS` | no | empty | set manually in Appliku (`source: manual`) | repo variable |
+| `SSO_ALLOWED_EMAILS` | no | the author email | set manually in Appliku (`source: manual`) | repo variable |
+| `SSO_SUPERUSER_EMAILS` | no | the author email | set manually in Appliku (`source: manual`) | repo variable |
 
 `PORT` is not a Django setting: `web.sh` reads it to bind gunicorn
 (`0.0.0.0:${PORT:-8000}`). Changing it means changing `container_port` in
@@ -98,6 +103,10 @@ and read by `compose.prod.yaml` only.
 
 Notes:
 
+- Setting `SSO_ALLOWED_EMAILS` or `SSO_SUPERUSER_EMAILS` replaces the
+  author-email default, so keep the author email in it where it should stay.
+  A rejected Google login is a log line from `users.sso`. The rules are in
+  "SSO allowlist" in `CONTEXT.md`.
 - `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` are comma-separated lists.
   `CSRF_TRUSTED_ORIGINS` entries need the scheme (`https://app.example.com`),
   `ALLOWED_HOSTS` entries do not (`app.example.com`).
@@ -247,7 +256,16 @@ throwaway container from the same image with the same environment.
 
 ## First superuser
 
-After the first successful deploy, create the first superuser with a one-off
+With Google login set up (README.md > Google login), log in at
+`https://<your-domain>/accounts/login/` with Google as
+{{ cookiecutter.author_email }}. That first login creates the superuser.
+
+Further superusers: add the email to `SSO_SUPERUSER_EMAILS` and allow it (see
+"SSO allowlist" in `CONTEXT.md`). To take the rights away, use the admin.
+
+### Fallback without Google login
+
+Without Google credentials, create the first superuser with a one-off
 command in Appliku. One-off commands have no terminal attached, so the
 interactive prompts fail, and the command is passed to the container without a
 shell, so a `VAR=value` prefix is treated as the executable. Wrap the command in
@@ -255,7 +273,7 @@ shell, so a `VAR=value` prefix is treated as the executable. Wrap the command in
 with `--noinput`:
 
 ```
-sh -c "DJANGO_SUPERUSER_PASSWORD='<password>' uv run ./manage.py createsuperuser --noinput --username admin --email you@example.com"
+sh -c "DJANGO_SUPERUSER_PASSWORD='<password>' uv run ./manage.py createsuperuser --noinput --username you@example.com --email you@example.com"
 ```
 
 Alternatively set `DJANGO_SUPERUSER_PASSWORD` as an app environment variable,
@@ -274,9 +292,7 @@ On a generic compose host, interactive or with the same `--noinput` form:
 docker compose run --rm web uv run ./manage.py createsuperuser
 ```
 
-Then log in at `https://<your-domain>/admin/` and create further accounts there.
-Nothing in the deploy path loads a fixture, so this is the only way an account
-exists in production.
+Then log in at `https://<your-domain>/admin/`.
 
 ## Health probing
 

@@ -25,7 +25,29 @@ Run once after generating the project, in this order. Later clones skip the
 - `uv run pre-commit install`
 - `uv run playwright install chromium`
 - `make db.recreate` (Postgres only, skip if using SQLite)
-- `make db.initialize`
+- `make db.migrate`
+- Create the first superuser: turn on Google login (see
+  [Google login](#google-login)), or run `uv run ./manage.py createsuperuser`.
+
+### Google login
+
+Optional. The first Google login of {{ cookiecutter.author_email }} creates
+the superuser.
+
+1. In the Google Cloud console, go to APIs & Services > Credentials and
+   create an OAuth client of type "Web application".
+2. Add the redirect URIs
+   `http://localhost:8000/accounts/google/login/callback/` and
+   `https://<domain>/accounts/google/login/callback/`.
+3. On the OAuth consent screen, pick "Internal" for a Workspace-only
+   audience. Pick "External" for private Gmail accounts, and publish the app:
+   while it is in "Testing", only the listed test users can sign in.
+4. Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`.
+5. To let anyone besides the author sign in, set `SSO_ALLOWED_DOMAINS`,
+   `SSO_ALLOWED_EMAILS` and `SSO_SUPERUSER_EMAILS` (see "SSO allowlist" in
+   `CONTEXT.md`).
+6. Restart `make backend.dev` and log in at
+   http://localhost:8000/accounts/login/ with "Sign in with Google".
 
 ### Work
 
@@ -82,15 +104,9 @@ First-time setup:
 4. Set `SECRET_KEY` in Appliku's environment variables (one-time):
    `python -c "import secrets; print(secrets.token_urlsafe(50))"`
 5. Add a domain in Appliku; `ALLOWED_HOSTS` is auto-populated from `from_domains: true`.
-6. Deploy.
-7. Create the first superuser with a one-off command in Appliku. One-off
-   commands run without a terminal and without a shell, so pass the
-   credentials through the environment and wrap the command in `sh -c`:
-   `sh -c "DJANGO_SUPERUSER_PASSWORD='<password>' uv run ./manage.py createsuperuser --noinput --username admin --email you@example.com"`.
-   Alternatively set `DJANGO_SUPERUSER_PASSWORD` as an app environment
-   variable, run the plain command, and remove the variable afterwards. The
-   `dumpdata.json` fixture seeds a local admin for `make db.initialize` only
-   and is never loaded in production.
+6. Set the [Google login](#google-login) variables.
+7. Deploy.
+8. Create the first superuser, see "First superuser" in `docs/OPERATIONS.md`.
 
 See [docs.appliku.com/docs/cli-sdk](https://docs.appliku.com/docs/cli-sdk/) for the Appliku CLI/SDK reference.
 
@@ -109,9 +125,7 @@ Docker host behind a reverse proxy, Dokploy, Coolify. It runs `db`
    `compose.yaml`.
 3. `docker compose up -d`. `release` runs the migrations and exits; `web` and
    `worker` start once it succeeded.
-4. Create the first superuser (interactive, or non-interactive as in the
-   Appliku section):
-   `docker compose run --rm web uv run ./manage.py createsuperuser`
+4. Create the first superuser, see "First superuser" in `docs/OPERATIONS.md`.
 5. Redeploy after a code change with `docker compose up -d --build`.
 
 `web` publishes port 8000 on the host's loopback interface only
@@ -155,9 +169,10 @@ First-time setup in the repository settings (Secrets and variables > Actions):
    private half of the deploy key. With a tailnet: `TS_OAUTH_CLIENT_ID` and
    `TS_OAUTH_SECRET` of an OAuth client that may mint keys for the tag
    (org-level secrets shared with the repo work too).
+   Optional: the [Google login](#google-login) variables, with
+   `GOOGLE_OAUTH_CLIENT_SECRET` as a secret.
 3. Merge to `main`, wait for the `image` workflow, run `deploy`.
-4. Create the first superuser from a device that may SSH to the host:
-   `DOCKER_HOST=ssh://<DEPLOY_HOST> docker exec -it {{ cookiecutter.project_slug }}-web-1 uv run ./manage.py createsuperuser`
+4. Create the first superuser, see "First superuser" in `docs/OPERATIONS.md`.
 
 Any further variable or secret is a production setting: add `SENTRY_DSN` or
 `DEBUG=true`, deploy; remove it, deploy. Names starting with `DEPLOY_` and

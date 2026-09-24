@@ -20,6 +20,16 @@ build_settings:
       source: manual
     - name: SENTRY_DSN
       source: manual
+    - name: GOOGLE_OAUTH_CLIENT_ID
+      source: manual
+    - name: GOOGLE_OAUTH_CLIENT_SECRET
+      source: manual
+    - name: SSO_ALLOWED_DOMAINS
+      source: manual
+    - name: SSO_ALLOWED_EMAILS
+      source: manual
+    - name: SSO_SUPERUSER_EMAILS
+      source: manual
 
 services:
   web:

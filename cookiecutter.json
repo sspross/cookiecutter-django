@@ -3,8 +3,7 @@
     "project_slug": "django-website",
     "author_name": "Silvan Spross",
     "author_email": "silvan.spross@gmail.com",
-    "django_username": "sspross",
-    "django_password": "bondens",
+    "github_owner": "sspross",
     "_copy_without_render": [
         "*.html"
     ]

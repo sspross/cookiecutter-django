@@ -4,16 +4,12 @@ import string
 import subprocess
 
 import click  # dependency of cookiecutter
-from django.conf import settings
-from django.contrib.auth.hashers import make_password
 
 ENV_EXAMPLE_FILE = ".env.example"
 ENV_FILE = ".env"
-DUMPDATA_FILE = "dumpdata.json"
 
 
 def main():
-    django_password = "{{ cookiecutter.django_password }}"
     project_slug = "{{ cookiecutter.project_slug }}"
     secret_key = _create_django_secret_key()
 
@@ -21,14 +17,10 @@ def main():
     shutil.copyfile(ENV_EXAMPLE_FILE, ENV_FILE)
     _replace_in_file(ENV_FILE, "replace-with-secret-key", secret_key)
 
-    # 2. Create a password hash for the default admin user
-    password = _create_django_password(django_password, secret_key)
-    _replace_in_file(DUMPDATA_FILE, "replace-with-password-hash", password)
-
-    # 3. Update pre-commit hooks to latest versions
+    # 2. Update pre-commit hooks to latest versions
     _update_pre_commit_hooks()
 
-    # 4. Print further instructions
+    # 3. Print further instructions
     _print_instructions(project_slug)
 
 
@@ -37,15 +29,6 @@ def _create_django_secret_key():
         random.SystemRandom().choice(string.ascii_letters + string.digits)
         for _ in range(50)
     )
-
-
-def _create_django_password(password, secret_key):
-    settings.configure(
-        PASSWORD_HASHERS=[
-            "django.contrib.auth.hashers.PBKDF2PasswordHasher",
-        ]
-    )
-    return make_password(password, salt=secret_key)
 
 
 def _update_pre_commit_hooks():

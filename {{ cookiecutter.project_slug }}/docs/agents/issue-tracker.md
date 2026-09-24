@@ -1,6 +1,6 @@
 # Issue tracker: GitHub
 
-Issues and PRDs for this repo live as GitHub issues at `{{ cookiecutter.django_username }}/{{ cookiecutter.project_slug }}`. Use the `gh` CLI for all operations.
+Issues and PRDs for this repo live as GitHub issues at `{{ cookiecutter.github_owner }}/{{ cookiecutter.project_slug }}`. Use the `gh` CLI for all operations.
 
 ## Conventions
 
