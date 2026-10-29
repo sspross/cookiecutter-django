@@ -126,7 +126,7 @@ def perform_failing_jobs(queue_name: str, *funcs: Callable[[], None]) -> list[st
     try:
         for job in jobs:
             job.save()
-            worker.perform_job(job, queue)
+            worker.execute_job(job, queue)
     finally:
         # Redis is real here (pytest-django's rollback covers SQL only) and a
         # failed job carries RQ's default one-year failure_ttl, so without this
