@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 import environ
 
@@ -167,8 +168,8 @@ STORAGES = {
     },
 }
 
-MEDIA_ROOT = env.str("MEDIA_ROOT", default=str(BASE_DIR / "media"))  # type: ignore
-MEDIA_URL = env.str("MEDIA_URL", default="media/")  # type: ignore
+MEDIA_ROOT = env.str("MEDIA_ROOT", default=str(BASE_DIR / "media"))
+MEDIA_URL = env.str("MEDIA_URL", default="media/")
 
 # Keep `static_url_prefix` in sync with vite.config.mjs's `base`.
 # DJANGO_VITE_DEV_MODE decouples dev_mode from DEBUG, so `runserver` can serve
@@ -214,7 +215,7 @@ if not DEBUG:
 # W005 and W021 flag the two HSTS scope settings above, which are deliberate.
 SILENCED_SYSTEM_CHECKS = ["security.W005", "security.W021"]
 
-LOGGING = {
+LOGGING: dict[str, Any] = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {

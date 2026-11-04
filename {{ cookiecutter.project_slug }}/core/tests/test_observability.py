@@ -401,7 +401,8 @@ class TestHealthzIsSilent:
         statuses: list[str] = []
         with mock.patch.object(redis.Redis, "ping", return_value=True):
             response = application(
-                environ, lambda status, headers: statuses.append(status)
+                environ,
+                lambda status, headers: statuses.append(status),  # type: ignore[arg-type]
             )
             body = b"".join(response)
             # What a WSGI server does after the body; it fires request_finished,

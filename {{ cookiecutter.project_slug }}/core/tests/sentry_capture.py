@@ -19,14 +19,14 @@ class CapturingTransport(Transport):
     def capture_envelope(self, envelope: Envelope) -> None:
         self.envelopes.append(envelope)
 
-    def items(self) -> list[tuple[str, Payload]]:
+    def items(self) -> list[tuple[str | None, Payload]]:
         return [
             (item.type, item.payload.json or {})
             for envelope in self.envelopes
             for item in envelope.items
         ]
 
-    def item_types(self) -> list[str]:
+    def item_types(self) -> list[str | None]:
         return [item_type for item_type, _ in self.items()]
 
     def events(self) -> list[Payload]:

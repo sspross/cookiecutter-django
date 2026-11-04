@@ -7,7 +7,7 @@ from users.models import User
 
 @pytest.fixture
 def superuser(db: None) -> User:
-    return UserFactory(username="root", is_superuser=True, is_staff=True)
+    return UserFactory.create(username="root", is_superuser=True, is_staff=True)
 
 
 @pytest.fixture

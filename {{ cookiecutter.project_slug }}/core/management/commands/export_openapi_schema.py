@@ -7,7 +7,9 @@ run in CI against a throwaway sqlite URL.
 """
 
 import json
+from argparse import ArgumentParser
 from pathlib import Path
+from typing import Any
 
 from django.core.management.base import BaseCommand
 
@@ -17,7 +19,7 @@ from core.api import api
 class Command(BaseCommand):
     help = "Export the ninja OpenAPI schema as JSON (offline; no running server)."
 
-    def add_arguments(self, parser) -> None:
+    def add_arguments(self, parser: ArgumentParser) -> None:
         parser.add_argument(
             "-o",
             "--output",
@@ -25,7 +27,7 @@ class Command(BaseCommand):
             help="Destination file path, or '-' for stdout (default).",
         )
 
-    def handle(self, *args, **options) -> None:
+    def handle(self, *args: Any, **options: Any) -> None:
         schema = api.get_openapi_schema()
         text = json.dumps(schema, indent=2)
         output = options["output"]

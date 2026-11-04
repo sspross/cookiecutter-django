@@ -26,6 +26,7 @@ test.live.record: frontend.build # run live (Playwright) tests headless, recordi
 lint:
 	uv run ruff check .
 	uv run tach check
+	uv run mypy .
 	cd core/frontend && npm run lint
 	cd core/frontend && npm run typecheck
 

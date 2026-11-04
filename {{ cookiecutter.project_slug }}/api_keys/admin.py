@@ -1,4 +1,7 @@
 from django.contrib import admin, messages
+from django.db.models import QuerySet
+from django.forms import ModelForm
+from django.http import HttpRequest, HttpResponse
 from django.utils.html import format_html
 
 from api_keys import services as api_keys_services
@@ -20,12 +23,16 @@ class UserApiKeyAdmin(admin.ModelAdmin):
     readonly_fields = ("prefix", "hash", "created_at", "last_used_at", "revoked_at")
     actions = ("revoke_keys",)
 
-    def get_fields(self, request, obj=None):
+    def get_fields(
+        self, request: HttpRequest, obj: UserApiKey | None = None
+    ) -> tuple[str, ...]:
         if obj is None:
             return ("user", "name")
         return ("user", "name", *self.readonly_fields)
 
-    def save_model(self, request, obj, form, change):
+    def save_model(
+        self, request: HttpRequest, obj: UserApiKey, form: ModelForm, change: bool
+    ) -> None:
         if change:
             super().save_model(request, obj, form, change)
             return
@@ -33,9 +40,14 @@ class UserApiKeyAdmin(admin.ModelAdmin):
         # raw token exactly once.
         result = api_keys_services.mint(user=obj.user, name=obj.name)
         obj.pk = result.api_key.pk
-        request._minted_raw_token = result.raw_token
+        request._minted_raw_token = result.raw_token  # type: ignore[attr-defined]
 
-    def response_add(self, request, obj, post_url_continue=None):
+    def response_add(
+        self,
+        request: HttpRequest,
+        obj: UserApiKey,
+        post_url_continue: str | None = None,
+    ) -> HttpResponse:
         raw_token = getattr(request, "_minted_raw_token", None)
         if raw_token:
             messages.success(
@@ -55,7 +67,7 @@ class UserApiKeyAdmin(admin.ModelAdmin):
         return super().response_add(request, obj, post_url_continue)
 
     @admin.action(description="Revoke selected API keys")
-    def revoke_keys(self, request, queryset):
+    def revoke_keys(self, request: HttpRequest, queryset: QuerySet[UserApiKey]) -> None:
         revoked_count = 0
         for api_key in queryset:
             if api_key.revoked_at is None:

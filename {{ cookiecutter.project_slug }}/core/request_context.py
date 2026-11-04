@@ -133,7 +133,9 @@ class RequestContextMiddleware:
         _bind(generated, source)
         response = self.get_response(request)
         response[REQUEST_ID_HEADER] = generated
-        response.close = _closing_in_request_context(response.close)
+        response.close = _closing_in_request_context(  # type: ignore[method-assign]
+            response.close
+        )
         return response
 
 

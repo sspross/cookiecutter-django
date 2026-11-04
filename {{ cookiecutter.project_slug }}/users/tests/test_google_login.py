@@ -11,7 +11,7 @@ import responses
 from django.conf import settings
 from django.contrib.auth import SESSION_KEY
 from django.core.management import call_command
-from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from django.test import Client
 from django.urls import reverse
 
@@ -56,7 +56,7 @@ def sign_in_with_google(
     email_verified: bool = True,
     hd: str | None = None,
     next_url: str | None = None,
-) -> HttpResponse:
+) -> HttpResponseBase:
     """The whole round trip: the login button's POST, Google's redirect back
     to the callback, and the token exchange behind it."""
     state = _start(client, next_url)
@@ -78,7 +78,7 @@ def logged_in_user(client: Client) -> User | None:
     return User.objects.get(pk=user_id) if user_id else None
 
 
-def assert_rejected(client: Client, response: HttpResponse, message: str) -> None:
+def assert_rejected(client: Client, response: HttpResponseBase, message: str) -> None:
     assert response.status_code == 302
     assert response["Location"] == reverse("login")
     assert logged_in_user(client) is None
@@ -203,7 +203,9 @@ def log_in_with_password(client: Client, username: str, password: str) -> None:
         reverse("login"), {"username": username, "password": password}
     )
     assert response.status_code == 302
-    assert logged_in_user(client).username == username
+    user = logged_in_user(client)
+    assert user is not None
+    assert user.username == username
 
 
 @pytest.mark.django_db
