@@ -178,7 +178,7 @@ from this repo.
 4. `docker compose pull`, then `docker compose up -d --wait --remove-orphans`.
    `release` runs `release.sh` (`manage.py migrate`) first; the new `web` and
    `worker` start only after it exited 0.
-   5. With `DEPLOY_URL` set, the runner requests `<DEPLOY_URL>/healthz` through
+5. With `DEPLOY_URL` set, the runner requests `<DEPLOY_URL>/healthz` through
    the reverse proxy. An HTTP error status fails the job.
 6. On failure the job prints `docker compose ps` and the last 100 log lines of
    every service.
@@ -188,7 +188,7 @@ What a failed deploy leaves running:
 - `release` failed: the new `web` and `worker` do not start, and the schema
   stays as the migration left it. Check `docker compose ps` for what is still
   up. Fix forward: a new commit on `main`, deploy again.
-  - `release` succeeded and `web` never became healthy: the new `web` is up but
+- `release` succeeded and `web` never became healthy: the new `web` is up but
   unhealthy behind the proxy, which answers 502. Look at the logs the job
   printed, fix forward, or deploy the previous state of `main`.
 - The smoke test failed with healthy containers: the reverse proxy or DNS,
