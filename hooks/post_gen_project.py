@@ -1,3 +1,4 @@
+import json
 import random
 import shutil
 import string
@@ -7,6 +8,7 @@ import click  # dependency of cookiecutter
 
 ENV_EXAMPLE_FILE = ".env.example"
 ENV_FILE = ".env"
+TEMPLATE_MARKER_FILE = ".template.json"
 
 
 def main():
@@ -20,7 +22,10 @@ def main():
     # 2. Update pre-commit hooks to latest versions
     _update_pre_commit_hooks()
 
-    # 3. Print further instructions
+    # 3. Record the template commit, the baseline of the template-sync skill
+    _write_template_marker()
+
+    # 4. Print further instructions
     _print_instructions(project_slug)
 
 
@@ -40,6 +45,37 @@ def _update_pre_commit_hooks():
             "\tNote: Run 'pre-commit autoupdate' to get latest hook versions",
             fg="yellow",
         )
+
+
+def _write_template_marker():
+    repo_dir = "{{ cookiecutter._repo_dir }}"
+    try:
+        marker = {
+            "template": _git(repo_dir, "remote", "get-url", "origin"),
+            "commit": _git(repo_dir, "rev-parse", "HEAD"),
+            "context": _rendering_context(),
+        }
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        click.secho(
+            f"\tNote: Template is not a git clone, skipped {TEMPLATE_MARKER_FILE}",
+            fg="yellow",
+        )
+        return
+    with open(TEMPLATE_MARKER_FILE, "w") as file:
+        json.dump(marker, file, indent=2)
+        file.write("\n")
+
+
+def _rendering_context():
+    context = json.loads(r"""{{ cookiecutter | jsonify }}""")
+    return {key: value for key, value in context.items() if not key.startswith("_")}
+
+
+def _git(repo_dir, *args):
+    result = subprocess.run(
+        ["git", "-C", repo_dir, *args], check=True, capture_output=True, text=True
+    )
+    return result.stdout.strip()
 
 
 def _print_instructions(project_slug):
