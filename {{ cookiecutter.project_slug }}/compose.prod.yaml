@@ -1,5 +1,4 @@
-# Production manifest for a docker host deployed by .github/workflows/deploy.yml, see docs/adr/0008-deploy-from-the-app-repo.md.
-# Differences to compose.yaml: pinned GHCR image instead of build, web joins the ingress network instead of publishing a port.
+# Keep coherent with compose.yaml, see docs/adr/0008-deploy-from-the-app-repo.md.
 
 name: {{ cookiecutter.project_slug }}
 
@@ -11,7 +10,6 @@ x-app: &app
     REDIS_URL: redis://redis:6379/0
     MEDIA_ROOT: /volumes/media
     MEDIA_URL: /media/
-    # localhost is what the web healthcheck uses
     ALLOWED_HOSTS: "${ALLOWED_HOSTS:?set ALLOWED_HOSTS},localhost"
   volumes:
     - media:/volumes/media

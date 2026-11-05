@@ -1,7 +1,4 @@
-# Deployment manifest for any docker-compose compatible host: a plain Docker
-# host behind a reverse proxy, Dokploy, Coolify. See
-# docs/adr/0004-deployment-targets.md. `appliku.yml` is the manifest for the
-# other target and has to stay coherent with this one.
+# Keep coherent with appliku.yml and compose.prod.yaml, see docs/adr/0004-deployment-targets.md.
 
 x-app: &app
   build: .

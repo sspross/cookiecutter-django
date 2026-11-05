@@ -23,8 +23,6 @@ class TestHomeView:
 
 @pytest.mark.django_db
 class TestAuthRoutes:
-    """An unmounted auth URL must 404, not 500 on a missing template."""
-
     def test_login_is_mounted(self, client):
         response = client.get(reverse("login"))
         assert response.status_code == 200

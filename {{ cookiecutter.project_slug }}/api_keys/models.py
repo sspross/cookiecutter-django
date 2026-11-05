@@ -3,14 +3,6 @@ from django.db import models
 
 
 class UserApiKey(models.Model):
-    """A bearer credential for the headless API path.
-
-    Only `sha256(raw_token)` is persisted; the database never holds the live
-    credential. `prefix` holds the leading characters so the admin can identify
-    a key without revealing it. `revoked_at` is visible-but-marked soft-delete:
-    the row stays listed, `verify()` rejects it. See CONTEXT.md.
-    """
-
     NAME_MAX_LENGTH = 128
 
     user = models.ForeignKey(

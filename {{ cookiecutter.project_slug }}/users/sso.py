@@ -39,7 +39,6 @@ class GoogleIdentity:
 
 
 def rejection_reason(identity: GoogleIdentity) -> str | None:
-    """`None` means the identity may sign in."""
     if not identity.email_verified:
         return "email not verified by Google"
     if identity.email in _normalized_set(settings.SSO_ALLOWED_EMAILS):
@@ -78,8 +77,7 @@ def _back_to_login(request: HttpRequest, message: str) -> HttpResponseRedirect:
 
 class SsoAccountAdapter(DefaultAccountAdapter):
     def add_message(self, *args: Any, **kwargs: Any) -> None:
-        """Drops allauth's own messages ("Successfully signed in as ..."). The SPA
-        never renders messages, so one would surface on the next login page."""
+        """No-op: the SPA renders no messages, so one would surface at next login."""
 
 
 class SsoSocialAccountAdapter(DefaultSocialAccountAdapter):

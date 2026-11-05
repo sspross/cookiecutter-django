@@ -1,6 +1,3 @@
-"""The Google login flow over HTTP. Only Google's token endpoint is stubbed;
-allauth, the adapter, the allowlist and the settings run for real."""
-
 import time
 import uuid
 from urllib.parse import parse_qs, urlparse
@@ -23,7 +20,6 @@ GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 
 
 def _start(client: Client, next_url: str | None) -> str:
-    """POST to the Google login URL and return the state Google would echo."""
     data = {"next": next_url} if next_url else {}
     response = client.post(reverse("google_login"), data)
     assert response.status_code == 302
@@ -32,8 +28,8 @@ def _start(client: Client, next_url: str | None) -> str:
 
 
 def _id_token(email: str, email_verified: bool, hd: str | None) -> str:
-    """Unsigned is fine: allauth skips the signature check for an ID token it
-    fetched from Google's token endpoint itself, over TLS."""
+    """Any key works: allauth skips the signature check for an ID token it fetched
+    from Google's token endpoint itself, over TLS."""
     claims = {
         "iss": "https://accounts.google.com",
         "aud": settings.SOCIALACCOUNT_PROVIDERS["google"]["APP"]["client_id"],
@@ -57,8 +53,6 @@ def sign_in_with_google(
     hd: str | None = None,
     next_url: str | None = None,
 ) -> HttpResponseBase:
-    """The whole round trip: the login button's POST, Google's redirect back
-    to the callback, and the token exchange behind it."""
     state = _start(client, next_url)
     with responses.RequestsMock() as google:
         google.post(

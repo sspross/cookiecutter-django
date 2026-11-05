@@ -12,9 +12,8 @@ permissions:
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
-    # mypy's Django plugin and the schema-fresh hook both import settings. Only
-    # SECRET_KEY + DATABASE_URL lack defaults in core/settings/base.py, and neither
-    # hook connects, so a throwaway sqlite URL is enough.
+    # mypy's Django plugin and schema-fresh import core/settings/base.py, which has no
+    # default for these two. Neither hook connects, so a throwaway sqlite URL is enough.
     env:
       SECRET_KEY: ci-not-a-real-secret
       DATABASE_URL: sqlite:///db.sqlite3
@@ -29,6 +28,6 @@ jobs:
         with:
           node-version: '24'
       - run: uv sync --frozen
-      - run: make frontend.install   # biome-check & tsc-typecheck hooks need core/frontend/node_modules
+      - run: make frontend.install
       - run: uv run pre-commit run --all-files
       - run: uv run pre-commit run --all-files --hook-stage manual

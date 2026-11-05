@@ -47,14 +47,14 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "B",  # flake8-bugbear
-    "C4", # flake8-comprehensions
-    "UP", # pyupgrade
-    "ANN", # flake8-annotations
+    "E",
+    "W",
+    "F",
+    "I",
+    "B",
+    "C4",
+    "UP",
+    "ANN",
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -102,23 +102,19 @@ show_missing = true
 skip_covered = true
 
 [tool.deptry]
-# Patterns are matched from the start of the path (re.match), so nested test
-# dirs need an explicit `.*/` prefix — deptry's built-in `tests` exclude only
-# catches a top-level tests/ directory.
+# Patterns match from the path start (re.match), and deptry's built-in `tests`
+# exclude only catches a top-level tests/, so nested dirs need the `.*/` prefix.
 extend_exclude = [
-    # Test code legitimately imports dev-group tools (pytest, factory-boy,
-    # playwright); scanning it would raise spurious DEP004 misplaced-dev errors.
     ".*/tests/.*",
     "conftest.py",
 ]
 
 [tool.deptry.per_rule_ignores]
-# Declared runtime dependencies Django wires up through settings/URL strings or
-# entry points rather than Python imports — deptry can't see those uses.
+# Django and RQ load these from settings and URL strings, so deptry finds no import.
 DEP002 = [
-    "whitenoise",      # MIDDLEWARE + staticfiles STORAGES backend
-    "django-vite",     # INSTALLED_APPS app: django_vite
-    "django-rq",       # INSTALLED_APPS app + django_rq.urls
-    "psycopg",         # PostgreSQL driver loaded by Django
-    "redis",           # RQ broker, configured via RQ_QUEUES URL
+    "whitenoise",
+    "django-vite",
+    "django-rq",
+    "psycopg",
+    "redis",
 ]

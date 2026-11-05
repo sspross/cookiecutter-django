@@ -12,7 +12,6 @@ jobs:
   test-template:
     runs-on: ubuntu-latest
 
-    # The generated project's worker tests perform a real RQ job.
     services:
       redis:
         image: redis:7

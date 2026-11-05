@@ -10,4 +10,5 @@ class CoreConfig(AppConfig):
     label = "core"
 
     def ready(self) -> None:
+        # Not in settings: test.py blanks the DSN only after base.py has run.
         init_sentry(settings.SENTRY_DSN, settings.SENTRY_ENVIRONMENT)

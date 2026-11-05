@@ -1,10 +1,3 @@
-"""Model-level tests for ``UserApiKey``.
-
-Only ``__str__`` lives here; no other test reaches it. Ordering, ``is_revoked``
-and the revocation transition are asserted where they are observable, through
-the API and through ``services.verify``.
-"""
-
 import pytest
 
 from api_keys import services as api_keys

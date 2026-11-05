@@ -1,9 +1,3 @@
-"""Pre-commit hook wrapper for pip-audit.
-
-Only fails if there are vulnerabilities with a known fix version.
-Vulnerabilities without fixes are reported as warnings but don't block commits.
-"""
-
 import json
 import subprocess
 import sys

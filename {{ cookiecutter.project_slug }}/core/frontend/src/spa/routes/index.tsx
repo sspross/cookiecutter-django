@@ -1,9 +1,3 @@
-/**
- * Dashboard — / route.
- *
- * Inline cards, no abstractions. Duplicate the API Keys card for your first
- * domain model; extract a <StatCard> only once a third card lands.
- */
 import {
   Card,
   CardContent,

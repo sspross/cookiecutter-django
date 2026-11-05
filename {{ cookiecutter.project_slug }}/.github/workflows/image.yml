@@ -14,7 +14,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      # Pull requests only prove the image still builds; main pushes it.
       PUSH: {% raw %}${{ github.event_name == 'push' }}{% endraw %}
     steps:
       - uses: actions/checkout@v7
@@ -47,12 +46,10 @@ jobs:
           labels: "{% raw %}${{ steps.meta.outputs.labels }}{% endraw %}"
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # One plain manifest per tag. With provenance, buildx pushes an index whose
-          # children show up as untagged versions on GHCR, and a version cleanup that
-          # removes untagged versions breaks the tagged image (actions/delete-package-versions#162).
+          # With provenance, buildx pushes an index whose children GHCR lists as untagged,
+          # so the cleanup below breaks the tagged image (actions/delete-package-versions#162).
           provenance: false
 
-      # GHCR never expires versions itself, and private packages count against the owner's quota.
       - name: Keep the newest 10 image versions
         if: env.PUSH == 'true'
         uses: actions/delete-package-versions@v5

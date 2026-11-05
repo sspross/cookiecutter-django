@@ -32,8 +32,7 @@ CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 PROJECT_NAME = "{{ cookiecutter.project_name }}"
 
 # Only safe while the proxy in front of the app strips a client-supplied
-# X-Forwarded-Proto. Appliku's does; a self-run reverse proxy has to be
-# configured to.
+# X-Forwarded-Proto.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 INSTALLED_APPS = [
@@ -57,7 +56,7 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
-    # Must stay first; see core/request_context.py.
+    # First, so a response another middleware produces is correlated too.
     "core.request_context.RequestContextMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -105,7 +104,6 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 
-# See ADR-0009.
 def google_providers(client_id: str, secret: str) -> dict:
     if not client_id:
         return {}
@@ -171,9 +169,7 @@ STORAGES = {
 MEDIA_ROOT = env.str("MEDIA_ROOT", default=str(BASE_DIR / "media"))
 MEDIA_URL = env.str("MEDIA_URL", default="media/")
 
-# Keep `static_url_prefix` in sync with vite.config.mjs's `base`.
-# DJANGO_VITE_DEV_MODE decouples dev_mode from DEBUG, so `runserver` can serve
-# the built manifest without flipping DEBUG off.
+# Keep `static_url_prefix` in sync with `base` in core/frontend/vite.config.mjs.
 _vite_dev_mode = env("DJANGO_VITE_DEV_MODE")
 DJANGO_VITE = {
     "default": {
@@ -182,8 +178,6 @@ DJANGO_VITE = {
     },
 }
 
-# Redis is required at enqueue time for Job persistence even when a queue runs
-# ASYNC=False (as tests do). See ADR-0003.
 REDIS_URL = env("REDIS_URL")
 RQ_QUEUES = {
     "default": {
@@ -192,9 +186,7 @@ RQ_QUEUES = {
     },
 }
 
-# Shared across gunicorn workers, so throttle counters hold under concurrency.
-# Shares the RQ database, and RedisCache.clear() is FLUSHDB: clearing the whole
-# cache would drop queued jobs with it.
+# Shares the RQ database, so cache.clear() drops queued jobs. See docs/OPERATIONS.md.
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
@@ -242,9 +234,8 @@ LOGGING: dict[str, Any] = {
         "handlers": ["console"],
         "level": "WARNING",
     },
-    # Level only, no "handlers" key: that drops the handlers Django's own
-    # logging config puts on these loggers, leaving root as the one place a
-    # record is printed. See docs/OPERATIONS.md, "Logs and monitoring".
+    # A level-only entry still clears the handlers Django's logging config put on
+    # that logger, leaving root as the one place a record is printed.
     "loggers": {
         "core": {"level": "INFO"},
         "api_keys": {"level": "INFO"},

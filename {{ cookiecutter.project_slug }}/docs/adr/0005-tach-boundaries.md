@@ -93,7 +93,7 @@ Positive:
 Negative:
 
 - The `from other_app.models import X` failure reads as "you can't use this
-  type," which is wrong; this ADR (and the `tach.toml` header comment) is the
+  type," which is wrong; this ADR is the
   answer, and without it someone "fixes" the boundary instead of guarding the
   import.
 - `ignore_type_checking_imports = true` trusts that guarded imports are honest

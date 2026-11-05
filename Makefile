@@ -15,7 +15,6 @@ define show_tail
 	fi
 endef
 
-# run_step(command, assert_pattern)
 define run_step
 	@printf "  \`$(1)\`"; \
 	output=$$(cd $(PROJDIR) 2>/dev/null; $(1) 2>&1); \
@@ -34,11 +33,8 @@ define run_step
 	$(show_tail)
 endef
 
-# run_step_smoke(command, assert_pattern)
-# Starts a long-running command, waits only until assert_pattern shows up in
-# its output (polling every 0.1s, giving up after 15s), then kills the process
-# tree. An assert_pattern is required: it is the exit condition, not just an
-# assertion. PYTHONUNBUFFERED=1 makes Python flush to the file immediately.
+# $(2) is required: it is the exit condition, and an empty one kills the command
+# at its first output line and passes.
 define run_step_smoke
 	@printf "  \`$(1)\`"; \
 	logfile=$$(mktemp); \

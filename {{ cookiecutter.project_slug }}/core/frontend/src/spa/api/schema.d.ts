@@ -11,12 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * Me
-         * @description The authenticated user. Inherits the global dual auth, so it serves
-         *     both the SPA boot payload (session) and a headless ``whoami`` (bearer).
-         *     Read-only — no escalation risk on the bearer path.
-         */
+        /** Me */
         get: operations["core_api_me"];
         put?: never;
         post?: never;
@@ -33,16 +28,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * List Api Keys
-         * @description List the requesting user's keys, including revoked, newest-first.
-         */
+        /** List Api Keys */
         get: operations["api_keys_api_list_api_keys"];
         put?: never;
-        /**
-         * Create Api Key
-         * @description Mint a new key and return the raw token exactly once.
-         */
+        /** Create Api Key */
         post: operations["api_keys_api_create_api_key"];
         delete?: never;
         options?: never;
@@ -59,11 +48,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /**
-         * Revoke Api Key
-         * @description Revoke a key. Idempotent. Returns 404 for keys not owned by the
-         *     requesting user (existence is not disclosed).
-         */
+        /** Revoke Api Key */
         post: operations["api_keys_api_revoke_api_key"];
         delete?: never;
         options?: never;
@@ -75,27 +60,12 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /**
-         * MeOut
-         * @description The current user, for the SPA boot payload and headless ``whoami``.
-         *
-         *     Per-user boot data travels through the typed API rather than an untyped
-         *     ``window`` global; build-time constants (e.g. project name) are
-         *     server-rendered instead. See ADR-0006. Grow as the SPA needs it
-         *     (email, is_staff, …) — each field stays inside the OpenAPI contract.
-         */
+        /** MeOut */
         MeOut: {
             /** Username */
             username: string;
         };
-        /**
-         * ApiKeyOut
-         * @description Wire shape for a UserApiKey row.
-         *
-         *     Deliberately omits ``hash`` — the persisted token digest is never
-         *     surfaced to clients, since the only legitimate consumer of the live
-         *     credential is the user who minted it (via the one-shot mint response).
-         */
+        /** ApiKeyOut */
         ApiKeyOut: {
             /** Id */
             id: number;
@@ -113,20 +83,13 @@ export interface components {
             /** Revoked At */
             revoked_at?: string | null;
         };
-        /**
-         * ApiKeyMintOut
-         * @description Response for ``POST /api/api-keys/`` — the only place the raw token
-         *     is ever returned by the server.
-         */
+        /** ApiKeyMintOut */
         ApiKeyMintOut: {
             api_key: components["schemas"]["ApiKeyOut"];
             /** Raw Token */
             raw_token: string;
         };
-        /**
-         * ApiKeyCreateIn
-         * @description Body for ``POST /api/api-keys/``.
-         */
+        /** ApiKeyCreateIn */
         ApiKeyCreateIn: {
             /**
              * Name

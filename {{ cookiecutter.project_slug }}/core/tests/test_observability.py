@@ -63,10 +63,8 @@ urlpatterns = [path("boom", boom), path("test-api/", test_api.urls)]
 
 @contextmanager
 def console_output() -> Iterator[io.StringIO]:
-    """Swaps the streams rather than reading captured stderr, because a handler
-    holds the ``sys.stderr`` it was built with, which pytest replaced later.
-    Every handler in the tree, so a record printed twice shows up as two lines;
-    pytest's own handlers are left out."""
+    """Not captured stderr: a handler holds the ``sys.stderr`` it was built with, which
+    pytest replaced later."""
 
     stream = io.StringIO()
     loggers = [logging.getLogger(), *logging.getLogger().manager.loggerDict.values()]
@@ -112,10 +110,8 @@ def failing_bound_job() -> None:
 
 
 def perform_failing_jobs(queue_name: str, *funcs: Callable[[], None]) -> list[str]:
-    # One real worker, because RQ's integration reports from
-    # ``Worker.handle_exception`` alone, which the synchronous enqueue of the test
-    # settings never reaches. Each caller passes its own queue name so tests share
-    # no Redis keys.
+    # One real worker: RQ's integration reports from ``Worker.handle_exception`` alone,
+    # which the synchronous enqueue of the test settings never reaches.
     connection = django_rq.get_connection()
     queue = Queue(queue_name, connection=connection)
     jobs = [
@@ -128,9 +124,7 @@ def perform_failing_jobs(queue_name: str, *funcs: Callable[[], None]) -> list[st
             job.save()
             worker.execute_job(job, queue)
     finally:
-        # Redis is real here (pytest-django's rollback covers SQL only) and a
-        # failed job carries RQ's default one-year failure_ttl, so without this
-        # every suite run leaks job, result, registry and worker keys.
+        # A failed job carries RQ's default one-year failure_ttl, so these keys persist.
         for job in jobs:
             Result.delete_all(job)
             job.delete()
@@ -243,7 +237,6 @@ class TestErrorEvents:
     def test_an_application_error_log_is_a_log_and_not_an_event(
         self, sentry: CapturingTransport
     ) -> None:
-        # The policy under test is ADR-0007.
         logger = logging.getLogger("core.services")
         logger.error("attempt 1/3 failed (transport), retrying in 60 s")
         try:
@@ -268,8 +261,6 @@ class TestJobCorrelation:
     def test_a_job_that_raises_inside_bound_produces_a_correlated_event(
         self, sentry: CapturingTransport
     ) -> None:
-        # The block has already unwound when RQ reports the failure, so the
-        # tags must outlive it by exactly the job.
         (job_id,) = perform_failing_jobs("observability-test-bound", failing_bound_job)
         flush_sentry()
         tags = sentry.event_with("bound job boom")["tags"]
@@ -384,18 +375,15 @@ class TestIgnoredLoggers:
         assert sentry.log_bodies() == []
 
 
-# transaction=True: the real WSGI handler fires request_started, whose
-# close_old_connections closes a connection whose autocommit is off. Inside the
-# default test transaction that leaves the connection unusable on Postgres
-# (SQLite in-memory ignores close), so the database check would report 503.
+# transaction=True: the WSGI handler's close_old_connections closes a non-autocommit
+# connection, which on Postgres breaks the default test transaction (503 from /healthz).
 @pytest.mark.django_db(transaction=True)
 class TestHealthzIsSilent:
     def test_the_probe_generates_no_sentry_traffic(
         self, sentry: CapturingTransport
     ) -> None:
-        # Driven through the WSGI application rather than the test client: the
-        # SDK's request handling lives in ``WSGIHandler.__call__``, which the
-        # test client bypasses.
+        # Not the test client: the SDK's request handling lives in
+        # ``WSGIHandler.__call__``, which it bypasses.
         application = get_wsgi_application()
         environ = RequestFactory(headers={"host": "localhost"}).get("/healthz").environ
         statuses: list[str] = []
@@ -405,8 +393,6 @@ class TestHealthzIsSilent:
                 lambda status, headers: statuses.append(status),  # type: ignore[arg-type]
             )
             body = b"".join(response)
-            # What a WSGI server does after the body; it fires request_finished,
-            # which is what unbinds the request context.
             response.close()
         assert statuses == ["200 OK"]
         assert json.loads(body) == {"database": "ok", "redis": "ok"}

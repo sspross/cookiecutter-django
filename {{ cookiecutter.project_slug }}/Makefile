@@ -9,15 +9,15 @@ test: frontend.build
 		exit $$status; \
 	fi
 
-test.coverage: frontend.build # run the suite with a coverage report (config in pyproject.toml)
+test.coverage: frontend.build
 	uv run pytest -n 4 --cov --cov-report=term
 
-test.live.watch: frontend.build # run live (Playwright) tests with a visible, slowed-down browser
+test.live.watch: frontend.build
 	@dirs=$$(find . -type d -path '*/tests/live' -not -path '*/.venv/*' -not -path '*/node_modules/*'); \
 	if [ -z "$$dirs" ]; then echo "No tests/live directories found"; exit 1; fi; \
 	uv run pytest --headed --slowmo 500 -s $$dirs
 
-test.live.record: frontend.build # run live (Playwright) tests headless, recording video + trace for later review
+test.live.record: frontend.build
 	@dirs=$$(find . -type d -path '*/tests/live' -not -path '*/.venv/*' -not -path '*/node_modules/*'); \
 	if [ -z "$$dirs" ]; then echo "No tests/live directories found"; exit 1; fi; \
 	uv run pytest --video on --tracing on --output test-results $$dirs; \
@@ -53,31 +53,29 @@ frontend.dev:
 backend.dev:
 	uv run python manage.py runserver
 
-# SimpleWorker is in-process (no os.fork(), so fork-safe on macOS) and has no
-# hard per-job timeout, unlike prod's forking worker.sh. Jobs must be correct
-# under both. See docs/adr/0003.
+# SimpleWorker avoids os.fork(), which is unsafe on macOS, see docs/adr/0003-async-by-default.md.
 worker.dev:
 	uv run python manage.py rqworker default --worker-class rq.worker.SimpleWorker
 
-dev: # one-command dev loop: tmux with a shell + frontend/backend/worker panes
+dev:
 	./scripts/dev.sh
 
-schema: # regenerate the typed API client (schema.d.ts) from the ninja schema, offline
+schema:
 	uv run python manage.py export_openapi_schema -o core/frontend/.openapi.json
 	cd core/frontend && npm run schema
 	rm -f core/frontend/.openapi.json
 
-db.recreate: # only work with local Postgres, not SQLite
+db.recreate:
 	dropdb --if-exists --force {{ cookiecutter.project_slug }}
 	createdb {{ cookiecutter.project_slug }}
 
 db.migrate:
 	uv run python manage.py migrate
 
-db.snapshot: # only work with local Postgres, not SQLite
+db.snapshot:
 	dropdb --if-exists {{ cookiecutter.project_slug }}_snapshot
 	createdb -O postgres -T {{ cookiecutter.project_slug }} {{ cookiecutter.project_slug }}_snapshot
 
-db.restore: # only work with local Postgres, not SQLite
+db.restore:
 	dropdb --if-exists {{ cookiecutter.project_slug }}
 	createdb -O postgres -T {{ cookiecutter.project_slug }}_snapshot {{ cookiecutter.project_slug }}

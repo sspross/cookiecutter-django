@@ -288,7 +288,7 @@ Schema conventions (so the generated TS and API docs stay rich):
 - **Document fields with `Field(description=...)`, not `#` comments** — only the
   `Field` description reaches OpenAPI, so it flows into both the generated TS
   (`@description` JSDoc on hover) and the `/api/docs` page. A docstring on the
-  `Schema`/endpoint propagates the same way (see `schema.d.ts`).
+  `Schema`/endpoint propagates the same way.
 - **Optional artifact:** a Pydantic field with a default (`x: T | None = None`)
   renders as `x?:` *optional* in the generated TS even though the server always
   serializes it. Either coalesce at the use site or accept the widened type;

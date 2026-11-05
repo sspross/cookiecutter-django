@@ -1,10 +1,3 @@
-"""Tests for the API key token engine.
-
-Cover only the public surface (``mint`` / ``verify`` / ``revoke``) and its
-observable side effects. Internal helpers — the hash function, the random
-source — stay unpoked so these survive a reorganisation of the internals.
-"""
-
 import pytest
 
 from api_keys import services as api_keys
@@ -33,7 +26,6 @@ class TestMint:
         assert api_key.prefix == result.raw_token[:12]
 
     def test_mint_does_not_persist_raw_token(self):
-        """The raw token must not be reachable from the database."""
         user = UserFactory.create()
 
         result = api_keys.mint(user, name="ci")

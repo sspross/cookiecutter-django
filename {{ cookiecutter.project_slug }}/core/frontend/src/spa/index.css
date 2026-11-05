@@ -1,12 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* Django templates carry Tailwind classes too. */
 @source "../../../**/*.html";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* shadcn-style design tokens (zinc base, monochrome primary). */
 :root {
   --radius: 0.5rem;
 

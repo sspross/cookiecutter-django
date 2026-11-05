@@ -1,21 +1,12 @@
 #!/usr/bin/env bash
-#
-# Fail if the committed API client (schema.d.ts) is stale relative to the ninja
-# schema it is generated from, keeping `schemas.py` the single source of truth.
-#
-# Compares a fresh regeneration against a SNAPSHOT of the committed file, not
-# against `git diff` — a diff check false-fails whenever schema.d.ts has
-# legitimate uncommitted edits. The snapshot is restored on success and on
-# failure alike, so this never leaves the working tree modified.
-#
-# Exactness depends on biome.json excluding schema.d.ts from formatting, so the
-# committed file stays byte-identical to raw openapi-typescript output. Keep
-# that per-file override.
 set -euo pipefail
 
+# Needs the schema.d.ts override in biome.json: the file must stay byte-identical
+# to raw openapi-typescript output.
 SCHEMA_FILE="core/frontend/src/spa/api/schema.d.ts"
 OPENAPI_JSON="core/frontend/.openapi.json"
 
+# A snapshot, because `git diff` false-fails when schema.d.ts has uncommitted edits.
 snapshot="$(mktemp)"
 cp "$SCHEMA_FILE" "$snapshot"
 cleanup() {

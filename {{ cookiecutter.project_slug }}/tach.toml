@@ -1,15 +1,3 @@
-# Each [[modules]] block lists what that package may import; `tach check` fails
-# on any import crossing a boundary the graph doesn't permit.
-#
-# The boundary is a RUNTIME-arrow rule. `ignore_type_checking_imports = true`
-# lets an otherwise-forbidden import live under an `if TYPE_CHECKING:` guard
-# (paired with `from __future__ import annotations`), because an annotation
-# touches no ORM and adds no runtime dependency. Such a guarded import may only
-# travel the SAME direction as the runtime arrow — inverting it would hide a
-# forbidden dependency behind the guard. See ADR-0005 for the full rule.
-#
-# Exempt: tests, migrations, management commands (a composition root may wire
-# anything), and manage.py.
 exclude = [
     "**/__pycache__",
     "**/tests/**",
@@ -19,7 +7,7 @@ exclude = [
     "manage.py",
 ]
 exact = false
-ignore_type_checking_imports = true  # type-hint imports may cross a boundary; see header + ADR-0005
+ignore_type_checking_imports = true  # tach cannot check guard direction, see docs/adr/0005-tach-boundaries.md
 forbid_circular_dependencies = true
 
 [[modules]]
