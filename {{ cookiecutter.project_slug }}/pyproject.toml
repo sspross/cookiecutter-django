@@ -70,6 +70,7 @@ python_version = "3.13"
 plugins = ["mypy_django_plugin.main"]
 explicit_package_bases = true
 warn_unused_ignores = true
+check_untyped_defs = true
 exclude = ["^core/frontend/"]
 
 [[tool.mypy.overrides]]

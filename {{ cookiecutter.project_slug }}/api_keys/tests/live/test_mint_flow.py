@@ -13,7 +13,7 @@ from api_keys.tests.factories import UserFactory
 
 
 def test_full_self_service_lifecycle(page: Page, live_server):
-    UserFactory(username="alice")
+    UserFactory.create(username="alice")
 
     # Log in.
     page.goto(f"{live_server.url}/accounts/login/")

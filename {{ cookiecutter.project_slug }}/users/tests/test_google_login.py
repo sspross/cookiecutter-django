@@ -116,13 +116,17 @@ class TestAllowedGoogleLogin:
 
         sign_in_with_google(client, "anna@gmail.com")
 
-        assert logged_in_user(client).username == "anna@gmail.com"
+        user = logged_in_user(client)
+        assert user is not None
+        assert user.username == "anna@gmail.com"
         assert User.objects.filter(username="anna@company.com").exists()
 
     def test_single_email_logs_in(self, client, allowlist):
         sign_in_with_google(client, "Guest@gmail.com")
 
-        assert logged_in_user(client).email == "guest@gmail.com"
+        user = logged_in_user(client)
+        assert user is not None
+        assert user.email == "guest@gmail.com"
 
     def test_returns_to_the_requested_page(self, client, allowlist):
         response = sign_in_with_google(
@@ -135,6 +139,7 @@ class TestAllowedGoogleLogin:
         sign_in_with_google(client, "boss@company.com", hd="company.com")
 
         user = logged_in_user(client)
+        assert user is not None
         assert user.is_superuser
         assert user.is_staff
 
@@ -142,11 +147,12 @@ class TestAllowedGoogleLogin:
         sign_in_with_google(client, "anna@company.com", hd="company.com")
 
         user = logged_in_user(client)
+        assert user is not None
         assert not user.is_superuser
         assert not user.is_staff
 
     def test_links_to_an_existing_user_with_the_same_email(self, client, allowlist):
-        existing = UserFactory(username="guest", email="guest@gmail.com")
+        existing = UserFactory.create(username="guest", email="guest@gmail.com")
 
         sign_in_with_google(client, "guest@gmail.com")
 
@@ -164,7 +170,7 @@ class TestAllowedGoogleLogin:
     def test_linking_promotes_an_existing_user_on_the_superuser_list(
         self, client, allowlist
     ):
-        existing = UserFactory(username="boss", email="boss@company.com")
+        existing = UserFactory.create(username="boss", email="boss@company.com")
 
         sign_in_with_google(client, "boss@company.com", hd="company.com")
 
@@ -183,6 +189,7 @@ class TestAllowedGoogleLogin:
         sign_in_with_google(client, "guest@gmail.com")
 
         user = logged_in_user(client)
+        assert user is not None
         assert user.is_superuser
         assert user.is_staff
 
@@ -194,6 +201,7 @@ class TestAllowedGoogleLogin:
         sign_in_with_google(client, "boss@company.com", hd="company.com")
 
         user = logged_in_user(client)
+        assert user is not None
         assert user.is_superuser
         assert user.is_staff
 
@@ -223,7 +231,9 @@ class TestPasswordSurvivesGoogleLogin:
         )
 
         sign_in_with_google(client, "guest@gmail.com")
-        assert logged_in_user(client).username == "guest"
+        user = logged_in_user(client)
+        assert user is not None
+        assert user.username == "guest"
         client.logout()
 
         log_in_with_password(client, "guest", "pw-12345!guest")
@@ -244,7 +254,9 @@ class TestPasswordSurvivesGoogleLogin:
 
         sign_in_with_google(client, "guest@gmail.com")
 
-        assert logged_in_user(client).username == "guest"
+        user = logged_in_user(client)
+        assert user is not None
+        assert user.username == "guest"
         assert User.objects.filter(email__iexact="guest@gmail.com").count() == 1
 
     def test_user_from_createsuperuser(self, client, allowlist, monkeypatch):
@@ -257,7 +269,9 @@ class TestPasswordSurvivesGoogleLogin:
         )
 
         sign_in_with_google(client, "boss@company.com", hd="company.com")
-        assert logged_in_user(client).username == "boss"
+        user = logged_in_user(client)
+        assert user is not None
+        assert user.username == "boss"
         client.logout()
 
         log_in_with_password(client, "boss", "pw-12345!boss")
@@ -303,7 +317,7 @@ class TestRejectedGoogleLogin:
         assert User.objects.filter(email="guest@gmail.com").count() == 1
 
     def test_inactive_existing_user_is_rejected(self, client, allowlist):
-        UserFactory(username="guest", email="guest@gmail.com", is_active=False)
+        UserFactory.create(username="guest", email="guest@gmail.com", is_active=False)
 
         response = sign_in_with_google(client, "guest@gmail.com")
 

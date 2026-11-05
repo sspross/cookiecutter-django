@@ -15,7 +15,7 @@ from api_keys.tests.factories import UserFactory
 @pytest.mark.django_db
 class TestMint:
     def test_mint_returns_prefixed_raw_token(self):
-        user = UserFactory()
+        user = UserFactory.create()
 
         result = api_keys.mint(user, name="ci")
 
@@ -23,7 +23,7 @@ class TestMint:
         assert len(result.raw_token) > len(api_keys.TOKEN_PREFIX) + 16
 
     def test_mint_persists_user_api_key_row(self):
-        user = UserFactory()
+        user = UserFactory.create()
 
         result = api_keys.mint(user, name="ci")
 
@@ -34,7 +34,7 @@ class TestMint:
 
     def test_mint_does_not_persist_raw_token(self):
         """The raw token must not be reachable from the database."""
-        user = UserFactory()
+        user = UserFactory.create()
 
         result = api_keys.mint(user, name="ci")
 
@@ -45,7 +45,7 @@ class TestMint:
 @pytest.mark.django_db
 class TestVerify:
     def test_round_trip(self):
-        user = UserFactory()
+        user = UserFactory.create()
         result = api_keys.mint(user, name="ci")
 
         verified = api_keys.verify(result.raw_token)
@@ -62,14 +62,14 @@ class TestVerify:
         assert api_keys.verify("") is None
 
     def test_tampered_token_is_rejected(self):
-        user = UserFactory()
+        user = UserFactory.create()
         result = api_keys.mint(user, name="ci")
         tampered = result.raw_token[:-1] + ("a" if result.raw_token[-1] != "a" else "b")
 
         assert api_keys.verify(tampered) is None
 
     def test_revoked_key_is_rejected(self):
-        user = UserFactory()
+        user = UserFactory.create()
         result = api_keys.mint(user, name="ci")
 
         api_keys.revoke(result.api_key)
@@ -77,7 +77,7 @@ class TestVerify:
         assert api_keys.verify(result.raw_token) is None
 
     def test_successful_verify_bumps_last_used_at(self):
-        user = UserFactory()
+        user = UserFactory.create()
         result = api_keys.mint(user, name="ci")
         assert result.api_key.last_used_at is None
 

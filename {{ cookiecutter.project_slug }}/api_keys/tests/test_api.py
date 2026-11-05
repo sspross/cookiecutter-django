@@ -19,8 +19,8 @@ from api_keys.tests.factories import UserFactory
 @pytest.mark.django_db
 class TestListApiKeys:
     def test_lists_only_own_keys_newest_first(self, client):
-        alice = UserFactory(username="alice")
-        bob = UserFactory(username="bob")
+        alice = UserFactory.create(username="alice")
+        bob = UserFactory.create(username="bob")
         api_keys.mint(bob, name="bob-key")
         alice_old = api_keys.mint(alice, name="alice-old").api_key
         alice_new = api_keys.mint(alice, name="alice-new").api_key
@@ -34,7 +34,7 @@ class TestListApiKeys:
         assert {r["id"] for r in rows} == {alice_new.id, alice_old.id}
 
     def test_includes_revoked_keys(self, client):
-        user = UserFactory()
+        user = UserFactory.create()
         result = api_keys.mint(user, name="rotated")
         api_keys.revoke(result.api_key)
         client.force_login(user)
@@ -49,7 +49,7 @@ class TestListApiKeys:
     def test_never_carries_a_secret(self, client):
         """One invariant, asserted over the whole create -> list path: a
         listed row exposes neither the stored hash nor the raw token."""
-        user = UserFactory()
+        user = UserFactory.create()
         client.force_login(user)
         client.post(
             "/api/api-keys/",
@@ -73,7 +73,7 @@ class TestListApiKeys:
     def test_rejects_bearer_auth(self, client):
         """Per-router override: bearer tokens cannot list keys, even when
         valid. Prevents a leaked token from enumerating siblings."""
-        user = UserFactory()
+        user = UserFactory.create()
         result = api_keys.mint(user, name="ci")
 
         response = client.get(
@@ -97,7 +97,7 @@ THROTTLE_CACHES = {
 @pytest.mark.django_db
 class TestCreateApiKey:
     def test_mint_returns_201_with_raw_token_and_api_key(self, client):
-        user = UserFactory()
+        user = UserFactory.create()
         client.force_login(user)
 
         response = client.post(
@@ -125,7 +125,7 @@ class TestCreateApiKey:
 
     def test_rejects_bearer_auth(self, client):
         """Bearer auth cannot mint a key, preventing token-based escalation."""
-        user = UserFactory()
+        user = UserFactory.create()
         result = api_keys.mint(user, name="ci")
 
         response = client.post(
@@ -139,7 +139,7 @@ class TestCreateApiKey:
         assert UserApiKey.objects.filter(user=user).count() == 1
 
     def test_name_longer_than_the_column_returns_422(self, client):
-        user = UserFactory()
+        user = UserFactory.create()
         client.force_login(user)
 
         response = client.post(
@@ -156,7 +156,7 @@ class TestCreateApiKey:
     ):
         """A stolen session cannot mint unbounded keys, but the user can always
         list and revoke the ones already out there."""
-        user = UserFactory()
+        user = UserFactory.create()
         client.force_login(user)
 
         with override_settings(CACHES=THROTTLE_CACHES):
@@ -189,7 +189,7 @@ class TestCreateApiKey:
     def test_session_write_without_csrf_header_returns_403(self):
         """The default test client skips CSRF, so the contract on session-authed
         writes needs an enforcing client to be proven."""
-        user = UserFactory()
+        user = UserFactory.create()
         csrf_client = Client(enforce_csrf_checks=True)
         csrf_client.force_login(user)
 
@@ -206,7 +206,7 @@ class TestCreateApiKey:
 @pytest.mark.django_db
 class TestRevokeApiKey:
     def test_revoke_flips_revoked_at(self, client):
-        user = UserFactory()
+        user = UserFactory.create()
         result = api_keys.mint(user, name="ci")
         client.force_login(user)
 
@@ -219,7 +219,7 @@ class TestRevokeApiKey:
         assert result.api_key.revoked_at is not None
 
     def test_revoke_is_idempotent(self, client):
-        user = UserFactory()
+        user = UserFactory.create()
         result = api_keys.mint(user, name="ci")
         client.force_login(user)
 
@@ -237,8 +237,8 @@ class TestRevokeApiKey:
     def test_cross_user_revoke_returns_404(self, client):
         """Returning 404 (not 403) avoids existence disclosure of other
         users' keys."""
-        alice = UserFactory(username="alice")
-        bob = UserFactory(username="bob")
+        alice = UserFactory.create(username="alice")
+        bob = UserFactory.create(username="bob")
         bob_key = api_keys.mint(bob, name="bob-key").api_key
         client.force_login(alice)
 
@@ -249,7 +249,7 @@ class TestRevokeApiKey:
         assert bob_key.revoked_at is None
 
     def test_revoke_unknown_id_returns_404(self, client):
-        user = UserFactory()
+        user = UserFactory.create()
         client.force_login(user)
 
         response = client.post("/api/api-keys/999999/revoke/")
@@ -257,7 +257,7 @@ class TestRevokeApiKey:
         assert response.status_code == 404
 
     def test_requires_session_auth(self, client):
-        user = UserFactory()
+        user = UserFactory.create()
         result = api_keys.mint(user, name="ci")
 
         response = client.post(f"/api/api-keys/{result.api_key.id}/revoke/")
@@ -265,7 +265,7 @@ class TestRevokeApiKey:
         assert response.status_code == 401
 
     def test_rejects_bearer_auth(self, client):
-        user = UserFactory()
+        user = UserFactory.create()
         result = api_keys.mint(user, name="ci")
 
         response = client.post(
@@ -284,7 +284,7 @@ class TestVerifyAfterRevokeViaEndpoint:
     token for the headless data API."""
 
     def test_revoked_via_endpoint_token_is_rejected_by_verify(self, client):
-        user = UserFactory()
+        user = UserFactory.create()
         result = api_keys.mint(user, name="ci")
         client.force_login(user)
 
