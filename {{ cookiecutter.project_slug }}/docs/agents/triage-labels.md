@@ -4,6 +4,8 @@ The five canonical triage labels used in this repo's issue tracker. When a skill
 mentions a triage role (e.g. "apply the AFK-ready triage label"), use the
 matching label string below.
 
+A generated repo has to create these labels itself; nothing in the template does.
+
 | Label             | Meaning                                  |
 | ----------------- | ---------------------------------------- |
 | `needs-triage`    | Maintainer needs to evaluate this issue  |

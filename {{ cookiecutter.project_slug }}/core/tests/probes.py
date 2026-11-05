@@ -1,6 +1,3 @@
-"""Middleware probe as importable code: Django loads middleware by dotted path
-and pytest owns test-module names."""
-
 import logging
 from collections.abc import Callable
 

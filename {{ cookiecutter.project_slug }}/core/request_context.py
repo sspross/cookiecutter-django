@@ -1,14 +1,3 @@
-"""The request id and request source every log line and event carries.
-
-ContextVar rather than a thread-local, which an ASGI worker would share across
-the requests it interleaves on one thread. Hand-rolled because django-guid and
-its peers propagate to Celery only.
-
-Generated, never read from an inbound ``X-Request-ID``: that header is
-client-controlled, and honouring it would let a caller collide unrelated
-requests onto a single id.
-"""
-
 import logging
 import uuid
 from collections.abc import Callable, Iterator
@@ -49,7 +38,6 @@ request_source: ContextVar[str] = ContextVar("request_source", default=UNSET)
 # cannot undo that block's binding.
 _request_bound: ContextVar[bool] = ContextVar("request_bound", default=False)
 
-# The attribute :func:`bound` leaves on an exception that escapes its block.
 _CARRIED = "_request_context"
 
 
@@ -74,15 +62,6 @@ def _tag(scope: sentry_sdk.Scope, new_request_id: str, new_request_source: str) 
 
 @contextmanager
 def bound(new_request_id: str, new_request_source: str) -> Iterator[None]:
-    """For work whose extent really is a block, such as a worker job. A request's
-    binding is not a block; see :class:`RequestContextMiddleware`.
-
-    The tags go on a forked current scope and come off with the block. An
-    exception that leaves the block is reported after it (by RQ's
-    ``handle_exception`` for a job), so the exception carries the pair itself and
-    :func:`tag_event_from_exception` puts it on the event that reports it. Nothing
-    is left on a scope the next job or command would inherit."""
-
     previous = (request_id.get(), request_source.get())
     with sentry_sdk.new_scope() as scope:
         _bind(new_request_id, new_request_source)
@@ -90,6 +69,8 @@ def bound(new_request_id: str, new_request_source: str) -> Iterator[None]:
         try:
             yield
         except BaseException as exception:
+            # Reported after the block exits (by RQ's ``handle_exception`` for a job),
+            # so the exception carries the pair to the event that reports it.
             setattr(exception, _CARRIED, (new_request_id, new_request_source))
             raise
         finally:
@@ -99,8 +80,6 @@ def bound(new_request_id: str, new_request_source: str) -> Iterator[None]:
 def tag_event_from_exception(
     event: dict[str, Any], hint: dict[str, Any]
 ) -> dict[str, Any]:
-    """``before_send`` in :func:`core.observability.sentry_options`."""
-
     exception = hint.get("exc_info", (None, None, None))[1]
     carried = getattr(exception, _CARRIED, None)
     if carried is not None:
@@ -111,19 +90,18 @@ def tag_event_from_exception(
 
 
 class RequestContextMiddleware:
-    """Must be first in ``settings.MIDDLEWARE``, so a response produced by another
-    middleware (the security redirect, an invalid-host 400) is correlated too. The
-    binding then deliberately outlives this middleware, because
-    ``BaseHandler.get_response`` logs 400-and-above responses to ``django.request``
-    after the chain returns; :func:`_unbind_on_response_close` undoes it instead."""
+    """The binding outlives this middleware: ``BaseHandler.get_response`` logs responses
+    of 400 and above after the chain returns. ``_unbind_on_response_close`` ends it."""
 
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         if _request_bound.get():
-            # Defensive: a response that was never closed. Nothing here streams.
+            # Defensive: an earlier response on this context was never closed.
             _unbind_request()
+        # Never the inbound X-Request-ID: a client could collide unrelated requests
+        # onto one id.
         generated = uuid.uuid4().hex
         source = classify_source(request.path)
         # The isolation scope, which ``DjangoIntegration`` gives each request one
@@ -140,10 +118,8 @@ class RequestContextMiddleware:
 
 
 def _closing_in_request_context(close: Callable[[], None]) -> Callable[[], None]:
-    """Django's ``ASGIHandler`` closes the response from the parent task, whose
-    context need not carry the binding the middleware made in a child. A WSGI
-    server closes in the request's own context, where running a copy would leave
-    the pooled thread bound; hence the check."""
+    """``ASGIHandler`` closes from a parent task, whose context may lack the binding.
+    WSGI closes in the request's context, where a copy would leave the thread bound."""
 
     request_context = copy_context()
 
@@ -162,8 +138,8 @@ def _unbind_request() -> None:
 
 
 def _unbind_on_response_close(**_kwargs: object) -> None:
-    """``request_finished`` fires from ``HttpResponseBase.close()``. Unbinding
-    matters because under WSGI a pooled thread serves the next request."""
+    """Undoes the binding on response close, because under WSGI a pooled thread serves
+    the next request."""
 
     if _request_bound.get():
         _unbind_request()
@@ -175,9 +151,8 @@ request_finished.connect(
 
 
 class RequestContextFilter(logging.Filter):
-    """A filter rather than a formatter change, because Sentry Logs indexes record
-    attributes. Attached to the console handler because the SDK's hook runs after
-    the handlers it patches, so the record it reads is the filtered one."""
+    """A filter, not a formatter change: Sentry Logs indexes record attributes. On the
+    console handler because the SDK's hook runs after it and reads that record."""
 
     def filter(self, record: logging.LogRecord) -> bool:
         record.request_id = request_id.get()

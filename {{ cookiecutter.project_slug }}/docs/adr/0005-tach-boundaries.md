@@ -66,8 +66,8 @@ boundary the runtime arrow forbids.**
   `app.services` only. A direct `from app.models import …` from outside then fails
   `tach check`, while a `TYPE_CHECKING` import of an `app.models` type for an
   annotation stays legal (same-direction, no ORM at runtime). Add the sub-package
-  blocks only once the packages exist — pointing `tach.toml` at absent paths
-  breaks `tach check`.
+  blocks only once the packages exist: a block on an absent path enforces
+  nothing, and `tach check` only warns about it.
 
 - **A neutral top-level `types`/`contracts` module is not the answer to a
   boundary-crossing type hint.** It is a whole module for what is usually a
@@ -76,8 +76,8 @@ boundary the runtime arrow forbids.**
 
 - **Tests, migrations, management commands, and `manage.py` are exempt**
   (`tach.toml` excludes them). A management command is a composition root that may
-  wire anything; the seam is enforced where it matters — services, runners, and
-  the app-to-app edges — not on glue.
+  wire anything; the seam is enforced where it matters (services and the
+  app-to-app edges), not on glue.
 
 ## Consequences
 
@@ -93,7 +93,7 @@ Positive:
 Negative:
 
 - The `from other_app.models import X` failure reads as "you can't use this
-  type," which is wrong; this ADR (and the `tach.toml` header comment) is the
+  type," which is wrong; this ADR is the
   answer, and without it someone "fixes" the boundary instead of guarding the
   import.
 - `ignore_type_checking_imports = true` trusts that guarded imports are honest

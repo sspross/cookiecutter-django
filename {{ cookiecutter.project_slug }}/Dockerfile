@@ -4,7 +4,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_SYSTEM_PYTHON=1
 
-# nodejs/npm are needed for the Vite frontend build below.
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
@@ -35,12 +34,11 @@ RUN make frontend.build
 
 RUN uv run python manage.py collectstatic --noinput
 
-# Drop it again so the orchestrator's env vars win at runtime.
+# Never a runtime fallback: .env.example sets DEBUG=True and a placeholder SECRET_KEY.
 RUN rm -f .env
 
 RUN chown -R app:app /app
 
 USER app
 
-# Only reached on an orchestrator that cannot override the command per process.
 CMD ["./web.sh"]

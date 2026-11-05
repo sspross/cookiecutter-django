@@ -5,7 +5,6 @@
 
 {% block extra_head %}
   {{ block.super }}
-  {# Pull in the SPA bundle so the login page shares Tailwind tokens. #}
   {% vite_asset "main.tsx" %}
 {% endblock extra_head %}
 
@@ -29,7 +28,6 @@
 
       {% get_providers as socialaccount_providers %}
       {% if socialaccount_providers %}
-        {# A POST skips allauth's "continue with Google?" confirmation page. #}
         <form method="post"
               action="{% provider_login_url 'google' %}"
               class="mb-4 border-b border-border pb-4"

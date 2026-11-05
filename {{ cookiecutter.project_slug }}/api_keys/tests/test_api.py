@@ -1,10 +1,3 @@
-"""HTTP-level tests for ``/api/api-keys/*``.
-
-Assert on observable behaviour — status codes, response JSON, persisted state
-— never on which service helper ran or in what order. Service-level cases live
-in ``test_services.py``.
-"""
-
 from __future__ import annotations
 
 import pytest
@@ -47,8 +40,6 @@ class TestListApiKeys:
         assert rows[0]["revoked_at"] is not None
 
     def test_never_carries_a_secret(self, client):
-        """One invariant, asserted over the whole create -> list path: a
-        listed row exposes neither the stored hash nor the raw token."""
         user = UserFactory.create()
         client.force_login(user)
         client.post(
@@ -71,8 +62,6 @@ class TestListApiKeys:
         assert response.status_code == 401
 
     def test_rejects_bearer_auth(self, client):
-        """Per-router override: bearer tokens cannot list keys, even when
-        valid. Prevents a leaked token from enumerating siblings."""
         user = UserFactory.create()
         result = api_keys.mint(user, name="ci")
 
@@ -84,8 +73,6 @@ class TestListApiKeys:
         assert response.status_code == 401
 
 
-# The throttle counts in the cache, which the test settings stub out with a
-# backend that stores nothing. Only the throttle case needs a real one.
 THROTTLE_CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
@@ -124,7 +111,6 @@ class TestCreateApiKey:
         assert response.status_code == 401
 
     def test_rejects_bearer_auth(self, client):
-        """Bearer auth cannot mint a key, preventing token-based escalation."""
         user = UserFactory.create()
         result = api_keys.mint(user, name="ci")
 
@@ -154,8 +140,6 @@ class TestCreateApiKey:
     def test_eleventh_mint_in_an_hour_is_throttled_while_revoke_stays_open(
         self, client
     ):
-        """A stolen session cannot mint unbounded keys, but the user can always
-        list and revoke the ones already out there."""
         user = UserFactory.create()
         client.force_login(user)
 
@@ -187,8 +171,6 @@ class TestCreateApiKey:
         assert listed.status_code == 200
 
     def test_session_write_without_csrf_header_returns_403(self):
-        """The default test client skips CSRF, so the contract on session-authed
-        writes needs an enforcing client to be proven."""
         user = UserFactory.create()
         csrf_client = Client(enforce_csrf_checks=True)
         csrf_client.force_login(user)
@@ -235,8 +217,6 @@ class TestRevokeApiKey:
         assert result.api_key.revoked_at == first_revoked_at
 
     def test_cross_user_revoke_returns_404(self, client):
-        """Returning 404 (not 403) avoids existence disclosure of other
-        users' keys."""
         alice = UserFactory.create(username="alice")
         bob = UserFactory.create(username="bob")
         bob_key = api_keys.mint(bob, name="bob-key").api_key
@@ -280,9 +260,6 @@ class TestRevokeApiKey:
 
 @pytest.mark.django_db
 class TestVerifyAfterRevokeViaEndpoint:
-    """No regression: revoking via the endpoint must invalidate the bearer
-    token for the headless data API."""
-
     def test_revoked_via_endpoint_token_is_rejected_by_verify(self, client):
         user = UserFactory.create()
         result = api_keys.mint(user, name="ci")

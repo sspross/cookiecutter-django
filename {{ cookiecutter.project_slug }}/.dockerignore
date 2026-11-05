@@ -1,7 +1,6 @@
 .git/
 .github/
 
-# Virtual environment (prevents local .venv from shadowing container's system packages)
 .venv/
 
 .env
@@ -16,7 +15,6 @@ __pycache__/
 
 db.sqlite3
 
-# Build artifacts (rebuilt during docker build)
 staticfiles/
 core/static/dist/
 core/frontend/node_modules/

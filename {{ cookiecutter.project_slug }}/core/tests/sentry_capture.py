@@ -4,8 +4,8 @@ import sentry_sdk
 from sentry_sdk.envelope import Envelope
 from sentry_sdk.transport import Transport
 
-# Parses, but the host deliberately does not resolve: the backstop for anything
-# that initializes the real SDK without one of our transports.
+# Parses, but the host never resolves: the backstop for anything that initializes
+# the real SDK without one of our transports.
 TEST_DSN = "https://public@sentry.invalid/1"
 
 type Payload = dict[str, Any]
@@ -52,9 +52,6 @@ class CapturingTransport(Transport):
         return matches[0]
 
     def logs(self) -> list[Payload]:
-        # Sentry's log protocol wraps attribute values in ``{"value", "type"}``
-        # envelopes, and ``level`` is OTel severity text (``logging.WARNING``
-        # reads back as ``"warn"``).
         return [
             {
                 "level": entry.get("level"),

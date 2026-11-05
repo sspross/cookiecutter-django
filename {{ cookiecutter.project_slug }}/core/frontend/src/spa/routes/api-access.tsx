@@ -28,7 +28,6 @@ function formatTimestamp(iso: string | null | undefined) {
   }
 }
 
-// `window` is always defined here — the SPA only runs in the browser.
 const ORIGIN = window.location.origin;
 const PREFIX_HINT = "{{ cookiecutter.project_slug }}_live_…";
 

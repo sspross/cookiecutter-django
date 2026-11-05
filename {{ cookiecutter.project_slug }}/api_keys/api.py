@@ -1,9 +1,4 @@
-"""ninja router for `/api/api-keys/*` — self-service API key management.
-
-Overrides the global ``[ApiKeyBearer(), django_auth]`` default with
-``django_auth`` only, so a leaked bearer token cannot mint a sibling.
-See ADR-0002. A thin adapter over :mod:`api_keys.services`.
-"""
+"""``django_auth`` only, so a leaked bearer token cannot mint a sibling (ADR-0002)."""
 
 from __future__ import annotations
 
@@ -32,7 +27,6 @@ class AuthenticatedRequest(HttpRequest):
 
 @router.get("/", response=list[ApiKeyOut])
 def list_api_keys(request: AuthenticatedRequest) -> QuerySet[UserApiKey]:
-    """List the requesting user's keys, including revoked, newest-first."""
     return UserApiKey.objects.filter(user=request.user)
 
 
@@ -42,7 +36,6 @@ def list_api_keys(request: AuthenticatedRequest) -> QuerySet[UserApiKey]:
     throttle=[AuthRateThrottle("10/h")],
 )
 def create_api_key(request: AuthenticatedRequest, payload: ApiKeyCreateIn) -> Status:
-    """Mint a new key and return the raw token exactly once."""
     result = api_keys_services.mint(request.user, payload.name)
     return Status(
         201,
@@ -55,8 +48,6 @@ def create_api_key(request: AuthenticatedRequest, payload: ApiKeyCreateIn) -> St
 
 @router.post("/{api_key_id}/revoke/", response=ApiKeyOut)
 def revoke_api_key(request: AuthenticatedRequest, api_key_id: int) -> UserApiKey:
-    """Revoke a key. Idempotent. Returns 404 for keys not owned by the
-    requesting user (existence is not disclosed)."""
     try:
         api_key = UserApiKey.objects.get(pk=api_key_id, user=request.user)
     except UserApiKey.DoesNotExist as exc:

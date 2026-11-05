@@ -1,10 +1,3 @@
-/**
- * TanStack Query hook for `/api/me` — the current user.
- *
- * Per-user boot data goes through the typed API, read like any other server
- * state. See ADR-0006.
- */
-
 import { useQuery } from "@tanstack/react-query";
 import { apiClient, type Me, requireData } from "@/api/client";
 

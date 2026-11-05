@@ -3,12 +3,10 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-// One pipeline for the SPA and for Django-rendered pages: both load the CSS
-// this build emits. See ADR-0001.
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   root: resolve("./src"),
-  base: "/static/dist/js/", // Keep in sync with DJANGO_VITE settings
+  base: "/static/dist/js/", // Keep in sync with DJANGO_VITE in core/settings/base.py
   resolve: {
     extensions: [".tsx", ".ts", ".jsx", ".js"],
     alias: {
@@ -28,8 +26,6 @@ export default defineConfig({
     },
   },
   server: {
-    // Vite dev server runs on a separate port; django-vite injects the
-    // HMR client only when DEBUG=True.
     origin: "http://localhost:5173",
   },
 });

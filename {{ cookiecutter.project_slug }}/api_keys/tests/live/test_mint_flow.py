@@ -1,10 +1,3 @@
-"""End-to-end live test for the api_keys mint/revoke flow.
-
-Drives the full stack: Django session login -> SPA route -> ninja API call ->
-one-shot raw token modal -> revoke. Web-first ``expect()`` auto-retries, which
-absorbs animation timing. See CONTEXT.md for the live-test conventions.
-"""
-
 from django.conf import settings
 from playwright.sync_api import Page, expect
 
@@ -20,12 +13,10 @@ def test_full_self_service_lifecycle(page: Page, live_server):
     page.fill('input[name="username"]', "alice")
     page.fill('input[name="password"]', "pw-12345!")
     page.click('[data-testid="login-form"] button[type="submit"]')
-    # Wait for the SPA shell rather than the discouraged "networkidle".
     sidebar = page.locator('[data-testid="sidebar"]')
     expect(sidebar).to_be_visible()
 
-    # The ADR-0006 boot seam: lower layers can assert each source, but only a
-    # browser proves the SPA reads both and renders them together.
+    # ADR-0006 boot seam: only a browser proves the SPA renders both sources together.
     expect(sidebar).to_contain_text(settings.PROJECT_NAME)
     expect(sidebar).to_contain_text("Signed in as alice")
 
@@ -46,7 +37,6 @@ def test_full_self_service_lifecycle(page: Page, live_server):
     expect(page.locator('[data-testid="raw-token"]')).to_contain_text(
         api_keys.TOKEN_PREFIX
     )
-    # Esc must NOT close the reveal modal — the only exit is "ack".
     page.keyboard.press("Escape")
     expect(page.locator('[data-testid="reveal-modal"]')).to_be_visible()
 

@@ -1,14 +1,3 @@
-/**
- * CSRF helpers for the SPA's typed API client.
- *
- * Django requires every mutating request to echo the `csrftoken` cookie back
- * via the `X-CSRFToken` header; a missing cookie raises here rather than
- * silently sending an empty header.
- *
- * `openapi-fetch` calls a custom fetch with a `Request` as the first argument
- * and an empty `init`, so the method must be read off the Request, not `init`.
- */
-
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 export function readCsrfCookie(cookieJar: string = document.cookie): string | null {
@@ -28,10 +17,10 @@ export class CsrfCookieMissingError extends Error {
 }
 
 export interface CsrfFetchOptions extends RequestInit {
-  /** Override for the cookie source, in place of `document.cookie`. */
   cookieJar?: string;
 }
 
+// `openapi-fetch` calls a custom fetch with a `Request` and an empty `init`.
 function methodOf(input: RequestInfo | URL, init: CsrfFetchOptions): string {
   if (init.method) return init.method.toUpperCase();
   if (typeof Request !== "undefined" && input instanceof Request) {
@@ -40,11 +29,6 @@ function methodOf(input: RequestInfo | URL, init: CsrfFetchOptions): string {
   return "GET";
 }
 
-/**
- * `fetch` wrapper that injects `X-CSRFToken` on unsafe methods and
- * `credentials: same-origin` so the session cookie travels with the
- * request. On safe methods the header is omitted entirely.
- */
 export async function csrfFetch(
   input: RequestInfo | URL,
   init: CsrfFetchOptions = {},
@@ -61,8 +45,6 @@ export async function csrfFetch(
     throw new CsrfCookieMissingError();
   }
 
-  // A Request's headers are immutable from outside; rebuild it with the CSRF
-  // header added.
   if (typeof Request !== "undefined" && input instanceof Request) {
     const headers = new Headers(input.headers);
     headers.set("X-CSRFToken", token);

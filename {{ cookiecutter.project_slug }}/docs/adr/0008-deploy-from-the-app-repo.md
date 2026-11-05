@@ -3,10 +3,10 @@
 ## Context
 
 A compose deployment on a plain docker host needs someone to pull the image,
-write the `.env`, run the migrations and recreate the containers. When a
-separate infra repo owned that, a release was a tag here, a pin bump there and
-a manual run with the operator's credentials; every app change that touched an
-environment variable took two pull requests.
+write the `.env`, run the migrations and recreate the containers. With a
+separate infra repo owning that, a release is a tag here, a pin bump there and
+a manual run with the operator's credentials, and every app change that touches
+an environment variable takes two pull requests.
 
 The deploy belongs to the app: the compose file mirrors the app's topology, the
 secrets are the app's, and the person merging a change is the one who wants to
@@ -54,13 +54,14 @@ The app side, all in this repo:
 - **A deploy is gated on health.** `docker compose up --wait` fails when
   `release` exits non-zero or `web` never becomes healthy; with `DEPLOY_URL`
   set, a request to `<DEPLOY_URL>/healthz` through the reverse proxy has to
-  answer 200. On failure the workflow prints the container logs.
+  answer without an HTTP error status. On failure the workflow prints the container logs.
 
 Private repositories on GitHub Free have no environments, so secrets and
 variables live at the repository level and the `main` restriction is a
 condition in the job, not a GitHub setting. On GitHub Team the job gets
-`environment: production`, the secrets and variables move into that
-environment, and required reviewers become an option. Nothing else changes.
+`environment: production` and the secrets and variables move into that
+environment. Nothing else changes. Required reviewers stay out of reach: GitHub
+Team offers them on public repositories only.
 
 ## Consequences
 
@@ -69,8 +70,8 @@ Positive:
 - One pull request per change, whether it touches code, the compose topology
   or an environment variable.
 - Every commit on `main` is deployable and identifiable by its sha, in the
-  registry and in the running container. Rollback is deploying an older
-  state of `main`.
+  registry and in the running container. Rollback is a revert on `main`
+  followed by a deploy.
 - No credentials on the host beyond what it had, and no persistent runner
   there. With a tailnet, the node the deploy uses exists for the length of
   the job.
@@ -84,5 +85,5 @@ Negative:
   topology changes, the same way `appliku.yml` does (ADR-0004).
 - The deploy waits for the image workflow of the same commit. Pressing the
   button too early fails with a clear message and has to be repeated.
-- A migration that fails leaves the previous `web` and `worker` running on the
-  old image against a partially migrated schema; see `docs/OPERATIONS.md`.
+- A migration that fails leaves a partially migrated schema, and the new `web`
+  and `worker` do not start; see `docs/OPERATIONS.md`.

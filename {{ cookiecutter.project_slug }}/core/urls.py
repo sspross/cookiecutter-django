@@ -10,14 +10,12 @@ from core import views
 from core.api import api
 
 urlpatterns = [
-    # Every URL the React router knows needs a server-side match here, or a
-    # hard reload 404s instead of returning the SPA shell.
+    # In lockstep with the routes in core/frontend/src/spa/App.tsx: a route missing
+    # here 404s on a hard reload.
     path("", views.app_view, name="home"),
     path("api-access/", views.app_view),
     path("api/", api.urls),
     path("healthz", views.healthz, name="healthz"),
-    # Mounted one by one rather than `include("django.contrib.auth.urls")`:
-    # the rest of that URLconf has no template here. See CONTEXT.md.
     path("accounts/login/", auth_views.LoginView.as_view(), name="login"),
     path("accounts/logout/", auth_views.LogoutView.as_view(), name="logout"),
     path(
@@ -30,7 +28,6 @@ urlpatterns = [
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 if settings.SOCIALACCOUNT_PROVIDERS:
-    # Not allauth's URLconf: its other pages have no template here.
     urlpatterns += [
         path(
             "accounts/google/login/",

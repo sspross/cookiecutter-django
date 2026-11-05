@@ -1,10 +1,3 @@
-"""Token engine for `UserApiKey`.
-
-The public surface is ``mint``, ``verify`` and ``revoke``; the prefix, hashing
-and revocation policy stays inside. Callers import neither ``hashlib`` nor
-``secrets``, so a policy change touches only this module.
-"""
-
 from __future__ import annotations
 
 import hashlib
@@ -35,12 +28,6 @@ def _hash(raw_token: str) -> str:
 
 
 def mint(user: User, name: str) -> MintResult:
-    """Generate a new API key for ``user`` and persist only its hash.
-
-    The returned raw token is the sole opportunity any caller has to observe
-    the live credential; it is never written back to the database.
-    """
-
     raw_token = TOKEN_PREFIX + secrets.token_urlsafe(TOKEN_RANDOM_BYTES)
     api_key = UserApiKey.objects.create(
         user=user,
@@ -52,12 +39,6 @@ def mint(user: User, name: str) -> MintResult:
 
 
 def verify(raw_token: str) -> User | None:
-    """Resolve a raw bearer token to its owning user, or ``None``.
-
-    Rejects unknown hashes, revoked keys, keys of deactivated users and
-    malformed tokens. On success, bumps ``last_used_at``.
-    """
-
     if not raw_token or not raw_token.startswith(TOKEN_PREFIX):
         return None
 
@@ -74,8 +55,6 @@ def verify(raw_token: str) -> User | None:
 
 
 def revoke(api_key: UserApiKey) -> None:
-    """Mark ``api_key`` revoked. Idempotent — re-revocation is a no-op."""
-
     if api_key.revoked_at is None:
         api_key.revoked_at = timezone.now()
         api_key.save(update_fields=["revoked_at"])

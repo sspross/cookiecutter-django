@@ -21,8 +21,7 @@ function applyMode(mode: Mode) {
 
 export function ThemeToggle() {
   const [mode, setMode] = useState<Mode>(() => readStored());
-  // The shell renders this twice (sidebar and mobile nav); a shared radio
-  // name would fuse both into one browser-level group.
+  // The shell renders this twice; a fixed radio name would merge both groups.
   const groupName = useId();
 
   useEffect(() => {
@@ -45,8 +44,6 @@ export function ThemeToggle() {
     { value: "light", Icon: Sun, label: "Light" },
     { value: "dark", Icon: Moon, label: "Dark" },
   ];
-  // Native radios give arrow-key navigation for free; they are visually
-  // hidden and the icon in the label is what the user sees.
   return (
     <fieldset className="inline-flex overflow-hidden rounded-md border border-border">
       <legend className="sr-only">Color mode</legend>
