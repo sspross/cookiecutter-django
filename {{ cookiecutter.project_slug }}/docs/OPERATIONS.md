@@ -18,12 +18,12 @@ with its own manifest, `compose.prod.yaml`, and the `deploy` workflow
 
 ## Architecture snapshot
 
-One Docker image (`Dockerfile`) is built per deploy and runs three processes,
-declared in both deployment manifests:
+One Docker image (`Dockerfile`) runs three processes, declared in every
+deployment manifest:
 
 | Process | Command | What it does |
 | --- | --- | --- |
-| `web` | `./web.sh` | `gunicorn core.wsgi` on `0.0.0.0:${PORT:-8000}`, 5 workers, 120s timeout, logs to stdout |
+| `web` | `./web.sh` | `gunicorn core.wsgi` on `0.0.0.0:${PORT:-8000}`, 5 workers, 120s timeout, error log on stderr |
 | `worker` | `./worker.sh` | `manage.py rqworker default`, the forking RQ worker |
 | `release` | `./release.sh` | `manage.py migrate`, run once per deploy before web and worker start |
 
@@ -77,7 +77,7 @@ compose host (`compose.yaml`) works the same way with a hand-written `.env`.
 | `DATABASE_URL` | yes | none, the app fails to boot | `db` database, private connection URL | the compose file, pointing at the `db` service with `${POSTGRES_PASSWORD}` |
 | `REDIS_URL` | no | `redis://localhost:6379/0` | `redis` database, private connection URL | the compose file, pointing at the `redis` service |
 | `ALLOWED_HOSTS` | no | `[]` (empty list) | `from_domains: true`, filled from the domains added in Appliku | repo variable, required; `compose.prod.yaml` appends `localhost` for the `web` healthcheck |
-| `CSRF_TRUSTED_ORIGINS` | no | `[]` (empty list) | not set by `appliku.yml`, set it manually | repo variable |
+| `CSRF_TRUSTED_ORIGINS` | no | `[]` (empty list) | not set by `appliku.yml`, set it manually when needed | repo variable |
 | `MEDIA_ROOT` | no | `<repo>/media` | injected from the `media` volume's `MEDIA` prefix | the compose file, `/volumes/media` |
 | `MEDIA_URL` | no | `media/` | injected from the `media` volume's `MEDIA` prefix | the compose file, `/media/` |
 | `PORT` | no | `8000` | **unverified** whether Appliku injects it; `container_port` is 8000 either way | unset, `web.sh` falls back to 8000 |
@@ -95,7 +95,7 @@ compose host (`compose.yaml`) works the same way with a hand-written `.env`.
 `appliku.yml` or the port mapping in `compose.yaml` too.
 
 `POSTGRES_PASSWORD` is compose-only, a repo secret with `compose.prod.yaml`.
-It never reaches Django; the compose files interpolate it into the `db`
+Django does not read it; the compose files interpolate it into the `db`
 service and into `DATABASE_URL`, without escaping, so it has to be URL-safe.
 
 `IMAGE` is written by the deploy workflow (`ghcr.io/<owner>/<repo>:<sha>`)
@@ -110,9 +110,10 @@ Notes:
 - `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` are comma-separated lists.
   `CSRF_TRUSTED_ORIGINS` entries need the scheme (`https://app.example.com`),
   `ALLOWED_HOSTS` entries do not (`app.example.com`).
-- Set `CSRF_TRUSTED_ORIGINS` yourself for every domain that posts forms or calls
-  the API with a session cookie. Nothing populates it automatically, and a
-  missing entry shows up as a 403 on POST, not as a boot failure.
+- Set `CSRF_TRUSTED_ORIGINS` yourself for every origin other than the app's own
+  that posts forms or calls the API with a session cookie. Nothing populates it
+  automatically, and a missing entry shows up as a 403 on POST, not as a boot
+  failure. A POST from the app's own origin needs no entry.
 - Generate a `SECRET_KEY` with
   `python -c "import secrets; print(secrets.token_urlsafe(50))"`.
 
@@ -143,8 +144,8 @@ and `:latest` to GitHub Container Registry, authenticated with the workflow's
 own `GITHUB_TOKEN`. The same run keeps only the newest 10 versions, so an
 older commit can still be deployed for a while. On a pull
 request the workflow builds the image and does not push it, so a `Dockerfile`
-that no longer builds, or an uncommitted lockfile change, fails CI instead of
-a deploy.
+that no longer builds, or a `package-lock.json` out of sync with
+`package.json`, fails CI instead of a deploy.
 
 Who consumes the image depends on the target:
 
@@ -155,8 +156,7 @@ Who consumes the image depends on the target:
 
 **Unverified**: whether the GHCR package is private by default for this
 project's account. A private package needs `packages: read` for the pull,
-which the deploy workflow's `GITHUB_TOKEN` has; a generic compose host needs
-a token of its own.
+which the deploy workflow's `GITHUB_TOKEN` has.
 
 ### Deploying with the `deploy` workflow
 
@@ -178,8 +178,9 @@ from this repo.
 4. `docker compose pull`, then `docker compose up -d --wait --remove-orphans`.
    `release` runs `release.sh` (`manage.py migrate`) first; `web` and `worker`
    are recreated only after it exited 0.
+   <!-- TODO(cleanup-audit): no Docker daemon was available to run this. The Compose source (v2.40.0 convergence.go, v5.7.0 plan.go) replaces containers in its create phase, before the start phase waits on `release`, which would stop the previous `web` and `worker` when `release` fails. Confirm on a real host. -->
 5. With `DEPLOY_URL` set, the runner requests `<DEPLOY_URL>/healthz` through
-   the reverse proxy. A non-200 fails the job.
+   the reverse proxy. An HTTP error status fails the job.
 6. On failure the job prints `docker compose ps` and the last 100 log lines of
    every service.
 
@@ -188,6 +189,7 @@ What a failed deploy leaves running:
 - `release` failed: the previous `web` and `worker` keep running on the old
   image, against whatever the migration left behind. Fix forward: a new
   commit on `main`, deploy again.
+  <!-- TODO(cleanup-audit): no Docker daemon was available to run this. The Compose source (v2.40.0 convergence.go, v5.7.0 plan.go) replaces containers in its create phase, before the start phase waits on `release`, which would stop the previous `web` and `worker` when `release` fails. Confirm on a real host. -->
 - `release` succeeded and `web` never became healthy: the new `web` is up but
   unhealthy behind the proxy, which answers 502. Look at the logs the job
   printed, fix forward, or deploy the previous state of `main`.
@@ -211,6 +213,7 @@ On a generic compose host: pull the new commit and run
 completion first; `web` and `worker` are recreated only after it exited 0
 (`condition: service_completed_successfully`), so a failing migration leaves
 the previous containers running.
+<!-- TODO(cleanup-audit): no Docker daemon was available to run this. The Compose source (v2.40.0 convergence.go, v5.7.0 plan.go) replaces containers in its create phase, before the start phase waits on `release`, which would stop the previous `web` and `worker` when `release` fails. Confirm on a real host. -->
 
 Per ADR-0004, migrations and one-shot tasks belong in `release.sh` rather than
 in `web.sh`. `release.sh` currently holds nothing but `migrate`: it runs on
@@ -261,7 +264,9 @@ With Google login set up (README.md > Google login), log in at
 {{ cookiecutter.author_email }}. That first login creates the superuser.
 
 Further superusers: add the email to `SSO_SUPERUSER_EMAILS` and allow it (see
-"SSO allowlist" in `CONTEXT.md`). To take the rights away, use the admin.
+"SSO allowlist" in `CONTEXT.md`). To take the rights away, remove the email
+from `SSO_SUPERUSER_EMAILS`, deploy, and use the admin: every allowed login of
+a listed email makes it superuser again.
 
 ### Fallback without Google login
 
@@ -297,9 +302,11 @@ Then log in at `https://<your-domain>/admin/`.
 ## Health probing
 
 `/healthz` (no trailing slash) is an anonymous JSON probe. It accepts `GET` and
-`HEAD` only and answers anything else with `405`. It never sets a cookie, and it
-is listed in `SECURE_REDIRECT_EXEMPT` so it is not redirected to https. Probe it
-over https anyway; the exemption is there for a checker that cannot.
+`HEAD` only. The CSRF middleware answers a `POST`, `PUT`, `PATCH` or `DELETE`
+without a token with `403`, and the view answers any other method with `405`.
+It never sets a cookie, and it is listed in `SECURE_REDIRECT_EXEMPT` so it is
+not redirected to https. Probe it over https anyway; the exemption is there for
+a checker that cannot.
 
 Response body, always both keys:
 
@@ -337,7 +344,7 @@ no log file and nothing is written to disk.
 
 The `LOGGING` dict in `core/settings/base.py` is the whole level policy for
 both. A record below its logger's level reaches neither sink, and raising or
-lowering one logger moves stdout and Sentry Logs together. The levels:
+lowering one logger moves stderr and Sentry Logs together. The levels:
 
 | Logger | Level |
 | --- | --- |
@@ -350,8 +357,8 @@ lowering one logger moves stdout and Sentry Logs together. The levels:
 - The project's own apps ship at `INFO` and up; Django, RQ and libraries at
   `WARNING` and up.
 - `django.request` sits above its parent because its `WARNING` is bot 404
-  probes (`Not Found: /.env`). A 500 is unaffected: it arrives in Sentry as an
-  error event from the Django integration, not as a log.
+  probes (`Not Found: /.env`). A 500 is unaffected: its `ERROR` line reaches both
+  sinks, and the Django integration reports it as an error event.
 - Every logger entry is level-only, with no handler of its own, so each record
   is printed exactly once, by the root console handler.
 - The console format is
@@ -371,7 +378,7 @@ Two things the `LOGGING` dict does not cover:
 - Queue state is not a log. It is visible in the app at `/django-rq/`; see
   CONTEXT.md.
 
-**Muted for Sentry only, stdout untouched**: the loggers in `IGNORED_LOGGERS`
+**Muted for Sentry only, stderr untouched**: the loggers in `IGNORED_LOGGERS`
 (`core/observability.py`) are dropped by the SDK at every level, through both
 `ignore_logger` (events and breadcrumbs) and `ignore_logger_for_sentry_logs`
 (Sentry Logs). Today it holds `rq.worker`, `rq.scheduler` and `rq.job`, which
@@ -379,7 +386,7 @@ RQ sets to `INFO` at worker startup over the `WARNING` in `LOGGING`, so unmuted
 they would ship every job start and finish line of every worker. It also holds
 `django.security.DisallowedHost`, whose lines are bots addressing the server by
 an invalid `Host`, which Django already answers with a 400. Every one of those
-lines still prints on stdout.
+lines still prints on stderr.
 
 Muting a logger does not mute the worker's failures: an unhandled exception in
 a job is reported by the RQ integration, not through the logger, so it arrives
@@ -400,7 +407,7 @@ deploy without Sentry are unchanged.
   SDK's Django integration, and an unhandled exception in an RQ job, reported
   by the SDK's RQ integration from the worker's exception handler. The job
   event carries the job id under `rq-job` in the event's extra data, which is
-  the handle to look the job up at `/django-rq/` or in the worker's stdout.
+  the handle to look the job up at `/django-rq/` or in the worker's stderr.
   Nothing else: the app calls `capture_exception` nowhere on purpose, and no
   log line at any level becomes an event (`event_level=None`). See ADR-0007.
 - **What stays a log**: `logger.error` and `logger.exception` ship to Sentry
@@ -426,7 +433,7 @@ the header is always the one the server used.
 
 - **From a response to its log lines**: grep the platform log stream for the id.
   Every line written while that request was served carries it, including
-  Django's own 4xx and 5xx line for the request, in the bracket after the level:
+  Django's own `django.request` line for a 5xx, in the bracket after the level:
   `2026-09-05 10:00:00,000 ERROR [4f3c... web] django.request ...`.
 - **From a response to Sentry**: search the issue stream for
   `request_id:<the id>`. An event captured during the request carries
@@ -532,13 +539,13 @@ the queue is volatile there too.
 | Boot fails with `ImproperlyConfigured: Set the SECRET_KEY environment variable` | `SECRET_KEY` not set | environment variables in the Appliku dashboard, the `SECRET_KEY` repo secret (the deploy log lists the keys it wrote), or `.env` on a generic compose host |
 | Boot fails on `DATABASE_URL` | the `db` database is not attached | the `from_database` block in `appliku.yml`, or the `db` service and `POSTGRES_PASSWORD` (repo secret, or `.env` on a generic compose host) |
 | `400 Bad Request` / `DisallowedHost` on every request | the domain is missing from `ALLOWED_HOSTS` | whether the domain is added in Appliku, so `from_domains` picks it up; on compose, the `ALLOWED_HOSTS` repo variable or `.env` (`localhost` included) |
-| `403 CSRF verification failed` on POST while GET works | the origin is missing from `CSRF_TRUSTED_ORIGINS` | set it manually, including the `https://` scheme |
+| `403 CSRF verification failed` on POST while GET works | the POST comes from another origin that is missing from `CSRF_TRUSTED_ORIGINS` | set it manually, including the `https://` scheme |
 | `/healthz` returns 503 with `"redis": "error"` | Redis is down or `REDIS_URL` is wrong | Redis instance status, then the env var |
 | `/healthz` returns 503 with `"database": "error"` | Postgres is down or unreachable | database status, connection limit |
 | The app serves but jobs never run | the `worker` process is stopped or crash-looping | worker logs, then `/django-rq/` for queue depth |
 | The deploy job stops at "does not exist yet" | the `image` workflow of that commit is still running | the Actions tab; press deploy again when it is green |
 | The deploy job stops at "DEPLOY_HOST ... is not set" | the repository variable is missing | README.md > Deployment > Docker host, deployed from this repo |
-| A deploy succeeds but the schema is old | `release.sh` failed | release process logs, or `docker compose -p {{ cookiecutter.project_slug }} logs release` |
+| An Appliku deploy succeeds but the schema is old | `release.sh` failed | release process logs |
 | `ValueError: Missing staticfiles manifest entry` | a template references a static file that was not collected | the `collectstatic` step in the build log |
 | Redirect loop on https | `SECURE_PROXY_SSL_HEADER` is not receiving `X-Forwarded-Proto` | proxy configuration; expected to work as-is on Appliku, has to be configured on the reverse proxy in front of a compose stack |
 

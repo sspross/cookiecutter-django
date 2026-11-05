@@ -15,13 +15,16 @@ is that it pages someone.
 **A Sentry error event means unexpected behaviour: an unhandled exception, reported by an
 SDK integration** (`DjangoIntegration` for web requests, `RqIntegration` for jobs). The app captures nothing on
 purpose, and the logging integration's `event_level` is `None`, so no log line at any level
-becomes an event either.
+becomes an event either. The SDK's default of ERROR would make every future `logger.error` an
+alert by accident and duplicate the line as an event and a log.
 
 **An expected failure is a log line plus recorded state.** Log it at the level it deserves
 (`logger.error`, `logger.exception`, `logger.warning`) with the identifying fields in
 `extra`, and land the outcome where the domain keeps it (a status field, a row, a flag).
 The log line ships to Sentry Logs, where it is queryable next to the issue stream; the
-state is readable in the app, in admin and over the API.
+state is readable in the app, in admin and over the API. Capturing the failure at a lower
+severity or on a separate Sentry project changes nothing, because an event is an event to the
+alerting rules. A failure no state records is a gap in the domain model: record the state.
 
 Alerting on expected failures is a Sentry-side rule (a Logs query, an alert on a metric),
 not app code.
@@ -33,13 +36,5 @@ not app code.
   state. Adding an alert on either changes a Sentry rule, not a deploy.
 - Sentry Logs retention is shorter than issue retention; the recorded state carries the
   history for as long as the rows exist.
+  <!-- TODO(cleanup-audit): Sentry's retention periods for logs and issues could not be verified from the repo or Sentry's docs. -->
 - No `traces_sample_rate` and no session tracking: the Sentry bill is errors and logs.
-
-## Alternatives considered
-
-- **Capture expected failures at lower severity or on a separate project.** An event is
-  an event to the alerting rules; the useful split is by whether the behaviour was expected.
-- **Set the logging integration's `event_level` to ERROR.** Makes every future
-  `logger.error` an alert by accident, and duplicates the line as an event and a log.
-- **Capture only the failures no state records.** A failure nothing records is a gap in
-  the domain model; record the state rather than page on the gap.

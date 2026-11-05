@@ -11,10 +11,10 @@
 
 ### Setup
 
-Run once after generating the project, in this order. Later clones skip the
-`git init` and commit steps.
+Run once after generating the project, in this order. The generator already
+wrote `.env` with a fresh `SECRET_KEY`; a later clone starts with
+`cp .env.example .env` and skips the `git init` and commit steps.
 
-- `cp .env.example .env`
 - `uv sync` (creates `uv.lock`)
 - `make frontend.install` (creates `core/frontend/package-lock.json`)
 - Put the project under version control, lockfiles included. The image build
@@ -79,8 +79,8 @@ ADR-0004 and ADR-0008.
 Every push to `main` is a release. The `image` workflow builds `Dockerfile`
 on that commit and pushes `ghcr.io/<owner>/<repo>:<sha>` and `:latest`, then
 prunes the package to the newest 10 versions. Pull requests build the same
-image without pushing it, so a broken `Dockerfile` or a stale lockfile fails
-CI.
+image without pushing it, so a broken `Dockerfile` or a `package-lock.json`
+out of sync with `package.json` fails CI.
 
 Appliku ignores that image and deploys on every push to `main`; a compose host
 that deploys `compose.yaml` from git builds the checked-out commit. Only the
@@ -89,8 +89,7 @@ that deploys `compose.yaml` from git builds the checked-out commit. Only the
 ### Appliku
 
 `appliku.yml` is the source of truth for this target. Push to `main`; Appliku
-redeploys and runs `release.sh` automatically. `release.sh` only runs
-migrations, so a deploy never touches account data.
+redeploys and runs `release.sh` automatically.
 
 First-time setup:
 

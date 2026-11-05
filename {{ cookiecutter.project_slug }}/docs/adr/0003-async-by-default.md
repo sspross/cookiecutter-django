@@ -7,8 +7,8 @@ background work: an outbound LLM call, a long-running export, a webhook
 fan-out, an email send. Django's async views do not cover this — they solve
 concurrency, not deferred work; a long-running outbound call still wants to
 live off the request thread. Retrofitting an async runtime later is more
-painful than carrying it from day one — it touches `INSTALLED_APPS`,
-settings, Dockerfile, deployment manifest, and CI shape.
+painful than carrying it from day one: it touches `INSTALLED_APPS`,
+settings, the deployment manifests, and CI shape.
 
 The template ships *infrastructure* for async work, not jobs. There are
 no actual `@job`-decorated functions in the generated project — only the
@@ -21,16 +21,18 @@ The template ships:
 - `django-rq` in `INSTALLED_APPS` and `RQ_QUEUES` configured against
   `REDIS_URL`. RQ over Celery: one broker shape instead of Celery's
   broker-plus-result-backend, which keeps the mental model small.
-- A `redis` backing service in both deployment manifests: Appliku's managed
-  Redis in `appliku.yml`, the `redis:7` service in `compose.yaml`.
+- A `redis` backing service in every deployment manifest: Appliku's managed
+  Redis in `appliku.yml`, the `redis:7` service in `compose.yaml` and
+  `compose.prod.yaml`.
 - `worker.sh` script: `uv run python manage.py rqworker default` — the
   *forking* worker (prod, Linux). Local dev uses `make worker.dev`, which
   runs the same queue with `--worker-class rq.worker.SimpleWorker`
   (in-process, no `os.fork()` — fork-safe on macOS). Write jobs correct
-  under **both**: don't rely on in-process state surviving between jobs,
-  and don't rely on SimpleWorker's lack of a hard per-job timeout — prod's
-  forking worker enforces `RQ_QUEUES` `DEFAULT_TIMEOUT` and kills the job.
-- A `worker` process in both deployment manifests, built from the same image as
+  under **both**: don't rely on in-process state surviving between jobs.
+  Both raise `JobTimeoutException` inside a job that outruns `RQ_QUEUES`
+  `DEFAULT_TIMEOUT`; only the forking worker also kills one that is still
+  running 60 seconds later.
+- A `worker` process in every deployment manifest, built from the same image as
   `web`, running `./worker.sh` instead of `./web.sh`.
 - The django-rq dashboard mounted at `/django-rq/` (gated to staff by
   django-rq itself).
@@ -47,9 +49,9 @@ observe or reason about.
 
 The first job a developer writes goes in `<their_app>/jobs.py`,
 decorated with `@django_rq.job("default")`, and is enqueued via
-`.delay(...)`. Tests can flip async off by overriding the queue's
-`ASYNC` setting; Redis is still required at enqueue time for Job
-persistence. A job runs outside any request, so wrap its body in `bound()`
+`.delay(...)`. `core/settings/test.py` sets the queue's `ASYNC` to
+`False`, so `.delay()` runs inline in tests; Redis is still required at
+enqueue time for Job persistence. A job runs outside any request, so wrap its body in `bound()`
 from `core/request_context.py` to give its log lines and Sentry items a
 request id and source; see "Correlating a job" in `docs/OPERATIONS.md`.
 
@@ -61,18 +63,16 @@ Positive:
 - The local-dev topology matches production: `make worker.dev` against
   a local `redis-server` runs the same web + worker + redis shape that the
   deployment target runs.
-- Test suites that need inline execution have one knob to flip.
 
 Negative:
 
 - A Redis dependency, including for projects that never write a job.
-  It is *not* needed for `runserver` or ordinary requests: RQ connects
+  It is *not* needed for `runserver` or most requests: RQ connects
   to Redis lazily, only when the worker runs or a job is enqueued.
+  `POST /api/api-keys/` does need it, because its throttle counters live
+  in the Redis cache, and `/healthz` answers 503 without it.
   `make test` does need it from the start, because the observability
   suite runs a real worker against a real queue, and so do
   `make worker.dev` and any `.delay()`.
-- A few extra lines in the Dockerfile and in both deployment manifests that
-  some generated projects will never use.
-
-These costs are real but small, and the alternative is discovering you
-need async on week 6 and bolting it on across five files.
+- A few extra lines in every deployment manifest that some generated
+  projects will never use.

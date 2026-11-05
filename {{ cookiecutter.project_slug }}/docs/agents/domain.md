@@ -7,8 +7,6 @@ How the engineering skills should consume this repo's domain documentation when 
 - **`CONTEXT.md`** at the repo root — glossary of domain terms and the surfaces / app layout overview.
 - **`docs/adr/`** — read ADRs that touch the area you're about to work in.
 
-If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The producer skill (`/grill-with-docs`) creates them lazily when terms or decisions actually get resolved.
-
 ## File structure
 
 This is a single-context repo:
@@ -17,15 +15,6 @@ This is a single-context repo:
 /
 ├── CONTEXT.md
 ├── docs/adr/
-│   ├── README.md
-│   ├── 0001-react-spa.md
-│   ├── 0002-api-keys-session-only.md
-│   ├── 0003-async-by-default.md
-│   ├── 0004-deployment-targets.md
-│   ├── 0005-tach-boundaries.md
-│   ├── 0006-boot-data-typed.md
-│   ├── 0007-sentry-error-events-are-unexpected-behaviour-only.md
-│   └── 0008-deploy-from-the-app-repo.md
 └── core/, api_keys/, ...
 ```
 

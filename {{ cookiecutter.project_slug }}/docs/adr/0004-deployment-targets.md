@@ -7,6 +7,7 @@ Generated projects do not all land on the same infrastructure. Some deploy to
 Redis, web/worker/release processes, env, and TLS. Others deploy as a
 docker-compose compatible stack: a Docker host behind a reverse proxy, or a PaaS
 that deploys a compose file straight from git (Dokploy, Coolify).
+<!-- TODO(cleanup-audit): that Appliku provisions TLS is not expressed in appliku.yml; could not verify. -->
 
 Two independent deployment descriptions drift apart. Two manifests over a
 shared contract keep the drift confined to the part that genuinely differs per
@@ -32,6 +33,7 @@ The contract is the part the app owns, identical on both targets:
 
 **Migrations and one-shot tasks belong in `release.sh`**, not in `web.sh`.
 `release.sh` runs once per deploy, before web and worker start, on both targets.
+<!-- TODO(cleanup-audit): when Appliku runs the release process relative to web and worker is not expressed in appliku.yml; could not verify. -->
 
 The two manifests:
 
@@ -55,6 +57,7 @@ Every push to `main` is a release. The `image` workflow builds the
 `Dockerfile` on that commit and pushes it to GHCR tagged with the commit sha,
 so a deployable artefact exists outside the git history. Appliku ignores that
 image and builds from `main` itself. `docs/OPERATIONS.md` holds the flow.
+<!-- TODO(cleanup-audit): the branch Appliku builds from is set outside the repo; could not verify `main`. -->
 
 ### The production compose file
 

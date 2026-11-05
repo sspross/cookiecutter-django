@@ -4,31 +4,35 @@
 
 Most people who get access to a project already have a Google account, usually
 a Google Workspace account on a company domain, sometimes a private one.
-Creating each account in the admin and handing out a password does not scale,
-and the first production superuser used to need a fragile `createsuperuser`
-one-off command. Some people still have no Google account, so a password
-account has to remain possible.
+Creating each account in the admin and handing out a password does not scale.
+Some people still have no Google account, so a password account has to remain
+possible.
 
 ## Decision
 
 **"Sign in with Google" sits next to the username and password form.** Django's
 own `LoginView` and `LogoutView` stay the login and logout views, and an
-account created in the admin with a password logs in as before.
+account created in the admin with a password logs in with it. The password form
+also keeps a Google outage from being an outage of the app.
 
 **Google login is django-allauth with its Google provider, and only that part
-of allauth is mounted.** The two views of the redirect flow
+of allauth is mounted.** social-auth-app-django's built-in domain whitelist
+checks only the email suffix, not `hd`, and a hand-written OIDC flow is more
+security-critical code of our own than an adapter hook. The two views of the redirect flow
 (`/accounts/google/login/` and its callback) are mounted when
 `GOOGLE_OAUTH_CLIENT_ID` is set, and not at all otherwise. allauth's own login,
 signup, password reset and email pages are not mounted. Every outcome that is
-not a login redirects to the login page with a message, so no allauth template
-is ever rendered. The provider is configured in settings, not as a `SocialApp`
+not a login redirects to the login page with a message. The one allauth template
+in reach is the confirmation page a direct GET on `/accounts/google/login/`
+renders; the login form POSTs past it. The provider is configured in settings, not as a `SocialApp`
 row, so there is no `django.contrib.sites` setup.
 
 **The SSO allowlist lives in env vars.** `SSO_ALLOWED_DOMAINS` matches Google's
 `hd` claim, never the email suffix: a private Google account can carry a
 verified `name@company.com` address. `SSO_ALLOWED_EMAILS` matches single
 verified emails. The allowlist gates Google login only; the admin stays the
-gate for password accounts.
+gate for password accounts. A database allowlist would need its own UI and
+migrations for a list that changes rarely.
 
 **Superusers come from a third, independent list,** `SSO_SUPERUSER_EMAILS`.
 It never allows a login by itself, and a login never demotes, so taking
@@ -62,16 +66,3 @@ email is unique, so `anna@company.com` and `anna@gmail.com` never clash.
   lowercases only the domain, so a user saved as `Guest@gmail.com` would get
   a second user.
 - Changing the allowlist is a config change and a restart, not a data change.
-
-## Alternatives considered
-
-- **social-auth-app-django.** Its built-in domain whitelist checks only the
-  email suffix, not `hd`, so a custom pipeline step would be needed anyway.
-  allauth is the more widely used of the two.
-- **A hand-written OIDC flow.** More security-critical code of our own to
-  maintain than an adapter hook on a maintained library.
-- **SSO only, no password login.** Locks out people without a Google account
-  and makes a Google outage an outage of the app.
-- **An allowlist in the database, edited in the admin.** Needs its own UI and
-  migrations for a list that changes rarely; env vars are configured like
-  every other setting.

@@ -33,8 +33,8 @@ Concretely:
   ninja's OpenAPI document, exported offline by `make schema`;
   `openapi-fetch` is the typed fetch wrapper. ninja schemas remain the
   single source of truth.
-- **Server state.** TanStack Query owns cache and mutations. List/detail
-  routes share cache by query key.
+- **Server state.** TanStack Query owns cache and mutations. Routes
+  share cache by query key.
 - **Build.** Single `@tailwindcss/vite` pipeline. Compiled CSS is shared
   between the SPA and the remaining Django-rendered pages (login).
 - **Aesthetic.** System-aware dark/light, shadcn `zinc` base, monochrome
@@ -55,7 +55,7 @@ Positive:
 Negative:
 
 - Real SPA-shaped frontend infrastructure: TS toolchain, react-router,
-  TanStack Query, shadcn CLI, generated OpenAPI types. Bigger surface to
+  TanStack Query, generated OpenAPI types. Bigger surface to
   learn than a templates-only app.
-- `vite build` blocks Django-rendered pages too (login depends on the
-  SPA's compiled CSS). Build break = unstyled login.
+- `vite build` blocks Django-rendered pages too: the login page loads the
+  SPA bundle for its CSS, and without a built manifest it answers 500.

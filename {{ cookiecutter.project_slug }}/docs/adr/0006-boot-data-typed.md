@@ -38,13 +38,13 @@ Positive:
 
 - One rule for the next person adding boot data: a constant? render it onto
   the mount node. Per-user or dynamic? add it to `MeOut`. No third
-  untyped channel reappears.
+  untyped channel.
 - Schema drift on per-user boot data is caught at TS compile time, like the
   rest of the API (ADR-0001).
 - `/api/me` doubles as a headless identity check for token callers.
 
 Negative:
 
-- The footer's "Signed in as …" now resolves after a fetch rather than on
+- The footer's "Signed in as …" resolves after a fetch rather than on
   first paint — a negligible flash, accepted in exchange for the typing.
 - One more endpoint and one more query hook than inlining the blob.

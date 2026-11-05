@@ -5,10 +5,10 @@
 ### User
 The project's own user model, `users.User`: Django's `AbstractUser` with no
 extra fields, wired in as `AUTH_USER_MODEL` from the first migration so a
-project can add fields later without migrating away from `auth.User`. Other
-apps reference it through `settings.AUTH_USER_MODEL` (foreign keys) or
-`get_user_model()` (code and factories). The `users` app itself depends on
-no other project app (see `tach.toml`).
+project can add fields later without migrating away from `auth.User`. Foreign
+keys reference it through `settings.AUTH_USER_MODEL`; code and factories import
+`users.models.User`. The `users` app itself depends on no other project app
+(see `tach.toml`).
 
 A user logs in with a username and password (an account created in the
 admin), or with Google, gated by the **SSO allowlist**.
@@ -42,42 +42,44 @@ A user-issued bearer credential for the headless API path. Stored as `UserApiKey
 is persisted. Provisioned two ways: (1) self-service in the SPA's **API Access** section —
 list / mint / revoke own keys; (2) Django admin (kept for emergency provisioning and
 cross-user revoke). The raw token is shown exactly once on creation. A user can hold
-multiple keys (rotatable, named per use case). "Delete" in user-facing copy means
-**revoke** — the row stays so the audit trail (`created_at`, `last_used_at`,
-`revoked_at`) is preserved; revoked keys remain listed but visually marked.
+multiple keys (rotatable, named per use case). User-facing copy says **Revoke**:
+the row stays, so the audit trail (`created_at`, `last_used_at`, `revoked_at`) is
+preserved, and revoked keys remain listed with a "Revoked" badge.
 
 ### Soft-delete vocabulary
-Two distinct soft-delete semantics live in this codebase, and the naming makes the
-distinction load-bearing:
+Two soft-delete semantics are named here, and the name carries the distinction:
 
 - **`revoked_at` / `is_revoked`** — *visible-but-marked*. The row stays listed in the
-  user-facing surface and is rendered with a "(revoked)" indicator. Used by `UserApiKey`
+  user-facing surface and is rendered with a "Revoked" badge. Used by `UserApiKey`
   so the audit trail (`created_at`, `last_used_at`, `revoked_at`) stays in front of the
   owner.
 - **`deleted_at` / `is_deleted`** — *hidden from users*. The row is filtered out of
   every user-facing read and only operators see it (Django admin, raw DB).
 
-No model in the template uses `deleted_at` yet — adopt that pattern when you need
-"hide from users" semantics. When introducing soft-delete on a new model, pick the
+No shipped model uses `deleted_at`; adopt that pattern when you need "hide from
+users" semantics. When introducing soft-delete on a new model, pick the
 pattern that matches the desired visibility — never invent a third name. Both
 patterns share the same field shape: a nullable `DateTimeField` plus an `is_*`
 `@property`.
 
 ### Observability
-Two sinks carry what the app says about itself, and one policy decides both. An
+What the app says about itself is an error event or a log. An
 **error event** is an unhandled exception, reported by the Sentry SDK's Django
 integration (a request) or RQ integration (a job), and nothing else: the app
 calls `capture_exception` nowhere on purpose (ADR-0007). An expected failure is
 a **log**, a line plus recorded state; `logger.error` and
-`logger.exception` stay logs and never become issues.
+`logger.exception` stay logs and never become issues. A log has two sinks,
+stderr and Sentry Logs, and the `LOGGING` levels decide both (`docs/OPERATIONS.md`
+"Logs and monitoring").
 
 Every log line and every Sentry item is stamped by `core/request_context.py`
 with a request id and a request source.
 
 **Request id**: a uuid4 hex generated at the start of every HTTP request, never
 read from an inbound `X-Request-ID`, and echoed back in the `X-Request-ID`
-response header. It names everything the request causes, so filtering stdout or
-Sentry by one id shows the whole request.
+response header. It stamps everything logged or reported while the request runs,
+so filtering stderr or Sentry by one id shows the whole request. A job the
+request enqueues has its own id.
 
 **Request source**: which door the request came through. Every path a generated
 project ships reads `web`, the SPA pages, `/api/`, `/healthz`, the admin and the
@@ -85,7 +87,8 @@ auth views alike. The classification table (`EXTERNAL_SOURCES`) ships empty; a
 project adding a second API surface per audience (the growth path in ADR-0002)
 names that door with one tuple and touches nothing else.
 
-Outside any request (management commands, worker startup) both read `-`. A job
+Outside any request (management commands, worker startup) both read `-` and an
+error event carries neither tag. A job
 binds its own pair with `bound()`: the RQ job id as the request id and `worker`
 as the request source, the convention `docs/OPERATIONS.md` "Correlating a job"
 shows. Neither field appears in any UI.
@@ -94,7 +97,8 @@ shows. Neither field appears in any UI.
 
 ## Surfaces
 
-Routes (all login-required except `/accounts/*` and `/admin/`):
+Routes (all login-required except `/accounts/*`, `/admin/`, `/healthz` and
+ninja's `/api/docs` and `/api/openapi.json`):
 
 HTML pages:
 
@@ -109,7 +113,8 @@ HTML pages:
 - `/accounts/google/login/` and `/accounts/google/login/callback/`: allauth's
   Google redirect flow, mounted only when `GOOGLE_OAUTH_CLIENT_ID` is set. No
   other allauth page is mounted. Every outcome that is not a login redirects
-  to `/accounts/login/` with a message.
+  to `/accounts/login/` with a message. A direct GET on the first URL renders
+  allauth's own confirmation page; the login page's POST skips it.
 - `/admin/` — Django admin. `/admin/login/` redirects to `/accounts/login/`
   (keeping `next`), so the admin has one login page with Google login too.
   Superuser creates non-staff `User` accounts here,
@@ -126,25 +131,25 @@ API (django-ninja, dual auth, CSRF on session-authed writes):
 - `GET  /api/api-keys/` — list the requesting user's keys (active and revoked,
   newest-first)
 - `POST /api/api-keys/` — body `{name}`; responds 201 with the created row plus the
-  raw token, the only place the server ever returns it. Throttled to 10 mints
-  per hour per session, 429 beyond that; list and revoke are not throttled
+  raw token, the only API response that carries it. Throttled to 10 mints
+  per hour per user, 429 beyond that; list and revoke are not throttled
 - `POST /api/api-keys/{id}/revoke/` — idempotent soft-delete; cross-user 404, not 403
 
 Every endpoint accepts **either** auth method by default:
 
-- `ninja.security.django_auth` — session cookie set by `/accounts/login/`. Used by
+- `ninja.security.django_auth` — session cookie set at login. Used by
   the SPA. CSRF enforced via `X-CSRFToken` header read from the `csrftoken` cookie.
 - `HttpBearer` against `UserApiKey` — `Authorization: Bearer
   {{ cookiecutter.project_slug }}_live_…`. Used by headless callers. No CSRF
-  (state-changing requests are token-bound, not cookie-bound). Deactivating a
-  user revokes every one of their keys at once: `verify()` rejects a key whose
-  owner has `is_active=False`.
+  (state-changing requests are token-bound, not cookie-bound). A deactivated
+  user's keys stop working at once: `verify()` rejects a key whose owner has
+  `is_active=False`. `revoked_at` stays unset, so reactivating the user restores
+  them.
 
 Both auth paths resolve to the same `request.user`.
 
 The `/api/api-keys/*` router is the single exception: it overrides the global
-default to **`auth=django_auth` only**. A leaked bearer token cannot be used to
-mint or revoke keys, so revocation by the user remains a clean kill. See ADR-0002.
+default to **`auth=django_auth` only**. See ADR-0002.
 
 App layout:
 
@@ -165,7 +170,7 @@ core/                # settings package and Django app in one (namespace package
     export_openapi_schema.py  # offline OpenAPI JSON dump (make schema / guard)
   migrations/
   urls.py
-  views.py           # app_view: SPA mount; @login_required + @ensure_csrf_cookie
+  views.py           # app_view (SPA mount; @login_required + @ensure_csrf_cookie), healthz
   asgi.py
   wsgi.py
   templates/
@@ -176,6 +181,7 @@ core/                # settings package and Django app in one (namespace package
   tests/
     test_views.py
     test_api.py      # /api/me (session + bearer + anonymous)
+    test_healthz.py
     test_observability.py  # Sentry: no DSN means no client, error events vs logs, level policy, muted loggers, RQ job failures, silent /healthz
     sentry_capture.py      # CapturingTransport + TEST_DSN behind the `sentry` fixture
     test_request_context.py  # X-Request-ID, stamped log records, middleware placement, bound()
@@ -190,6 +196,7 @@ api_keys/
   models.py          # UserApiKey
   schemas.py         # ApiKeyOut, ApiKeyCreateIn, ApiKeyMintOut
   services.py        # mint(), verify(), revoke() — token engine
+  migrations/
   tests/
     factories.py
     test_models.py
@@ -219,8 +226,8 @@ spa/
   index.css         # @import "tailwindcss"; shadcn CSS variables
   api/
     schema.d.ts     # generated by openapi-typescript; freshness-guarded, never hand-edit
-    client.ts       # openapi-fetch instance + csrfFetch wrapper
-    csrf.ts
+    client.ts       # openapi-fetch instance on top of csrfFetch
+    csrf.ts         # csrfFetch wrapper
   queries/
     use-api-keys.ts # TanStack Query hooks for api keys
     use-me.ts       # useMe() — current user from /api/me
@@ -238,6 +245,8 @@ spa/
     ui/             # shadcn primitives: card, dialog, button, input,
                     # label, badge, table, skeleton (8 only — `npx shadcn add`
                     # the rest as needed)
+                    # TODO(cleanup-audit): `npx shadcn add` was not run and no
+                    # components.json is tracked; confirm the command works
   lib/
     utils.ts        # cn() helper
 ```
@@ -266,8 +275,7 @@ introspects the API in-process (no running server, no DB connection), so it also
 works in CI. The committed `schema.d.ts` is raw `openapi-typescript` output
 (`biome.json` excludes it from formatting so it stays byte-identical), and the
 **`schema-fresh` pre-commit hook** (manual stage, like `pip-audit`) regenerates
-it and fails if it drifts from `schemas.py` — run `make schema` and commit. This
-is the guard that stops the generated client silently rotting out of date.
+it and fails if it drifts from `schemas.py` — run `make schema` and commit.
 
 `typescript` stays on `^5.9`: `openapi-typescript` declares a peer range on
 TypeScript 5.x, so raise the pin only once it supports the next major.
@@ -286,25 +294,23 @@ Schema conventions (so the generated TS and API docs stay rich):
   serializes it. Either coalesce at the use site or accept the widened type;
   don't drop the default to "fix" the type (it changes the API contract).
 
-Server state lives in TanStack Query. Cache is keyed by query key, so list views
-and detail views can share the same cached row.
+Server state lives in TanStack Query.
 
 The SPA boot payload is split by nature (ADR-0006): build-time **constants** are
 server-rendered (`project_name` → `data-project-name` on `#app`, read via
 `mountNode.dataset`), while per-user **data** (`username`) is fetched from the
-typed `/api/me` via `useMe()`. No untyped `window` global.
+typed `/api/me` via `useMe()`.
 
 Build is a single Vite pipeline using `@tailwindcss/vite`. The same compiled CSS file
-is loaded by both the SPA mount template and Django-rendered pages (login, admin
-error pages), so visual tokens are shared.
+is loaded by both the SPA mount template and the Django-rendered login page, so
+visual tokens are shared.
 
 ### Testing
 
 No JS unit tests. Frontend correctness is exercised end-to-end by the Python
 **live tests** under `*/tests/live/`. A live test is a plain pytest function
 taking pytest-django's `live_server` and pytest-playwright's `page` fixtures —
-no bespoke base class. It drives the real SPA against a real Django server, so
-it covers the same ground a vitest suite would — minus the mocking gymnastics.
+no bespoke base class. It drives the real SPA against a real Django server.
 
 Conventions:
 
@@ -317,17 +323,11 @@ Conventions:
   `uv run playwright show-trace test-results/<…>/trace.zip`.
 - **Dev knobs** are Playwright-native: `uv run pytest --headed --slowmo 500`
   (wrapped by `make test.live.watch`), or `PWDEBUG=1` for the inspector.
-- `core/settings/test.py` sets `DJANGO_ALLOW_ASYNC_UNSAFE` so the sync
-  Playwright API can touch the DB from its event loop.
 - **One journey, not many small e2e tests.** A live test drives a browser,
-  which costs ~100x what a `client` test costs (the whole non-live suite runs
-  in ~0.2s; the one live test takes ~2.3s). Extend the existing journey with
+  which costs far more than a `client` test. Extend the existing journey with
   another step rather than adding a second browser session, and only assert
   what a browser is needed for: real rendering, focus, keyboard, viewport,
   static serving. Anything reachable from `client` belongs in `tests/test_*.py`.
-- `core/settings/test.py` also pins `PASSWORD_HASHERS` to MD5. The default
-  PBKDF2 hasher is deliberately slow and dominated the suite; don't remove it
-  without re-profiling.
 - Coverage is configured in `pyproject.toml` and reported by
   `make test.coverage`. Use its diff to judge a deletion: a test whose removal
   changes no missed line was asserting something another test already covers.
@@ -335,6 +335,5 @@ Conventions:
 Static correctness on the TS side is covered by `tsc --noEmit` and biome (both
 run in pre-commit).
 
-If you ever need a unit test that can't be expressed as a live test, add vitest
-back — but justify it in a PR, don't reflexively install it for "we should have
-unit tests."
+If a unit test can't be expressed as a live test, add vitest and justify it in
+the PR.

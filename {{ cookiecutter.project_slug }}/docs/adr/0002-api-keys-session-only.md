@@ -20,8 +20,10 @@ a freshly-minted key the user has never heard of.
 ## Decision
 
 The `/api/api-keys/*` router overrides the global auth list with
-**`auth=django_auth` only**. Bearer tokens are rejected with `401` on
-list, mint, and revoke, even when valid.
+**`auth=django_auth` only**. Bearer tokens are rejected even when valid:
+`401` on list, and `403` on mint and revoke, because `django_auth` runs its
+CSRF check before it looks at the session and a bearer caller has no CSRF
+token.
 
 Concretely:
 
@@ -38,7 +40,7 @@ Concretely:
 ### Minting is throttled, listing and revoking are not
 
 `POST /api/api-keys/` carries ninja's `AuthRateThrottle` at ten mints per
-hour, keyed on the authenticated session. Session-only auth removes the
+hour, keyed on the authenticated user. Session-only auth removes the
 token-escalation path but not the session one: an attacker holding a
 stolen cookie could otherwise mint keys in bulk and keep long-lived
 credentials after the session itself is gone.
@@ -72,7 +74,7 @@ Positive:
 - The boundary is explicit and testable: a per-router test asserts that
   bearer auth is rejected even with a valid token.
 - The asymmetry is documented in one place; future readers do not have
-  to reverse-engineer it from `core/api.py`.
+  to reverse-engineer it from `api_keys/api.py`.
 
 Negative:
 
