@@ -80,6 +80,7 @@ test:
 	$(call run_step,make frontend.install,added)
 	$(call run_step,git init -q && git add --all && uv run pre-commit install,pre-commit installed)
 	$(call run_step,git ls-files --error-unmatch uv.lock core/frontend/package-lock.json,package-lock.json)
+	$(call run_step,git ls-files --error-unmatch .template.json,.template.json)
 	$(call run_step,uv run playwright install chromium)
 	$(call run_step,make db.migrate,Applying)
 	$(call run_step,make frontend.build,built in)
