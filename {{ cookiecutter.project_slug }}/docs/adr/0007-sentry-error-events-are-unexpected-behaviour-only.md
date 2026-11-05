@@ -34,7 +34,5 @@ not app code.
 - The issue stream is reserved for bugs; anything in it is worth interrupting someone for.
 - Expected failures are watched where they are queryable: Sentry Logs and the recorded
   state. Adding an alert on either changes a Sentry rule, not a deploy.
-- Sentry Logs retention is shorter than issue retention; the recorded state carries the
-  history for as long as the rows exist.
-  <!-- TODO(cleanup-audit): Sentry's retention periods for logs and issues could not be verified from the repo or Sentry's docs. -->
+- The recorded state carries the history for as long as the rows exist.
 - No `traces_sample_rate` and no session tracking: the Sentry bill is errors and logs.

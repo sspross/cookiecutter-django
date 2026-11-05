@@ -176,21 +176,19 @@ from this repo.
 3. `.env` is assembled from the repository's Actions variables and secrets
    plus `IMAGE=ghcr.io/<owner>/<repo>:<sha>`.
 4. `docker compose pull`, then `docker compose up -d --wait --remove-orphans`.
-   `release` runs `release.sh` (`manage.py migrate`) first; `web` and `worker`
-   are recreated only after it exited 0.
-   <!-- TODO(cleanup-audit): no Docker daemon was available to run this. The Compose source (v2.40.0 convergence.go, v5.7.0 plan.go) replaces containers in its create phase, before the start phase waits on `release`, which would stop the previous `web` and `worker` when `release` fails. Confirm on a real host. -->
-5. With `DEPLOY_URL` set, the runner requests `<DEPLOY_URL>/healthz` through
+   `release` runs `release.sh` (`manage.py migrate`) first; the new `web` and
+   `worker` start only after it exited 0.
+   5. With `DEPLOY_URL` set, the runner requests `<DEPLOY_URL>/healthz` through
    the reverse proxy. An HTTP error status fails the job.
 6. On failure the job prints `docker compose ps` and the last 100 log lines of
    every service.
 
 What a failed deploy leaves running:
 
-- `release` failed: the previous `web` and `worker` keep running on the old
-  image, against whatever the migration left behind. Fix forward: a new
-  commit on `main`, deploy again.
-  <!-- TODO(cleanup-audit): no Docker daemon was available to run this. The Compose source (v2.40.0 convergence.go, v5.7.0 plan.go) replaces containers in its create phase, before the start phase waits on `release`, which would stop the previous `web` and `worker` when `release` fails. Confirm on a real host. -->
-- `release` succeeded and `web` never became healthy: the new `web` is up but
+- `release` failed: the new `web` and `worker` do not start, and the schema
+  stays as the migration left it. Check `docker compose ps` for what is still
+  up. Fix forward: a new commit on `main`, deploy again.
+  - `release` succeeded and `web` never became healthy: the new `web` is up but
   unhealthy behind the proxy, which answers 502. Look at the logs the job
   printed, fix forward, or deploy the previous state of `main`.
 - The smoke test failed with healthy containers: the reverse proxy or DNS,
@@ -210,10 +208,9 @@ version already running.
 
 On a generic compose host: pull the new commit and run
 `docker compose up -d --build`. The build is the same one. `release` runs to
-completion first; `web` and `worker` are recreated only after it exited 0
-(`condition: service_completed_successfully`), so a failing migration leaves
-the previous containers running.
-<!-- TODO(cleanup-audit): no Docker daemon was available to run this. The Compose source (v2.40.0 convergence.go, v5.7.0 plan.go) replaces containers in its create phase, before the start phase waits on `release`, which would stop the previous `web` and `worker` when `release` fails. Confirm on a real host. -->
+completion first; the new `web` and `worker` start only after it exited 0
+(`condition: service_completed_successfully`), so a failing migration never
+starts them.
 
 Per ADR-0004, migrations and one-shot tasks belong in `release.sh` rather than
 in `web.sh`. `release.sh` currently holds nothing but `migrate`: it runs on

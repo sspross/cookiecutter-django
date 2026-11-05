@@ -243,10 +243,7 @@ spa/
       icons.tsx
       theme-toggle.tsx
     ui/             # shadcn primitives: card, dialog, button, input,
-                    # label, badge, table, skeleton (8 only — `npx shadcn add`
-                    # the rest as needed)
-                    # TODO(cleanup-audit): `npx shadcn add` was not run and no
-                    # components.json is tracked; confirm the command works
+                    # label, badge, table, skeleton
   lib/
     utils.ts        # cn() helper
 ```

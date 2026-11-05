@@ -85,6 +85,5 @@ Negative:
   topology changes, the same way `appliku.yml` does (ADR-0004).
 - The deploy waits for the image workflow of the same commit. Pressing the
   button too early fails with a clear message and has to be repeated.
-- A migration that fails leaves the previous `web` and `worker` running on the
-  old image against a partially migrated schema; see `docs/OPERATIONS.md`.
-  <!-- TODO(cleanup-audit): docker compose source (v2.40.3 up.go + convergence.go, v5.7.0 reconcile.go) stops and replaces web and worker in its create phase, before the start phase waits on release, which would leave both stopped. No docker available to run it. -->
+- A migration that fails leaves a partially migrated schema, and the new `web`
+  and `worker` do not start; see `docs/OPERATIONS.md`.
