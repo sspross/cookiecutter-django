@@ -1,3 +1,4 @@
+from django.contrib.auth.models import AnonymousUser
 from django.http import HttpRequest
 from ninja import NinjaAPI
 from ninja.security import django_auth
@@ -7,6 +8,7 @@ from ninja.security import django_auth
 from api_keys.api import router as api_keys_router
 from api_keys.auth import ApiKeyBearer
 from core.schemas import MeOut
+from users.models import User
 
 # Order matters: ninja's django_auth runs a CSRF check *before* it reads the
 # session cookie, so a bearer-authed write would 403 before ApiKeyBearer ever
@@ -16,7 +18,7 @@ api.add_router("/api-keys/", api_keys_router)
 
 
 @api.get("/me", response=MeOut)
-def me(request: HttpRequest) -> MeOut:
+def me(request: HttpRequest) -> User | AnonymousUser:
     """The authenticated user. Inherits the global dual auth, so it serves
     both the SPA boot payload (session) and a headless ``whoami`` (bearer).
     Read-only — no escalation risk on the bearer path."""

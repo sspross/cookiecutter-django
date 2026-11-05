@@ -13,7 +13,7 @@ class TestHomeView:
         assert "/accounts/login/" in response["Location"]
 
     def test_home_renders_for_authenticated_user(self, client):
-        user = UserFactory()
+        user = UserFactory.create()
         client.force_login(user)
         response = client.get(reverse("home"))
         assert response.status_code == 200
@@ -30,7 +30,7 @@ class TestAuthRoutes:
         assert response.status_code == 200
 
     def test_logout_is_mounted(self, client):
-        user = UserFactory()
+        user = UserFactory.create()
         client.force_login(user)
         response = client.post(reverse("logout"))
         assert response.status_code == 302
@@ -40,7 +40,7 @@ class TestAuthRoutes:
         assert response.status_code == 404
 
     def test_admin_logs_in_through_the_login_page(self, client):
-        UserFactory(username="root", is_staff=True, is_superuser=True)
+        UserFactory.create(username="root", is_staff=True, is_superuser=True)
 
         response = client.get("/admin/", follow=True)
         assert response.redirect_chain[-1][0] == "/accounts/login/?next=%2Fadmin%2F"
@@ -56,7 +56,7 @@ class TestAuthRoutes:
         assert response.status_code == 404
 
     def test_password_login_works_for_an_admin_created_user(self, client):
-        UserFactory(username="alice")
+        UserFactory.create(username="alice")
 
         response = client.post(
             reverse("login"), {"username": "alice", "password": "pw-12345!"}

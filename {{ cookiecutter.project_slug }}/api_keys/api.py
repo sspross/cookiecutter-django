@@ -7,6 +7,9 @@ See ADR-0002. A thin adapter over :mod:`api_keys.services`.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+from django.db.models import QuerySet
 from django.http import Http404, HttpRequest
 from ninja import Router
 from ninja.responses import Status
@@ -17,11 +20,18 @@ from api_keys import services as api_keys_services
 from api_keys.models import UserApiKey
 from api_keys.schemas import ApiKeyCreateIn, ApiKeyMintOut, ApiKeyOut
 
+if TYPE_CHECKING:
+    from users.models import User
+
 router = Router(tags=["api-keys"], auth=django_auth)
 
 
+class AuthenticatedRequest(HttpRequest):
+    user: User
+
+
 @router.get("/", response=list[ApiKeyOut])
-def list_api_keys(request: HttpRequest):
+def list_api_keys(request: AuthenticatedRequest) -> QuerySet[UserApiKey]:
     """List the requesting user's keys, including revoked, newest-first."""
     return UserApiKey.objects.filter(user=request.user)
 
@@ -31,7 +41,7 @@ def list_api_keys(request: HttpRequest):
     response={201: ApiKeyMintOut},
     throttle=[AuthRateThrottle("10/h")],
 )
-def create_api_key(request: HttpRequest, payload: ApiKeyCreateIn):
+def create_api_key(request: AuthenticatedRequest, payload: ApiKeyCreateIn) -> Status:
     """Mint a new key and return the raw token exactly once."""
     result = api_keys_services.mint(request.user, payload.name)
     return Status(
@@ -44,7 +54,7 @@ def create_api_key(request: HttpRequest, payload: ApiKeyCreateIn):
 
 
 @router.post("/{api_key_id}/revoke/", response=ApiKeyOut)
-def revoke_api_key(request: HttpRequest, api_key_id: int):
+def revoke_api_key(request: AuthenticatedRequest, api_key_id: int) -> UserApiKey:
     """Revoke a key. Idempotent. Returns 404 for keys not owned by the
     requesting user (existence is not disclosed)."""
     try:

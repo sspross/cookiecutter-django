@@ -12,6 +12,12 @@ permissions:
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
+    # mypy's Django plugin and the schema-fresh hook both import settings. Only
+    # SECRET_KEY + DATABASE_URL lack defaults in core/settings/base.py, and neither
+    # hook connects, so a throwaway sqlite URL is enough.
+    env:
+      SECRET_KEY: ci-not-a-real-secret
+      DATABASE_URL: sqlite:///db.sqlite3
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -26,10 +32,3 @@ jobs:
       - run: make frontend.install   # biome-check & tsc-typecheck hooks need core/frontend/node_modules
       - run: uv run pre-commit run --all-files
       - run: uv run pre-commit run --all-files --hook-stage manual
-        # The schema-fresh hook boots Django to introspect the ninja API, so
-        # settings must import. Only SECRET_KEY + DATABASE_URL lack defaults in
-        # core/settings/base.py; the schema export never connects, so a
-        # throwaway sqlite URL is enough.
-        env:
-          SECRET_KEY: ci-not-a-real-secret
-          DATABASE_URL: sqlite:///db.sqlite3

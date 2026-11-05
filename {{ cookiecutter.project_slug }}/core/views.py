@@ -41,7 +41,7 @@ def healthz(request: HttpRequest) -> JsonResponse:
 
 @login_required
 @ensure_csrf_cookie
-def app_view(request: HttpRequest, **kwargs) -> HttpResponse:
+def app_view(request: HttpRequest, **kwargs: str) -> HttpResponse:
     """Render the SPA mount template for every SPA route.
 
     `@ensure_csrf_cookie` sets the `csrftoken` cookie on first paint so SPA

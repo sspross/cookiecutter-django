@@ -2,8 +2,8 @@ import asyncio
 import contextvars
 import logging
 import re
-from collections.abc import Callable
-from typing import Any
+from collections.abc import Callable, Mapping
+from typing import Any, cast
 from unittest import mock
 
 import pytest
@@ -11,6 +11,7 @@ import redis
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
 from django.test import Client, RequestFactory, override_settings
 from django.urls import path
 from pytest_django.fixtures import Settings
@@ -36,7 +37,7 @@ UNKNOWN_HOST = "not-an-allowed-host.example.com"
 
 SURFACES = ("spa page", "internal api", "healthz", "admin")
 
-type Call = Callable[..., HttpResponse]
+type Call = Callable[..., HttpResponseBase]
 
 
 def boom(request: HttpRequest) -> HttpResponse:
@@ -86,9 +87,9 @@ async def asgi_get(path: str) -> dict[str, str]:
         await asyncio.Event().wait()
         raise AssertionError("unreachable")
 
-    sent: list[dict[str, Any]] = []
+    sent: list[Mapping[str, Any]] = []
 
-    async def send(message: dict[str, Any]) -> None:
+    async def send(message: Mapping[str, Any]) -> None:
         sent.append(message)
 
     await asgi_application(scope, receive, send)
@@ -97,7 +98,7 @@ async def asgi_get(path: str) -> dict[str, str]:
     return {name.decode().lower(): value.decode() for name, value in start["headers"]}
 
 
-def serve_wsgi(path: str) -> tuple[HttpResponse, dict[str, str]]:
+def serve_wsgi(path: str) -> tuple[HttpResponseBase, dict[str, str]]:
     """Sends the body, as a WSGI server does before it closes the response."""
 
     # Not ``get_wsgi_application()``: that re-runs ``django.setup()``, whose logging
@@ -109,7 +110,7 @@ def serve_wsgi(path: str) -> tuple[HttpResponse, dict[str, str]]:
         assert status == "200 OK"
         headers.update({name.lower(): value for name, value in response_headers})
 
-    response = wsgi_application(environ, start_response)
+    response = wsgi_application(environ, start_response)  # type: ignore[arg-type]
     b"".join(response)
     return response, headers
 
@@ -136,7 +137,7 @@ def wsgi_get_closed_elsewhere(path: str) -> dict[str, str]:
     return headers
 
 
-def _healthz(client: Client, **extra: str) -> HttpResponse:
+def _healthz(client: Client, **extra: Any) -> HttpResponseBase:
     with mock.patch.object(redis.Redis, "ping", return_value=True):
         return client.get("/healthz", **extra)
 
@@ -152,7 +153,7 @@ def probed(settings: Settings) -> None:
 
 @pytest.fixture
 def call(db: None, client: Client, probed: None) -> dict[str, Call]:
-    client.force_login(UserFactory(username="operator", is_staff=True))
+    client.force_login(UserFactory.create(username="operator", is_staff=True))
     return {
         "spa page": lambda **extra: client.get("/", **extra),
         "internal api": lambda **extra: client.get("/api/me", **extra),
@@ -161,13 +162,18 @@ def call(db: None, client: Client, probed: None) -> dict[str, Call]:
     }
 
 
-def _only_record(caplog: pytest.LogCaptureFixture, logger: str) -> logging.LogRecord:
+class ContextRecord(logging.LogRecord):
+    request_id: str
+    request_source: str
+
+
+def _only_record(caplog: pytest.LogCaptureFixture, logger: str) -> ContextRecord:
     records = [record for record in caplog.records if record.name == logger]
     assert len(records) == 1, [record.getMessage() for record in records]
-    return records[0]
+    return cast(ContextRecord, records[0])
 
 
-def _probe_record(caplog: pytest.LogCaptureFixture) -> logging.LogRecord:
+def _probe_record(caplog: pytest.LogCaptureFixture) -> ContextRecord:
     record = _only_record(caplog, PROBE_LOGGER)
     assert record.getMessage() == PROBE_MESSAGE
     return record
@@ -273,9 +279,9 @@ class TestResponseClose:
 
     def _records(
         self, caplog: pytest.LogCaptureFixture, message: str
-    ) -> list[logging.LogRecord]:
+    ) -> list[ContextRecord]:
         return [
-            record
+            cast(ContextRecord, record)
             for record in caplog.records
             if record.name == PROBE_LOGGER and record.getMessage() == message
         ]
@@ -324,11 +330,11 @@ class TestResponseClose:
 @pytest.mark.django_db
 class TestMiddlewarePlacement:
     @pytest.fixture
-    def unknown_host(self, probed: None) -> Callable[[], HttpResponse]:
+    def unknown_host(self, probed: None) -> Callable[[], HttpResponseBase]:
         return lambda: Client(headers={"host": UNKNOWN_HOST}).get("/")
 
     def test_a_response_produced_by_middleware_carries_the_header(
-        self, unknown_host: Callable[[], HttpResponse]
+        self, unknown_host: Callable[[], HttpResponseBase]
     ) -> None:
         response = unknown_host()
 
@@ -337,7 +343,7 @@ class TestMiddlewarePlacement:
 
     def test_the_line_that_rejects_the_request_carries_the_same_id(
         self,
-        unknown_host: Callable[[], HttpResponse],
+        unknown_host: Callable[[], HttpResponseBase],
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         with caplog.at_level(logging.ERROR, logger=DISALLOWED_HOST_LOGGER):

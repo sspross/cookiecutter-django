@@ -5,15 +5,21 @@ A thin adapter over ``api_keys.services``, which owns the policy.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+from django.http import HttpRequest
 from ninja.security import HttpBearer
 
 from api_keys import services
+
+if TYPE_CHECKING:
+    from users.models import User
 
 
 class ApiKeyBearer(HttpBearer):
     """Resolve a bearer token to ``request.user`` via :func:`services.verify`."""
 
-    def authenticate(self, request, token: str):
+    def authenticate(self, request: HttpRequest, token: str) -> User | None:
         user = services.verify(token)
         if user is None:
             return None

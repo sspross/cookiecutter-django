@@ -10,10 +10,14 @@ from __future__ import annotations
 import hashlib
 import secrets
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from django.utils import timezone
 
 from api_keys.models import UserApiKey
+
+if TYPE_CHECKING:
+    from users.models import User
 
 TOKEN_PREFIX = "{{ cookiecutter.project_slug }}_live_"
 TOKEN_RANDOM_BYTES = 32
@@ -30,7 +34,7 @@ def _hash(raw_token: str) -> str:
     return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
 
 
-def mint(user, name: str) -> MintResult:
+def mint(user: User, name: str) -> MintResult:
     """Generate a new API key for ``user`` and persist only its hash.
 
     The returned raw token is the sole opportunity any caller has to observe
@@ -47,7 +51,7 @@ def mint(user, name: str) -> MintResult:
     return MintResult(api_key=api_key, raw_token=raw_token)
 
 
-def verify(raw_token: str):
+def verify(raw_token: str) -> User | None:
     """Resolve a raw bearer token to its owning user, or ``None``.
 
     Rejects unknown hashes, revoked keys, keys of deactivated users and
