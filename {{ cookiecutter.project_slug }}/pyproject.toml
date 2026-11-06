@@ -55,12 +55,27 @@ select = [
     "C4",
     "UP",
     "ANN",
+    "BLE",
+    "DJ",
+    "DTZ",
+    "PLC0415",
+    "PT",
+    "S",
+    "SIM",
+    "T20",
+    "TD003",
+    "TID251",
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "*/migrations/*" = ["E501", "ANN"]
-"**/tests/**" = ["ANN"]
-"conftest.py" = ["ANN"]
+"**/tests/**" = ["ANN", "S", "TID251"]
+"conftest.py" = ["ANN", "S"]
+"scripts/*" = ["T20"]
+"manage.py" = ["PLC0415"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"sentry_sdk.capture_exception".msg = "Sentry error events are for unhandled exceptions. Log expected failures and record state, see ADR-0007."
 
 [tool.ruff.lint.flake8-annotations]
 allow-star-arg-any = true

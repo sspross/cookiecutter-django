@@ -32,6 +32,7 @@ not app code.
 ## Consequences
 
 - The issue stream is reserved for bugs; anything in it is worth interrupting someone for.
+- Ruff's `TID251` bans `sentry_sdk.capture_exception` outside tests, so a deliberate capture fails lint.
 - Expected failures are watched where they are queryable: Sentry Logs and the recorded
   state. Adding an alert on either changes a Sentry rule, not a deploy.
 - The recorded state carries the history for as long as the rows exist.
