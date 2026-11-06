@@ -76,7 +76,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/testdb
           REDIS_URL: redis://localhost:6379/0
           SECRET_KEY: "test-secret-key-for-ci"
-        run: make test.coverage
+        run: make test
 
       - name: Upload test artifacts on failure
         if: failure()

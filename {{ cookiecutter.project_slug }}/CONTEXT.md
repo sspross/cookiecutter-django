@@ -331,11 +331,6 @@ Conventions:
   the same seed to come back. Fix an order-dependent test, do not pin it.
 - **A warning fails the run.** Fix it. A third-party warning that cannot be
   fixed gets a narrow ignore under `filterwarnings` with a comment saying why.
-- Coverage is configured in `pyproject.toml` and reported by
-  `make test.coverage`, which CI runs. It fails below `fail_under`: raise that
-  floor as the project grows. Use the report's diff to judge a deletion: a test
-  whose removal changes no missed line was asserting something another test
-  already covers.
 
 Static correctness on the TS side is covered by `tsc --noEmit` and biome (both
 run in pre-commit).

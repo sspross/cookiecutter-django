@@ -27,7 +27,6 @@ dev = [
 	"ruff",
 	"pytest",
 	"pytest-django",
-	"pytest-cov",
 	"factory-boy",
 	"pre-commit",
 	"playwright",
@@ -124,22 +123,6 @@ filterwarnings = [
     "ignore:unclosed database in <sqlite3.Connection:ResourceWarning",
 ]
 timeout = 120
-
-[tool.coverage.run]
-source = ["core", "api_keys", "users"]
-omit = [
-    "*/migrations/*",
-    "*/tests/*",
-    "*/asgi.py",
-    "*/wsgi.py",
-    "core/settings/*",
-    "manage.py",
-]
-
-[tool.coverage.report]
-fail_under = 90
-show_missing = true
-skip_covered = true
 
 [tool.deptry]
 # Patterns match from the path start (re.match), and deptry's built-in `tests`

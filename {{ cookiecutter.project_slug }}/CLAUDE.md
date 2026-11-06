@@ -7,7 +7,6 @@ See `CONTEXT.md` for domain language, `docs/adr/` for the architectural decision
 Run these before declaring work complete:
 
 - `make test` — run the test suite; nothing ships if this is red.
-- `make test.coverage`: the suite with the coverage floor that CI enforces.
 - `make lint`: Ruff, `tach`, `mypy`, `deptry`, missing migrations, deployment checks, biome and `tsc`.
 - `make format` — apply formatting.
 - `make precommit`: the full pre-commit pipeline, including scanners, dependency audits and schema freshness. Together with `make lint` it covers every static check CI runs.

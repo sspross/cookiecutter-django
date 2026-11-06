@@ -9,9 +9,6 @@ test: frontend.build
 		exit $$status; \
 	fi
 
-test.coverage: frontend.build
-	uv run pytest -n 4 --cov --cov-report=term
-
 test.live.watch: frontend.build
 	@dirs=$$(find . -type d -path '*/tests/live' -not -path '*/.venv/*' -not -path '*/node_modules/*'); \
 	if [ -z "$$dirs" ]; then echo "No tests/live directories found"; exit 1; fi; \

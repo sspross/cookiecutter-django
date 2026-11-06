@@ -7,8 +7,6 @@ __pycache__/
 staticfiles/
 media/
 test-results/
-.coverage
-htmlcov/
 
 core/static/dist/
 core/frontend/node_modules/

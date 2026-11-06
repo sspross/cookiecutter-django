@@ -58,7 +58,6 @@ creates the superuser.
 ### Tests
 
 - `make test` — pytest suite
-- `make test.coverage`: pytest suite with coverage, fails below the floor
 - `make test.live.watch` — live Playwright tests, headed + slowmo (debugging)
 - `make precommit` — full pre-commit pipeline
 

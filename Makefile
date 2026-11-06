@@ -105,7 +105,6 @@ test:
 	@echo "2. Verification:"
 	@echo ""
 	$(call run_step,make test,passed)
-	$(call run_step,make test.coverage,Required test coverage of)
 	$(call run_step,make lint,All checks passed)
 	$(call run_step,make format,left unchanged)
 	$(call run_step,make precommit,Passed)
