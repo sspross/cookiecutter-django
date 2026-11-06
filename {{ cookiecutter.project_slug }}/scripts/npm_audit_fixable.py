@@ -8,7 +8,7 @@ FRONTEND_DIR = Path(__file__).resolve().parent.parent / "core" / "frontend"
 
 def main() -> int:
     result = subprocess.run(
-        ["npm", "audit", "--omit=dev", "--json"],
+        ["npm", "audit", "--omit=dev", "--json"],  # noqa: S607
         capture_output=True,
         text=True,
         cwd=FRONTEND_DIR,
