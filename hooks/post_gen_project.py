@@ -1,4 +1,5 @@
 import json
+import os
 import random
 import shutil
 import string
@@ -48,7 +49,9 @@ def _update_pre_commit_hooks():
 
 
 def _write_template_marker():
-    repo_dir = "{{ cookiecutter._repo_dir }}"
+    # Cookiecutter keeps a relative _repo_dir, and this hook runs in the generated
+    # project, so it only resolves from the directory cookiecutter was launched in.
+    repo_dir = os.path.join(os.environ.get("PWD", ""), "{{ cookiecutter._repo_dir }}")
     try:
         marker = {
             "template": _git(repo_dir, "remote", "get-url", "origin"),
