@@ -5,7 +5,7 @@ import sys
 
 def main() -> int:
     result = subprocess.run(
-        ["uv", "run", "pip-audit", "-f", "json"],  # noqa: S607 uv comes from PATH
+        ["uv", "run", "pip-audit", "-f", "json"],  # noqa: S607 uv is the required tool runner
         capture_output=True,
         text=True,
     )

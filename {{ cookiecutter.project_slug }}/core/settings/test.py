@@ -6,7 +6,7 @@ from .base import *  # noqa: F403
 # rejects the live_server fixture's DB calls with SynchronousOnlyOperation.
 os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
 
-SECRET_KEY = "test-secret-key-for-testing-only"  # noqa: S105 test-only value
+SECRET_KEY = "test-secret-key-for-testing-only"  # noqa: S105 not a real secret
 DEBUG = False
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 CSRF_TRUSTED_ORIGINS = ["http://localhost", "http://127.0.0.1"]

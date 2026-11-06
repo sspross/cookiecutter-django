@@ -70,12 +70,13 @@ select = [
 [tool.ruff.lint.per-file-ignores]
 "*/migrations/*" = ["E501", "ANN"]
 "**/tests/**" = ["ANN", "S", "TID251"]
-"conftest.py" = ["ANN", "S"]
+"conftest.py" = ["ANN", "S", "TID251"]
 "scripts/*" = ["T20"]
 "manage.py" = ["PLC0415"]
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "sentry_sdk.capture_exception".msg = "Sentry error events are for unhandled exceptions. Log expected failures and record state, see ADR-0007."
+"sentry_sdk.api.capture_exception".msg = "Sentry error events are for unhandled exceptions. Log expected failures and record state, see ADR-0007."
 
 [tool.ruff.lint.flake8-annotations]
 allow-star-arg-any = true

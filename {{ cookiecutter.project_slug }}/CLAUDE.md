@@ -14,7 +14,7 @@ Run these before declaring work complete:
 ## Conventions
 
 - **Python tooling is `uv`** — `uv add`, `uv run`, etc. Never `pip`.
-- **Defer an import only for a genuine circular cycle.** Add `# noqa: PLC0415` and a comment naming the cycle, e.g. `# avoid circular: jobs → services → models → jobs`.
+- **Outside a `TYPE_CHECKING` guard, defer an import only for a genuine circular cycle.** Add `# noqa: PLC0415` and a comment naming the cycle, e.g. `# avoid circular: jobs → services → models → jobs`.
 - **Module boundaries are enforced by `tach`** (`tach.toml`). A `from other_app.models import X` that `tach check` rejects is **still allowed under a `TYPE_CHECKING` guard for type-hinting only** — annotations create no runtime dependency. Keep such an import pointing the same direction as the runtime arrow; never invert a boundary behind the guard. See ADR-0005.
 - **Type-hint everything.** Annotate all function signatures and any non-obvious variable; the goal is maximal coverage, not just the easy cases. `mypy` checks the types; Ruff's `ANN` rules require them outside tests and migrations.
 - **Put units in names** — `TIMEOUT_SECONDS`, `MAX_SIZE_MB`, `DELAY_MS`.

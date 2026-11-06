@@ -64,18 +64,18 @@ define run_step_smoke
 	$(show_tail)
 endef
 
-# $(1) is what the check must print, $(2) the file to plant in, $(3) the planted
-# code (\n for a newline, no commas or single quotes), $(4) the check.
+# $(1) is the check, $(2) what it must print, $(3) the file to plant in, $(4) the planted
+# code (\n for a newline, no commas or single quotes).
 define run_canary
-	@printf "  \`$(4)\` catches $(1)"; \
+	@printf "  \`$(1)\` catches $(2)"; \
 	cd $(PROJDIR); \
-	cp "$(2)" "$(2).canary"; \
-	printf '%b\n' '\n$(3)' >> "$(2)"; \
-	output=$$($(4) 2>&1); \
+	cp "$(3)" "$(3).canary"; \
+	printf '%b\n' '\n$(4)' >> "$(3)"; \
+	output=$$($(1) 2>&1); \
 	status=$$?; \
-	mv "$(2).canary" "$(2)"; \
-	if [ $$status -eq 0 ] || ! echo "$$output" | grep -q "$(1)"; then \
-		echo " FAILED (canary did not fire: $(1))"; \
+	mv "$(3).canary" "$(3)"; \
+	if [ $$status -eq 0 ] || ! echo "$$output" | grep -q "$(2)"; then \
+		echo " FAILED (canary did not fire: $(2))"; \
 		echo "$$output"; \
 		exit 1; \
 	fi; \
@@ -112,9 +112,9 @@ test:
 	@echo ""
 	@echo "3. Canaries:"
 	@echo ""
-	$(call run_canary,TID251.*ADR-0007,core/urls.py,import sentry_sdk\nsentry_sdk.capture_exception(),uv run ruff check .)
-	$(call run_canary,PLC0415,core/urls.py,def canary() -> None:\n    import json,uv run ruff check .)
-	$(call run_canary,TD003,core/urls.py,# TODO: canary,uv run ruff check .)
+	$(call run_canary,uv run ruff check .,TID251.*ADR-0007,core/urls.py,import sentry_sdk\nsentry_sdk.capture_exception())
+	$(call run_canary,uv run ruff check .,PLC0415,core/urls.py,def canary() -> None:\n    import json)
+	$(call run_canary,uv run ruff check .,TD003,core/urls.py,# TODO: canary)
 	$(call run_step,make lint,All checks passed)
 	@echo ""
 	@rm -rf "$(TMPDIR)"
