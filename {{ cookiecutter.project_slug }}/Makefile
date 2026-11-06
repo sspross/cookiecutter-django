@@ -9,9 +9,6 @@ test: frontend.build
 		exit $$status; \
 	fi
 
-test.coverage: frontend.build
-	uv run pytest -n 4 --cov --cov-report=term
-
 test.live.watch: frontend.build
 	@dirs=$$(find . -type d -path '*/tests/live' -not -path '*/.venv/*' -not -path '*/node_modules/*'); \
 	if [ -z "$$dirs" ]; then echo "No tests/live directories found"; exit 1; fi; \
@@ -27,6 +24,9 @@ lint:
 	uv run ruff check .
 	uv run tach check
 	uv run mypy .
+	uv run deptry .
+	uv run python manage.py makemigrations --check --dry-run
+	DEBUG=False ALLOWED_HOSTS=example.com SECRET_KEY=deploy-check-secret-key-0123456789abcdefghijklmnopqrstuvwxyz uv run python manage.py check --deploy --tag security --fail-level WARNING
 	cd core/frontend && npm run lint
 	cd core/frontend && npm run typecheck
 

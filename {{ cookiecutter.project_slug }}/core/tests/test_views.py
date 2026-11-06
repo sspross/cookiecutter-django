@@ -79,8 +79,11 @@ class TestLoginPage:
         assert content.index("google-login-form") < content.index('"login-form"')
 
     def test_hides_google_button_without_a_client_id(self, client, settings):
+        # core.urls reads this setting at import. Load it first, or this process keeps
+        # a URLconf without the Google routes.
+        login_url = reverse("login")
         settings.SOCIALACCOUNT_PROVIDERS = {}
 
-        response = client.get(reverse("login"))
+        response = client.get(login_url)
 
         assert "Sign in with Google" not in response.content.decode()

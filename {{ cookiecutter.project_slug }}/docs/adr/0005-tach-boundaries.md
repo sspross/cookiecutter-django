@@ -18,12 +18,12 @@ Two facts make `tach` confusing on first contact:
    to describe a value. Developers hit a `tach check` failure on a model import
    and conclude "I can't reference that type at all," then either reach for
    `Any`, duplicate the type, or invert a dependency to dodge the check.
-2. `tach` can enforce boundaries at **sub-package** granularity — e.g.
-   `app.models` (the ORM) as a separate module from `app.services` (the write
-   seam), so other apps must go *through* `services` and never touch `models`
-   directly. There the "may I name a `models` type?" question is sharper still,
-   because the layering rule deliberately forbids the runtime import while the
-   type is exactly what you want to annotate.
+2. `tach` draws two kinds of boundary: which apps may depend on which
+   (`[[modules]]`), and which of an app's modules other apps may import
+   (`[[interfaces]]`). `core → api_keys` is an allowed arrow, yet `core` may not
+   import `api_keys.models`. There the "may I name a `models` type?" question is
+   sharper still, because the interface deliberately forbids the runtime import
+   while the type is exactly what you want to annotate.
 
 ## Decision
 
@@ -51,28 +51,48 @@ boundary the runtime arrow forbids.**
   miss: **the boundary blocks runtime imports, not the ability to type-hint.**
 
 - **A `TYPE_CHECKING` import may only travel the SAME direction as the runtime
-  arrow, never against it.** In the baseline graph the arrow is `core →
-  api_keys`, so `core` naming an `api_keys` type is honest. The forbidden move is
-  the mirror image — `api_keys` reaching for a `core` type under the guard — which
-  would hide an inverted `api_keys → core` dependency behind `TYPE_CHECKING` and
-  lie about the real direction. The rule: **a type-hint import points the same way
+  arrow, never against it.** In the baseline graph, `api_keys` naming
+  `users.models.User` is honest: no runtime arrow exists, and `api_keys → users`
+  is the way one would point, because a key belongs to a user and `users` knows
+  nothing about keys. The forbidden move is `api_keys` reaching for a `core` type
+  under the guard, which would hide an inverted `api_keys → core` dependency
+  behind `TYPE_CHECKING` and lie about the real direction. The rule: **a type-hint import points the same way
   the runtime arrow already points (or would point); it never inverts a
   boundary.**
-
-- **Sub-package granularity expresses layering rules.** When an app needs a hard
-  "write through `services`, never touch the ORM directly" seam, declare
-  `app.models` and `app.services` as distinct `[[modules]]`: `app.models` depends
-  on nothing, `app.services` may depend on `app.models`, and other apps depend on
-  `app.services` only. A direct `from app.models import …` from outside then fails
-  `tach check`, while a `TYPE_CHECKING` import of an `app.models` type for an
-  annotation stays legal (same-direction, no ORM at runtime). Add the sub-package
-  blocks only once the packages exist: a block on an absent path enforces
-  nothing, and `tach check` only warns about it.
 
 - **A neutral top-level `types`/`contracts` module is not the answer to a
   boundary-crossing type hint.** It is a whole module for what is usually a
   single shared type. Reach for it when a genuinely shared contract object
   appears, not to dodge a type hint the guard already allows.
+
+- **Each app declares its public modules with a `[[interfaces]]` block in
+  `tach.toml`.** Other apps may import only what an interface exposes, so
+  `api_keys.models` is reachable only from inside `api_keys`. A new app adds one
+  block:
+
+  ```toml
+  [[interfaces]]
+  expose = ["api(\\..*)?", "services(\\..*)?"]
+  from = ["new_app"]
+  ```
+
+  `expose` entries are full-match regexes on the path below the app, so `api`
+  alone exposes the name `api` but not `api.router`; append `(\\..*)?` to expose
+  the module and its members. An app without an `[[interfaces]]` block exposes
+  everything.
+
+  For a hard "write through `services`, never touch the ORM directly" seam between
+  apps, expose `services` and not `models`. A direct `from app.models import …`
+  from another app then fails `tach check`, while a `TYPE_CHECKING` import of an
+  `app.models` type for an annotation stays legal.
+
+- **Sub-package `[[modules]]` are for layering inside one app.** An interface
+  gates what other apps import, not what an app's own modules import. To keep
+  `app.api` away from `app.models`, declare `app.models` and `app.services` as
+  distinct `[[modules]]`: `app.models` depends on nothing, `app.services` may
+  depend on `app.models`, and `app` and other apps depend on `app.services` only.
+  Add the sub-package blocks only once the packages exist: a block on an absent
+  path enforces nothing, and `tach check` only warns about it.
 
 - **Tests, migrations, management commands, and `manage.py` are exempt**
   (`tach.toml` excludes them). A management command is a composition root that may
@@ -87,8 +107,8 @@ Positive:
   runtime import, so an inverted dependency can't land silently.
 - Full type coverage survives the boundary: you annotate with the real type, not
   `Any` or a duplicate, because type-hint imports cross freely under the guard.
-- Layering ("go through `services`") becomes enforceable at sub-package
-  granularity when a write seam needs it, without coloring the rest of the graph.
+- A write seam between apps is one `expose` line. Layering inside an app takes
+  sub-package blocks, only where it is needed.
 
 Negative:
 

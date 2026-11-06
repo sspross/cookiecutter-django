@@ -36,6 +36,17 @@ repos:
     hooks:
       - id: gitleaks
 
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.32.0
+    hooks:
+      - id: zizmor
+
+  - repo: https://github.com/AleksaC/hadolint-py
+    rev: v2.15.1
+    hooks:
+      - id: hadolint
+        args: [--failure-threshold, warning]
+
   - repo: local
     hooks:
       - id: tach
@@ -59,6 +70,14 @@ repos:
       - id: pip-audit
         name: pip-audit
         entry: uv run python scripts/pip_audit_fixable.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        verbose: true
+        stages: [manual]
+      - id: npm-audit
+        name: npm-audit
+        entry: uv run python scripts/npm_audit_fixable.py
         language: system
         pass_filenames: false
         always_run: true

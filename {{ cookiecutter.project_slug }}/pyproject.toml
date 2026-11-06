@@ -16,6 +16,7 @@ dependencies = [
 	"redis>=8",
 	"sentry-sdk>=2.68",
 	"django-allauth[socialaccount]>=65.19",
+	"django-stubs-ext>=5",
 ]
 
 [dependency-groups]
@@ -26,11 +27,11 @@ dev = [
 	"ruff",
 	"pytest",
 	"pytest-django",
-	"pytest-cov",
 	"factory-boy",
 	"pre-commit",
 	"playwright",
 	"pytest-playwright",
+	"pytest-randomly",
 	"pytest-timeout",
 	"pytest-xdist",
 	"tach>=0.28.0",
@@ -47,20 +48,36 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = [
-    "E",
-    "W",
-    "F",
-    "I",
-    "B",
-    "C4",
-    "UP",
-    "ANN",
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort, import order
+    "B",  # flake8-bugbear, likely bugs
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade, modern syntax
+    "ANN",  # flake8-annotations, type hints required
+    "BLE",  # flake8-blind-except
+    "DJ",  # flake8-django
+    "DTZ",  # flake8-datetimez, timezone-aware datetimes
+    "PLC0415",  # imports at module top
+    "PT",  # flake8-pytest-style
+    "S",  # flake8-bandit, security
+    "SIM",  # flake8-simplify
+    "T20",  # flake8-print, no print
+    "TD003",  # TODOs need an issue link
+    "TID251",  # flake8-tidy-imports banned-api
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "*/migrations/*" = ["E501", "ANN"]
-"**/tests/**" = ["ANN"]
-"conftest.py" = ["ANN"]
+"**/tests/**" = ["ANN", "S", "TID251"]
+"conftest.py" = ["ANN", "S", "TID251"]
+"scripts/*" = ["T20"]
+"manage.py" = ["PLC0415"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"sentry_sdk.capture_exception".msg = "Sentry error events are for unhandled exceptions. Log expected failures and record state, see ADR-0007."
+"sentry_sdk.api.capture_exception".msg = "Sentry error events are for unhandled exceptions. Log expected failures and record state, see ADR-0007."
 
 [tool.ruff.lint.flake8-annotations]
 allow-star-arg-any = true
@@ -70,12 +87,24 @@ python_version = "3.13"
 plugins = ["mypy_django_plugin.main"]
 explicit_package_bases = true
 warn_unused_ignores = true
-check_untyped_defs = true
+strict = true
 exclude = ["^core/frontend/"]
 
 [[tool.mypy.overrides]]
 module = ["allauth.*", "environ.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["users.sso"]
+disallow_subclassing_any = false
+
+[[tool.mypy.overrides]]
+module = ["*.tests.*", "*.tests", "conftest", "*.conftest"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_calls = false
+disallow_untyped_decorators = false
+check_untyped_defs = true
 
 [tool.django-stubs]
 django_settings_module = "core.settings.test"
@@ -83,23 +112,17 @@ django_settings_module = "core.settings.test"
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "core.settings.test"
 python_files = ["test_*.py", "*_test.py", "tests.py"]
-addopts = "-v --tb=short --tracing=retain-on-failure --screenshot=only-on-failure"
-timeout = 120
-
-[tool.coverage.run]
-source = ["core", "api_keys", "users"]
-omit = [
-    "*/migrations/*",
-    "*/tests/*",
-    "*/asgi.py",
-    "*/wsgi.py",
-    "core/settings/*",
-    "manage.py",
+addopts = "-v --tb=short --strict-markers --tracing=retain-on-failure --screenshot=only-on-failure"
+filterwarnings = [
+    "error",
+    # pytest-playwright defines its fallback base_url fixture as an instance method.
+    # Only an upstream release can change that.
+    "ignore:(?s)Session-scoped fixtures defined as instance methods.*'base_url':pytest.PytestDeprecationWarning",
+    # Django ignores close() on an in-memory SQLite database because closing destroys
+    # it, and Python 3.13 warns when such a connection is collected.
+    "ignore:unclosed database in <sqlite3.Connection:ResourceWarning",
 ]
-
-[tool.coverage.report]
-show_missing = true
-skip_covered = true
+timeout = 120
 
 [tool.deptry]
 # Patterns match from the path start (re.match), and deptry's built-in `tests`

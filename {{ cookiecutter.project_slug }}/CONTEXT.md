@@ -325,9 +325,12 @@ Conventions:
   another step rather than adding a second browser session, and only assert
   what a browser is needed for: real rendering, focus, keyboard, viewport,
   static serving. Anything reachable from `client` belongs in `tests/test_*.py`.
-- Coverage is configured in `pyproject.toml` and reported by
-  `make test.coverage`. Use its diff to judge a deletion: a test whose removal
-  changes no missed line was asserting something another test already covers.
+- **Tests run in random order.** pytest prints `Using --randomly-seed=<seed>`;
+  `uv run pytest --randomly-seed=<seed>` replays that order. With `-n 4` the
+  split across workers depends on timing, so a failure may need a few runs with
+  the same seed to come back. Fix an order-dependent test, do not pin it.
+- **A warning fails the run.** Fix it. A third-party warning that cannot be
+  fixed gets a narrow ignore under `filterwarnings` with a comment saying why.
 
 Static correctness on the TS side is covered by `tsc --noEmit` and biome (both
 run in pre-commit).

@@ -12,22 +12,25 @@ permissions:
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
-    # mypy's Django plugin and schema-fresh import core/settings/base.py, which has no
-    # default for these two. Neither hook connects, so a throwaway sqlite URL is enough.
+    # mypy's Django plugin, schema-fresh and manage.py import core/settings/base.py, which
+    # has no default for these two. A throwaway sqlite URL is enough.
     env:
       SECRET_KEY: ci-not-a-real-secret
       DATABASE_URL: sqlite:///db.sqlite3
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.13'
-      - uses: astral-sh/setup-uv@v10.1.0
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
       - name: Install Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: '24'
       - run: uv sync --frozen
-      - run: make frontend.install
+      - run: make frontend.install.ci
+      - run: make lint
       - run: uv run pre-commit run --all-files
       - run: uv run pre-commit run --all-files --hook-stage manual

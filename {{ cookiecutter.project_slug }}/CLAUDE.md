@@ -7,20 +7,17 @@ See `CONTEXT.md` for domain language, `docs/adr/` for the architectural decision
 Run these before declaring work complete:
 
 - `make test` — run the test suite; nothing ships if this is red.
-- `make lint` — static checks.
+- `make lint`: static checks.
 - `make format` — apply formatting.
-- `make precommit` — run the full pre-commit pipeline locally to catch issues before committing.
+- `make precommit`: full pre-commit pipeline. Together with `make lint` it covers every static check CI runs.
 
 ## Conventions
 
 - **Python tooling is `uv`** — `uv add`, `uv run`, etc. Never `pip`.
-- **Imports go at module top.** Defer one only for a genuine circular cycle (add a comment naming it, e.g. `# avoid circular: jobs → services → models → jobs`) or under a `TYPE_CHECKING` guard.
-- **Module boundaries are enforced by `tach`** (`tach.toml`). A `from other_app.models import X` that `tach check` rejects is **still allowed under a `TYPE_CHECKING` guard for type-hinting only** — annotations create no runtime dependency. Keep such an import pointing the same direction as the runtime arrow; never invert a boundary behind the guard. See ADR-0005.
-- **Type-hint everything.** Annotate all function signatures and any non-obvious variable; the goal is maximal coverage, not just the easy cases. `mypy` checks the types; Ruff's `ANN` rules require them outside tests and migrations.
+- **Outside a `TYPE_CHECKING` guard, defer an import only for a genuine circular cycle.** Add `# noqa: PLC0415` and a comment naming the cycle, e.g. `# avoid circular: jobs → services → models → jobs`.
+- **A `TYPE_CHECKING` import may cross a `tach` boundary for type hints, but must follow the runtime arrow.** See ADR-0005.
 - **Put units in names** — `TIMEOUT_SECONDS`, `MAX_SIZE_MB`, `DELAY_MS`.
-- **No `sentry_sdk.capture_exception` for expected failures.** A Sentry error event means an unhandled exception, reported by an SDK integration. An expected failure is a log line plus recorded state. See ADR-0007.
 - **While iterating run only the tests you touched; run the full suite once at the end.**
-- **No TODOs without an issue number.**
 - **Never `--no-verify`, and never skip or delete a failing test to go green** — fix the underlying problem.
 - **After 3 failed attempts at the same problem, stop and reassess** instead of repeating variations.
 
