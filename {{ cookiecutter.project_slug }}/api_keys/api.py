@@ -35,7 +35,9 @@ def list_api_keys(request: AuthenticatedRequest) -> QuerySet[UserApiKey]:
     response={201: ApiKeyMintOut},
     throttle=[AuthRateThrottle("10/h")],
 )
-def create_api_key(request: AuthenticatedRequest, payload: ApiKeyCreateIn) -> Status:
+def create_api_key(
+    request: AuthenticatedRequest, payload: ApiKeyCreateIn
+) -> Status[dict[str, object]]:
     result = api_keys_services.mint(request.user, payload.name)
     return Status(
         201,

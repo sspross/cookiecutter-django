@@ -1,9 +1,12 @@
 from pathlib import Path
 from typing import Any
 
+import django_stubs_ext
 import environ
 
 from core.observability import DEFAULT_ENVIRONMENT as SENTRY_DEFAULT_ENVIRONMENT
+
+django_stubs_ext.monkeypatch()
 
 env = environ.Env(
     DEBUG=(bool, False),
@@ -104,7 +107,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 
-def google_providers(client_id: str, secret: str) -> dict:
+def google_providers(client_id: str, secret: str) -> dict[str, Any]:
     if not client_id:
         return {}
     return {

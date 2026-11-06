@@ -5,7 +5,7 @@ from users.models import User
 
 
 @admin.register(User)
-class UserAdmin(DjangoUserAdmin):
+class UserAdmin(DjangoUserAdmin[User]):
     add_fieldsets = (
         (
             None,
