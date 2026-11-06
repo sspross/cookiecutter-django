@@ -64,6 +64,25 @@ define run_step_smoke
 	$(show_tail)
 endef
 
+# $(1) is the check, $(2) what it must print, $(3) the file to plant in, $(4) the planted
+# code (\n for a newline, no commas or single quotes).
+define run_canary
+	@printf "  \`$(1)\` catches $(2)"; \
+	cd $(PROJDIR); \
+	cp "$(3)" "$(3).canary"; \
+	printf '%b\n' '\n$(4)' >> "$(3)"; \
+	output=$$($(1) 2>&1); \
+	status=$$?; \
+	mv "$(3).canary" "$(3)"; \
+	if [ $$status -eq 0 ] || ! echo "$$output" | grep -q "$(2)"; then \
+		echo " FAILED (canary did not fire: $(2))"; \
+		echo "$$output"; \
+		exit 1; \
+	fi; \
+	echo ""; \
+	$(show_tail)
+endef
+
 TMPDIR := $(shell mktemp -d)
 PROJDIR := $(TMPDIR)/django-website
 
@@ -90,6 +109,13 @@ test:
 	$(call run_step,make precommit,Passed)
 	$(call run_step_smoke,make frontend.dev,Local:)
 	$(call run_step_smoke,uv run python manage.py runserver,Starting WSGI development server)
+	@echo ""
+	@echo "3. Canaries:"
+	@echo ""
+	$(call run_canary,uv run ruff check .,TID251.*ADR-0007,core/urls.py,import sentry_sdk\nsentry_sdk.capture_exception())
+	$(call run_canary,uv run ruff check .,PLC0415,core/urls.py,def canary() -> None:\n    import json)
+	$(call run_canary,uv run ruff check .,TD003,core/urls.py,# TODO: canary)
+	$(call run_step,make lint,All checks passed)
 	@echo ""
 	@rm -rf "$(TMPDIR)"
 	@echo "All checks passed!"

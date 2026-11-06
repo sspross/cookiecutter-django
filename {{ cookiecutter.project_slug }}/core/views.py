@@ -24,7 +24,7 @@ def _check_redis() -> None:
 def _status_of(check: Callable[[], None]) -> DependencyStatus:
     try:
         check()
-    except Exception:
+    except Exception:  # noqa: BLE001 a probe reports any failure as unhealthy
         return "error"
     return "ok"
 

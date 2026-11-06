@@ -12,7 +12,7 @@ from api_keys.models import UserApiKey
 if TYPE_CHECKING:
     from users.models import User
 
-TOKEN_PREFIX = "{{ cookiecutter.project_slug }}_live_"
+TOKEN_PREFIX = "{{ cookiecutter.project_slug }}_live_"  # noqa: S105 public token prefix, not a secret
 TOKEN_RANDOM_BYTES = 32
 DISPLAY_PREFIX_LENGTH = 12
 
