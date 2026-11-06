@@ -74,6 +74,25 @@ boundary the runtime arrow forbids.**
   single shared type. Reach for it when a genuinely shared contract object
   appears, not to dodge a type hint the guard already allows.
 
+- **Each app declares its public modules with a `[[interfaces]]` block in
+  `tach.toml`.** Other apps may import only what an interface exposes, so
+  `api_keys.models` is reachable only from inside `api_keys`. A new app adds one
+  block:
+
+  ```toml
+  [[interfaces]]
+  expose = ["api(\\..*)?", "services(\\..*)?"]
+  from = ["new_app"]
+  ```
+
+  `expose` entries are full-match regexes on the path below the app, so `api`
+  alone exposes the name `api` but not `api.router`; append `(\\..*)?` to expose
+  the module and its members. An app without an `[[interfaces]]` block exposes
+  everything. Today `api_keys` exposes `api` and `auth`, and `users` exposes
+  `models` (`core` imports `User` from it). Interfaces are the default over
+  sub-package modules because they need one block per app instead of a module
+  per layer.
+
 - **Tests, migrations, management commands, and `manage.py` are exempt**
   (`tach.toml` excludes them). A management command is a composition root that may
   wire anything; the seam is enforced where it matters (services and the
