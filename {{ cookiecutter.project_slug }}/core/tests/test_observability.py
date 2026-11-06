@@ -150,7 +150,8 @@ def boot(settings_module: str, **environment: str) -> dict[str, Any]:
         timeout=120,
     )
     assert result.returncode == 0, result.stderr
-    return json.loads(result.stdout.strip().splitlines()[-1])
+    probe: dict[str, Any] = json.loads(result.stdout.strip().splitlines()[-1])
+    return probe
 
 
 class TestInitialization:

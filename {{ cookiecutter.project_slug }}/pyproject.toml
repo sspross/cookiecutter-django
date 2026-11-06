@@ -16,6 +16,7 @@ dependencies = [
 	"redis>=8",
 	"sentry-sdk>=2.68",
 	"django-allauth[socialaccount]>=65.19",
+	"django-stubs-ext",
 ]
 
 [dependency-groups]
@@ -86,12 +87,24 @@ python_version = "3.13"
 plugins = ["mypy_django_plugin.main"]
 explicit_package_bases = true
 warn_unused_ignores = true
-check_untyped_defs = true
+strict = true
 exclude = ["^core/frontend/"]
 
 [[tool.mypy.overrides]]
 module = ["allauth.*", "environ.*"]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["users.sso"]
+disallow_subclassing_any = false
+
+[[tool.mypy.overrides]]
+module = ["*.tests.*", "*.tests", "conftest", "*.conftest"]
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_calls = false
+disallow_untyped_decorators = false
+check_untyped_defs = true
 
 [tool.django-stubs]
 django_settings_module = "core.settings.test"

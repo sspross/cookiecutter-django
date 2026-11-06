@@ -1,4 +1,5 @@
 import factory
+from factory.declarations import LazyAttribute, Sequence
 
 from users.models import User
 
@@ -8,6 +9,6 @@ class UserFactory(factory.django.DjangoModelFactory[User]):
         model = User
         django_get_or_create = ("username",)
 
-    username = factory.Sequence(lambda n: f"user-{n}")
-    email = factory.LazyAttribute(lambda obj: f"{obj.username}@example.com")
+    username = Sequence(lambda n: f"user-{n}")
+    email = LazyAttribute(lambda obj: f"{obj.username}@example.com")
     password = factory.django.Password("pw-12345!")

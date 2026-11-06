@@ -115,6 +115,7 @@ test:
 	$(call run_canary,uv run ruff check .,TID251.*ADR-0007,core/urls.py,import sentry_sdk\nsentry_sdk.capture_exception())
 	$(call run_canary,uv run ruff check .,PLC0415,core/urls.py,def canary() -> None:\n    import json)
 	$(call run_canary,uv run ruff check .,TD003,core/urls.py,# TODO: canary)
+	$(call run_canary,uv run mypy .,no-untyped-def,core/urls.py,def canary():\n    return 1)
 	$(call run_step,make lint,All checks passed)
 	@echo ""
 	@rm -rf "$(TMPDIR)"

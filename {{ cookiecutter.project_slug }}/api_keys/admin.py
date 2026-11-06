@@ -9,7 +9,7 @@ from api_keys.models import UserApiKey
 
 
 @admin.register(UserApiKey)
-class UserApiKeyAdmin(admin.ModelAdmin):
+class UserApiKeyAdmin(admin.ModelAdmin[UserApiKey]):
     list_display = (
         "user",
         "name",
@@ -31,7 +31,11 @@ class UserApiKeyAdmin(admin.ModelAdmin):
         return ("user", "name", *self.readonly_fields)
 
     def save_model(
-        self, request: HttpRequest, obj: UserApiKey, form: ModelForm, change: bool
+        self,
+        request: HttpRequest,
+        obj: UserApiKey,
+        form: ModelForm[UserApiKey],
+        change: bool,
     ) -> None:
         if change:
             super().save_model(request, obj, form, change)

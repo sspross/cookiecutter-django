@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.account.models import EmailAddress
@@ -115,6 +115,6 @@ class SsoSocialAccountAdapter(DefaultSocialAccountAdapter):
     def populate_user(
         self, request: HttpRequest, sociallogin: SocialLogin, data: dict[str, Any]
     ) -> AbstractBaseUser:
-        user = super().populate_user(request, sociallogin, data)
+        user = cast("User", super().populate_user(request, sociallogin, data))
         user.username = user.email
         return user
