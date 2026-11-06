@@ -104,6 +104,7 @@ test:
 	@echo "2. Verification:"
 	@echo ""
 	$(call run_step,make test,passed)
+	$(call run_step,make test.coverage,Required test coverage of)
 	$(call run_step,make lint,All checks passed)
 	$(call run_step,make format,left unchanged)
 	$(call run_step,make precommit,Passed)
@@ -118,6 +119,7 @@ test:
 	$(call run_canary,uv run tach check,not part of the public interface,core/urls.py,from api_keys.models import UserApiKey\nUserApiKey)
 	$(call run_canary,uv run mypy .,no-untyped-def,core/urls.py,def canary():\n    return 1)
 	$(call run_canary,make lint,Create model Canary,users/models.py,from django.db import models  # noqa: E402\n\n\nclass Canary(models.Model):\n    name = models.CharField(max_length=10)\n\n    def __str__(self) -> str:\n        return self.name)
+	$(call run_canary,uv run pytest core/tests/test_healthz.py -k canary,UserWarning: canary,core/tests/test_healthz.py,import warnings\n\n\ndef test_canary() -> None:\n    warnings.warn("canary"))
 	$(call run_step,make lint,All checks passed)
 	@echo ""
 	@rm -rf "$(TMPDIR)"

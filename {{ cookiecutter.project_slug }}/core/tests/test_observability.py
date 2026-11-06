@@ -8,6 +8,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from typing import Any
 from unittest import mock
+from uuid import uuid4
 
 import django_rq
 import pytest
@@ -118,7 +119,9 @@ def perform_failing_jobs(queue_name: str, *funcs: Callable[[], None]) -> list[st
         Job.create(func=func, connection=connection, origin=queue.name)
         for func in funcs
     ]
-    worker = SimpleWorker([queue], connection=connection)
+    worker = SimpleWorker(
+        [queue], connection=connection, name=f"{queue_name}-{uuid4().hex}"
+    )
     try:
         for job in jobs:
             job.save()
@@ -230,10 +233,16 @@ class TestErrorEvents:
         assert event["extra"]["rq-job"]["job_id"] == job_id
 
     def test_a_failing_job_leaves_no_redis_keys_behind(self) -> None:
-        connection = django_rq.get_connection()
-        before = set(connection.keys("rq:*"))
-        run_failing_job("observability-test-cleanup")
-        assert set(connection.keys("rq:*")) == before
+        # Scoped to a unique queue because other tests and concurrent runs write rq:*
+        # keys to the same Redis.
+        queue_name = f"observability-test-cleanup-{uuid4().hex}"
+        job_id = run_failing_job(queue_name)
+        leftovers = [
+            key
+            for key in django_rq.get_connection().keys("rq:*")
+            if queue_name.encode() in key or job_id.encode() in key
+        ]
+        assert leftovers == []
 
     def test_an_application_error_log_is_a_log_and_not_an_event(
         self, sentry: CapturingTransport
