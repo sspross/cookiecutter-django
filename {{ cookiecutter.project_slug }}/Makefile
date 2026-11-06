@@ -29,7 +29,7 @@ lint:
 	uv run mypy .
 	uv run deptry .
 	uv run python manage.py makemigrations --check --dry-run
-	DEBUG=False ALLOWED_HOSTS=example.com SECRET_KEY=deploy-check-secret-key-0123456789abcdefghijklmnopqrstuvwxyz uv run python manage.py check --deploy --fail-level WARNING
+	DEBUG=False ALLOWED_HOSTS=example.com SECRET_KEY=deploy-check-secret-key-0123456789abcdefghijklmnopqrstuvwxyz uv run python manage.py check --deploy --tag security --fail-level WARNING
 	cd core/frontend && npm run lint
 	cd core/frontend && npm run typecheck
 

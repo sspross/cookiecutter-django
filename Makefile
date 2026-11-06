@@ -98,6 +98,7 @@ test:
 	$(call run_step,git ls-files --error-unmatch .template.json,.template.json)
 	$(call run_step,uv run playwright install chromium)
 	$(call run_step,make db.migrate,Applying)
+	$(call run_step,make lint,All checks passed)
 	$(call run_step,make frontend.build,built in)
 	$(call run_step,uv run python manage.py collectstatic --noinput,static files copied)
 	@echo ""
