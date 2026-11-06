@@ -12,7 +12,6 @@ permissions:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    # Settings read these two without a default. Nothing connects, so a throwaway sqlite URL is enough.
     env:
       SECRET_KEY: ci-not-a-real-secret
       DATABASE_URL: sqlite:///db.sqlite3
