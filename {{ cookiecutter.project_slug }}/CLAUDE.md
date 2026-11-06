@@ -7,16 +7,15 @@ See `CONTEXT.md` for domain language, `docs/adr/` for the architectural decision
 Run these before declaring work complete:
 
 - `make test` — run the test suite; nothing ships if this is red.
-- `make lint`: Ruff, `tach`, `mypy`, `deptry`, missing migrations, deployment checks, biome and `tsc`.
+- `make lint`: static checks.
 - `make format` — apply formatting.
-- `make precommit`: the full pre-commit pipeline, including scanners, dependency audits and schema freshness. Together with `make lint` it covers every static check CI runs.
+- `make precommit`: full pre-commit pipeline. Together with `make lint` it covers every static check CI runs.
 
 ## Conventions
 
 - **Python tooling is `uv`** — `uv add`, `uv run`, etc. Never `pip`.
 - **Outside a `TYPE_CHECKING` guard, defer an import only for a genuine circular cycle.** Add `# noqa: PLC0415` and a comment naming the cycle, e.g. `# avoid circular: jobs → services → models → jobs`.
-- **Module boundaries are enforced by `tach`** (`tach.toml`), and an app's public modules are its `[[interfaces]]` blocks. A `from other_app.models import X` that `tach check` rejects is **still allowed under a `TYPE_CHECKING` guard for type-hinting only** — annotations create no runtime dependency. Keep such an import pointing the same direction as the runtime arrow; never invert a boundary behind the guard. See ADR-0005.
-- **Type-hint everything.** Annotate all function signatures and any non-obvious variable; the goal is maximal coverage, not just the easy cases. `mypy` runs with `strict = true`; test modules are exempt from the annotation flags. Ruff's `ANN` rules require annotations outside tests and migrations.
+- **A `TYPE_CHECKING` import may cross a `tach` boundary for type hints, but must follow the runtime arrow.** See ADR-0005.
 - **Put units in names** — `TIMEOUT_SECONDS`, `MAX_SIZE_MB`, `DELAY_MS`.
 - **While iterating run only the tests you touched; run the full suite once at the end.**
 - **Never `--no-verify`, and never skip or delete a failing test to go green** — fix the underlying problem.
