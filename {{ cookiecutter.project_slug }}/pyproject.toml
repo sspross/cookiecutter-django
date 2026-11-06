@@ -16,7 +16,7 @@ dependencies = [
 	"redis>=8",
 	"sentry-sdk>=2.68",
 	"django-allauth[socialaccount]>=65.19",
-	"django-stubs-ext",
+	"django-stubs-ext>=5",
 ]
 
 [dependency-groups]
