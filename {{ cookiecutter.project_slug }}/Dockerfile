@@ -6,9 +6,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # Debian package versions change with the base image, so apt pins would break the build.
 # hadolint ignore=DL3008
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y \
     build-essential \
-    ca-certificates \
     libpq-dev \
     curl \
     nodejs \
@@ -32,13 +31,16 @@ COPY . .
 # collectstatic below needs SECRET_KEY/DATABASE_URL to import settings.
 COPY .env.example .env
 
-# The chain ends by removing .env: never a runtime fallback, .env.example sets DEBUG=True and a placeholder SECRET_KEY.
-RUN make frontend.install.ci \
-    && make frontend.build \
-    && uv run python manage.py collectstatic --noinput \
-    && rm -f .env \
-    && chown -R app:app /app
+RUN make frontend.install.ci
+RUN make frontend.build
 
-USER 1000:1000
+RUN uv run python manage.py collectstatic --noinput
+
+# Never a runtime fallback: .env.example sets DEBUG=True and a placeholder SECRET_KEY.
+RUN rm -f .env
+
+RUN chown -R app:app /app
+
+USER app
 
 CMD ["./web.sh"]

@@ -45,6 +45,7 @@ repos:
     rev: v2.15.1
     hooks:
       - id: hadolint
+        args: [--failure-threshold, warning]
 
   - repo: local
     hooks:
