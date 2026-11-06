@@ -115,6 +115,7 @@ test:
 	$(call run_canary,uv run ruff check .,TID251.*ADR-0007,core/urls.py,import sentry_sdk\nsentry_sdk.capture_exception())
 	$(call run_canary,uv run ruff check .,PLC0415,core/urls.py,def canary() -> None:\n    import json)
 	$(call run_canary,uv run ruff check .,TD003,core/urls.py,# TODO: canary)
+	$(call run_canary,make lint,Create model Canary,users/models.py,from django.db import models  # noqa: E402\n\n\nclass Canary(models.Model):\n    name = models.CharField(max_length=10)\n\n    def __str__(self) -> str:\n        return self.name)
 	$(call run_step,make lint,All checks passed)
 	@echo ""
 	@rm -rf "$(TMPDIR)"

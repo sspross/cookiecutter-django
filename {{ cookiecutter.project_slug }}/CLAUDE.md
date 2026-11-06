@@ -7,7 +7,7 @@ See `CONTEXT.md` for domain language, `docs/adr/` for the architectural decision
 Run these before declaring work complete:
 
 - `make test` — run the test suite; nothing ships if this is red.
-- `make lint` — static checks.
+- `make lint` — the static checks CI runs: Ruff, `tach`, `mypy`, `deptry`, missing migrations, deployment checks, biome and `tsc`.
 - `make format` — apply formatting.
 - `make precommit` — run the full pre-commit pipeline locally to catch issues before committing.
 

@@ -30,6 +30,6 @@ jobs:
         with:
           node-version: '24'
       - run: uv sync --frozen
-      - run: make frontend.install
+      - run: make frontend.install.ci
       - run: uv run pre-commit run --all-files
       - run: uv run pre-commit run --all-files --hook-stage manual
