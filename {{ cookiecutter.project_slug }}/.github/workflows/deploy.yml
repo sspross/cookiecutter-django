@@ -30,10 +30,9 @@ jobs:
           exit 1
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
         with:
-
           persist-credentials: false
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
@@ -77,7 +76,7 @@ jobs:
       - name: Write .env from the repository variables and secrets
         env:
           VARS: "{% raw %}${{ toJSON(vars) }}{% endraw %}"
-          SECRETS: "{% raw %}${{ toJSON(secrets) }}{% endraw %}"  # zizmor: ignore[overprovisioned-secrets] the whole point is to write every secret into the stack's .env
+          SECRETS: "{% raw %}${{ toJSON(secrets) }}{% endraw %}"  # zizmor: ignore[overprovisioned-secrets] every secret is written to the stack's .env on purpose
         run: |
           python3 - <<'PY'
           import json
