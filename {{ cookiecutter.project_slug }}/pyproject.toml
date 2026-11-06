@@ -32,6 +32,7 @@ dev = [
 	"pre-commit",
 	"playwright",
 	"pytest-playwright",
+	"pytest-randomly",
 	"pytest-timeout",
 	"pytest-xdist",
 	"tach>=0.28.0",
@@ -112,7 +113,16 @@ django_settings_module = "core.settings.test"
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "core.settings.test"
 python_files = ["test_*.py", "*_test.py", "tests.py"]
-addopts = "-v --tb=short --tracing=retain-on-failure --screenshot=only-on-failure"
+addopts = "-v --tb=short --strict-markers --tracing=retain-on-failure --screenshot=only-on-failure"
+filterwarnings = [
+    "error",
+    # pytest-playwright defines its fallback base_url fixture as an instance method.
+    # Only an upstream release can change that.
+    "ignore:(?s)Session-scoped fixtures defined as instance methods.*'base_url':pytest.PytestDeprecationWarning",
+    # Django ignores close() on an in-memory SQLite database because closing destroys
+    # it, and Python 3.13 warns when such a connection is collected.
+    "ignore:unclosed database in <sqlite3.Connection:ResourceWarning",
+]
 timeout = 120
 
 [tool.coverage.run]
@@ -127,6 +137,7 @@ omit = [
 ]
 
 [tool.coverage.report]
+fail_under = 90
 show_missing = true
 skip_covered = true
 
