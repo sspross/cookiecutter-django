@@ -21,3 +21,11 @@ depends_on = []
 [[modules]]
 path = "users"
 depends_on = []
+
+[[interfaces]]
+expose = ["api(\\..*)?", "auth(\\..*)?"]
+from = ["api_keys"]
+
+[[interfaces]]
+expose = ["models(\\..*)?"]
+from = ["users"]
