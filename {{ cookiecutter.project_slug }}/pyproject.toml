@@ -47,24 +47,24 @@ target-version = "py313"
 
 [tool.ruff.lint]
 select = [
-    "E",
-    "W",
-    "F",
-    "I",
-    "B",
-    "C4",
-    "UP",
-    "ANN",
-    "BLE",
-    "DJ",
-    "DTZ",
-    "PLC0415",
-    "PT",
-    "S",
-    "SIM",
-    "T20",
-    "TD003",
-    "TID251",
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort, import order
+    "B",  # flake8-bugbear, likely bugs
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade, modern syntax
+    "ANN",  # flake8-annotations, type hints required
+    "BLE",  # flake8-blind-except
+    "DJ",  # flake8-django
+    "DTZ",  # flake8-datetimez, timezone-aware datetimes
+    "PLC0415",  # imports at module top
+    "PT",  # flake8-pytest-style
+    "S",  # flake8-bandit, security
+    "SIM",  # flake8-simplify
+    "T20",  # flake8-print, no print
+    "TD003",  # TODOs need an issue link
+    "TID251",  # flake8-tidy-imports banned-api
 ]
 
 [tool.ruff.lint.per-file-ignores]
