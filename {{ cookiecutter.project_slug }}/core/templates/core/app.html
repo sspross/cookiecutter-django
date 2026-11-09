@@ -10,5 +10,7 @@
 {% endblock extra_head %}
 
 {% block body %}
-  <div id="app" data-project-name="{{ project_name }}"></div>
+  <div id="app"
+       data-project-name="{{ project_name }}"
+       data-csrf-cookie-name="{{ csrf_cookie_name }}"></div>
 {% endblock body %}

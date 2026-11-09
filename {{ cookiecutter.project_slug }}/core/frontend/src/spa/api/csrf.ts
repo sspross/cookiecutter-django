@@ -1,14 +1,24 @@
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
+let csrfCookieName = "";
+
+export function setCsrfCookieName(name: string): void {
+  csrfCookieName = name;
+}
+
 export function readCsrfCookie(cookieJar: string = document.cookie): string | null {
-  const match = cookieJar.match(/(?:^|;\s*)csrftoken=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
+  const prefix = `${csrfCookieName}=`;
+  const cookie = cookieJar
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix));
+  return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : null;
 }
 
 export class CsrfCookieMissingError extends Error {
   constructor() {
     super(
-      "CSRF cookie 'csrftoken' is missing. The SPA mount view sets it via " +
+      `CSRF cookie '${csrfCookieName}' is missing. The SPA mount view sets it via ` +
         "@ensure_csrf_cookie; a missing cookie usually means the user is " +
         "no longer authenticated.",
     );

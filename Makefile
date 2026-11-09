@@ -110,7 +110,7 @@ test:
 	$(call run_step,make precommit,Passed)
 	$(call run_step_smoke,make frontend.dev,Local:)
 	$(call run_step_smoke,uv run python manage.py runserver,Starting WSGI development server)
-	$(call run_step,bash $(CURDIR)/tests/local_stack_smoke.sh,session gone after make destroy)
+	$(call run_step,bash $(CURDIR)/tests/local_stack_smoke.sh,make up took 8001)
 	@echo ""
 	@echo "3. Canaries:"
 	@echo ""
