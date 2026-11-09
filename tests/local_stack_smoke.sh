@@ -58,6 +58,7 @@ expect_admin_status() {
 	echo "$2: /admin/ $status"
 }
 
+[ -f .env ] || fail "needs the generated project's .env"
 mv .env "$workdir/.env"
 up
 status=$(http_status "$url/healthz")

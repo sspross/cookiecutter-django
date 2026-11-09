@@ -73,12 +73,12 @@ deploy compose straight from git (Dokploy, Coolify) and the shape
 plus the overlay `compose.local.yaml`. So `compose.yaml` is no longer the only
 compose shape used locally. Only `scripts/local-stack.sh` passes the overlay;
 a deployment never sees it. The overlay makes `.env` optional, gives the stack
-its own image name, replaces the published port and sets everything else a
-stack needs, including `HTTPS_ENFORCED=false` so login works over plain HTTP
-while `DEBUG` stays off. Values set
-in the compose files win over `.env`, so a copied `.env.example` cannot change
-the local topology. The local superuser `admin` / `admin` is created by
-`make up`, never by `release.sh`.
+its own image name, replaces the published port and sets the local app
+settings, including `HTTPS_ENFORCED=false` so login works over plain HTTP while
+`DEBUG` stays off. The script supplies the values compose interpolates, such as
+`POSTGRES_PASSWORD`. Values set in the compose files win over `.env`, so a
+copied `.env.example` cannot change the local topology. The local superuser is
+created by `make up`, never by `release.sh`.
 
 ## Consequences
 

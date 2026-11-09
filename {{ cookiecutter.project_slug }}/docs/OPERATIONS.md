@@ -93,8 +93,9 @@ compose host (`compose.yaml`) works the same way with a hand-written `.env`.
 | `SSO_SUPERUSER_EMAILS` | no | the author email | set manually in Appliku (`source: manual`) | repo variable |
 
 `PORT` and `GUNICORN_WORKERS` are not Django settings: `web.sh` reads them to
-bind gunicorn (`0.0.0.0:${PORT:-8000}`) and size its worker pool. Changing `PORT` means changing `container_port` in
-`appliku.yml` or the port mapping in `compose.yaml` too.
+bind gunicorn (`0.0.0.0:${PORT:-8000}`) and size its worker pool. Changing
+`PORT` means changing `container_port` in `appliku.yml` or the port mapping in
+`compose.yaml` too.
 
 `POSTGRES_PASSWORD` is compose-only, a repo secret with `compose.prod.yaml`.
 Django does not read it; the compose files interpolate it into the `db`

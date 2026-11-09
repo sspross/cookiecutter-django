@@ -54,7 +54,8 @@ def production_settings(**overrides: str) -> dict[str, object]:
         text=True,
         check=True,
     )
-    return json.loads(result.stdout)
+    https_settings: dict[str, object] = json.loads(result.stdout)
+    return https_settings
 
 
 def test_https_is_enforced_by_default() -> None:

@@ -1,6 +1,4 @@
 #!/bin/bash
-# The local stack of this checkout: compose.yaml plus compose.local.yaml.
-# Usage: scripts/local-stack.sh up|down|destroy|logs
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -28,30 +26,35 @@ compose() {
 	docker compose -f compose.yaml -f compose.local.yaml "$@"
 }
 
-web_health() {
+show_stack_state() {
+	compose ps --all >&2
+	compose logs --tail 30 >&2
+}
+
+web_state() {
 	local container
 	container=$(compose ps -q web)
 	if [ -z "$container" ]; then
 		echo missing
 		return
 	fi
-	docker inspect -f '{% raw %}{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}{% endraw %}' "$container"
+	# A crashing web keeps restarting, so its health alone would stay "starting".
+	docker inspect -f '{% raw %}{{if eq .State.Health.Status "healthy"}}healthy{{else if gt .RestartCount 0}}crashed{{else}}{{.State.Health.Status}}{{end}}{% endraw %}' "$container"
 }
 
 wait_until_web_is_healthy() {
-	local health
+	local state
 	SECONDS=0
 	while [ "$SECONDS" -lt "$HEALTHY_TIMEOUT_SECONDS" ]; do
-		health=$(web_health)
-		case "$health" in
+		state=$(web_state)
+		case "$state" in
 			healthy) return 0 ;;
-			unhealthy | exited | dead | missing) break ;;
+			unhealthy | crashed | missing) break ;;
 		esac
 		sleep 1
 	done
-	compose ps --all >&2
-	compose logs --tail 50 web >&2
-	fail "web did not become healthy (last state: $health). Logs: make logs"
+	show_stack_state
+	fail "web did not become healthy (last state: $state). Logs: make logs"
 }
 
 ensure_local_superuser() {
@@ -73,8 +76,7 @@ up() {
 	command -v docker >/dev/null 2>&1 || fail "make up needs Docker with the compose plugin"
 	compose build
 	if ! compose up --detach --no-build; then
-		compose ps --all >&2
-		compose logs --tail 30 >&2
+		show_stack_state
 		fail "the stack did not start. Logs: make logs"
 	fi
 	wait_until_web_is_healthy
