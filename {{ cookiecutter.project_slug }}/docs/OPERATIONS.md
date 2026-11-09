@@ -83,7 +83,6 @@ compose host (`compose.yaml`) works the same way with a hand-written `.env`.
 | `PORT` | no | `8000` | **unverified** whether Appliku injects it; `container_port` is 8000 either way | unset, `web.sh` falls back to 8000 |
 | `HTTPS_ENFORCED` | no | on: with `DEBUG` off, HTTPS redirect, secure cookies and HSTS; only the literal `false` turns them off | not set in production | not set in production; `compose.local.yaml` sets `false` |
 | `GUNICORN_WORKERS` | no | `5` | not set in production | not set in production; `compose.local.yaml` sets `2` |
-| `DJANGO_VITE_DEV_MODE` | no | unset, follows `DEBUG` | not set in production | not set in production |
 | `SENTRY_DSN` | no | blank, the Sentry SDK stays uninitialized | set manually in Appliku (`source: manual`) | repo variable, unset until Sentry is wanted |
 | `SENTRY_ENVIRONMENT` | no | `production` | not declared in `appliku.yml`, set it manually for a second deployment | repo variable |
 | `GOOGLE_OAUTH_CLIENT_ID` | no | blank, Google login is off | set manually in Appliku (`source: manual`) | repo variable |

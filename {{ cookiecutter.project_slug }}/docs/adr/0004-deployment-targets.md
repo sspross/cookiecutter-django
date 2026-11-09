@@ -75,7 +75,14 @@ compose shape used locally. Only `scripts/local-stack.sh` passes the overlay;
 a deployment never sees it. The overlay makes `.env` optional, gives the stack
 its own image name, replaces the published port and sets the local app
 settings, including `HTTPS_ENFORCED=false` so login works over plain HTTP while
-`DEBUG` stays off. The script supplies the values compose interpolates, such as
+`DEBUG` stays off.
+
+Every worktree gets its own stack, so several can run side by side. The compose
+project name is the project slug plus a short hash of the worktree's absolute
+path, and the image is named after the project name. The web port is the first
+free one from 8000, kept while the stack runs. Browsers share `localhost`
+cookies across ports, so the session and CSRF cookie names carry the port as a
+suffix. The script supplies the values compose interpolates, such as
 `POSTGRES_PASSWORD`. Values set in the compose files win over `.env`, so a
 copied `.env.example` cannot change the local topology. The local superuser is
 created by `make up`, never by `release.sh`.

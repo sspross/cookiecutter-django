@@ -16,10 +16,11 @@ drifts with nothing to catch it.
 
 Split the boot payload by nature:
 
-- **Build-time constants are server-rendered.** `project_name` (injected by
-  the `core.context.site` context processor) is emitted as a
-  `data-project-name` attribute on the `#app` mount node. `main.tsx` reads
-  `mountNode.dataset.projectName`. No inline `<script>`, no `window` global,
+- **Build-time constants are server-rendered.** `project_name` and
+  `csrf_cookie_name` (injected by the `core.context.site` context processor)
+  are emitted as `data-project-name` and `data-csrf-cookie-name` attributes on
+  the `#app` mount node. `main.tsx` reads `mountNode.dataset.projectName` and
+  `mountNode.dataset.csrfCookieName`. No inline `<script>`, no `window` global,
   no TS fallback literal.
 - **Per-user data goes through the typed API.** A `GET /api/me` endpoint
   (schema `core.schemas.MeOut`, dual auth like every other endpoint — so it

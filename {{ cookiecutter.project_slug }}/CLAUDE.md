@@ -11,6 +11,10 @@ Run these before declaring work complete:
 - `make format` — apply formatting.
 - `make precommit`: full pre-commit pipeline. Together with `make lint` it covers every static check CI runs.
 
+## Test version
+
+To let the user try your work, run `make up` and report the printed URL. It builds the image and starts an isolated stack for this worktree (login `admin` / `admin`). Run `make destroy` before removing a worktree.
+
 ## Conventions
 
 - **Python tooling is `uv`** — `uv add`, `uv run`, etc. Never `pip`.

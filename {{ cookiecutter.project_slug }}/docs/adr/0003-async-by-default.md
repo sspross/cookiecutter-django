@@ -25,13 +25,10 @@ The template ships:
   Redis in `appliku.yml`, the `redis:7` service in `compose.yaml` and
   `compose.prod.yaml`.
 - `worker.sh` script: `uv run python manage.py rqworker default` — the
-  *forking* worker (prod, Linux). Local dev uses `make worker.dev`, which
-  runs the same queue with `--worker-class rq.worker.SimpleWorker`
-  (in-process, no `os.fork()` — fork-safe on macOS). Write jobs correct
-  under **both**: don't rely on in-process state surviving between jobs.
-  Both raise `JobTimeoutException` inside a job that outruns `RQ_QUEUES`
-  `DEFAULT_TIMEOUT`; only the forking worker also kills one that is still
-  running 60 seconds later.
+  *forking* worker. It runs in production and in the local compose stack
+  (`make up`), both in Linux containers, so macOS never forks. It raises
+  `JobTimeoutException` inside a job that outruns `RQ_QUEUES`
+  `DEFAULT_TIMEOUT` and kills one that is still running 60 seconds later.
 - A `worker` process in every deployment manifest, built from the same image as
   `web`, running `./worker.sh` instead of `./web.sh`.
 - The django-rq dashboard mounted at `/django-rq/` (gated to staff by
@@ -60,19 +57,17 @@ request id and source; see "Correlating a job" in `docs/OPERATIONS.md`.
 Positive:
 
 - Adding a background job is a single-file change, not a refactor.
-- The local-dev topology matches production: `make worker.dev` against
-  a local `redis-server` runs the same web + worker + redis shape that the
-  deployment target runs.
+- The local topology matches production: `make up` runs the same web + worker
+  + redis shape that the deployment target runs, from the same image.
 
 Negative:
 
 - A Redis dependency, including for projects that never write a job.
-  It is *not* needed for `runserver` or most requests: RQ connects
+  It is *not* needed for most requests: RQ connects
   to Redis lazily, only when the worker runs or a job is enqueued.
   `POST /api/api-keys/` does need it, because its throttle counters live
   in the Redis cache, and `/healthz` answers 503 without it.
   `make test` does need it from the start, because the observability
-  suite runs a real worker against a real queue, and so do
-  `make worker.dev` and any `.delay()`.
+  suite runs a real worker against a real queue, and so does any `.delay()`.
 - A few extra lines in every deployment manifest that some generated
   projects will never use.
