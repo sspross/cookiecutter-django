@@ -8,6 +8,19 @@
 - Docker with Compose 2.24.4 or newer, for `make up`
 - Local Redis Server for `make test`, whose worker tests perform a real job: `brew install redis`
 
+Linux hosts whose Docker data dir is on btrfs (common in OrbStack Linux
+machines): Docker's default containerd overlayfs snapshotter breaks image
+builds ("operation not permitted" on the overlay mount, or dpkg "Invalid
+cross-device link"). Put this into `/etc/docker/daemon.json` and run
+`sudo systemctl restart docker`. Existing images and volumes are hidden after
+the restart.
+
+```json
+{"features": {"containerd-snapshotter": false}, "storage-driver": "btrfs"}
+```
+
+After `sudo usermod -aG docker $USER`, log in again so the group applies.
+
 ### Setup
 
 Run once after generating the project, in this order. The generator already
