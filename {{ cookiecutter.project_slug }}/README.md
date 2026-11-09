@@ -8,6 +8,8 @@
 - Docker with Compose 2.24.4 or newer, for `make up`
 - Local Redis Server for `make test`, whose worker tests perform a real job: `brew install redis`
 
+#### Docker on btrfs
+
 Linux hosts whose Docker data dir is on btrfs (common in OrbStack Linux
 machines): Docker's default containerd overlayfs snapshotter breaks image
 builds ("operation not permitted" on the overlay mount, or dpkg "Invalid
@@ -54,8 +56,8 @@ creates the superuser.
 4. To let anyone besides the author sign in, set `SSO_ALLOWED_DOMAINS`,
    `SSO_ALLOWED_EMAILS` and `SSO_SUPERUSER_EMAILS` (see "SSO allowlist" in
    `CONTEXT.md`).
-5. Run `make up` and log in at the printed URL (port 8000) under
-   `/accounts/login/` with "Sign in with Google".
+5. Run `make up`. If it prints port 8000, log in at `/accounts/login/` with
+   "Sign in with Google".
 
 ### Work
 
