@@ -18,4 +18,6 @@ uv run --with cookiecutter python -m cookiecutter https://github.com/sspross/coo
 
 ## Working on this template
 
-- Run `make test` to verify if using the template still works as expected
+- Run `make test` to verify if using the template still works as expected. It
+  needs Docker and port 8000 free, because it runs the generated project's
+  `make up` (set `WEB_PORT` to use another port).

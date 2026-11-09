@@ -67,6 +67,19 @@ the volumes) unchanged. `compose.yaml` stays the manifest for hosts that
 deploy compose straight from git (Dokploy, Coolify) and the shape
 `compose.prod.yaml` is kept coherent with.
 
+### The local overlay
+
+`make up` runs the app locally on the same topology, through `compose.yaml`
+plus the overlay `compose.local.yaml`. So `compose.yaml` is no longer the only
+compose shape used locally. Only `scripts/local-stack.sh` passes the overlay;
+a deployment never sees it. The overlay makes `.env` optional, gives the stack
+its own image name, replaces the published port and sets everything else a
+stack needs, including `HTTPS_ENFORCED=false` so login works over plain HTTP
+while `DEBUG` stays off. Values set
+in the compose files win over `.env`, so a copied `.env.example` cannot change
+the local topology. The local superuser `admin` / `admin` is created by
+`make up`, never by `release.sh`.
+
 ## Consequences
 
 Positive:

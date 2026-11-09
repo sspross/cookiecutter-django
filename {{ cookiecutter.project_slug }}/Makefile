@@ -60,6 +60,18 @@ worker.dev:
 dev:
 	./scripts/dev.sh
 
+up:
+	@./scripts/local-stack.sh up
+
+down:
+	@./scripts/local-stack.sh down
+
+destroy:
+	@./scripts/local-stack.sh destroy
+
+logs:
+	@./scripts/local-stack.sh logs
+
 schema:
 	uv run python manage.py export_openapi_schema -o core/frontend/.openapi.json
 	cd core/frontend && npm run schema

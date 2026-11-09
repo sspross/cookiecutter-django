@@ -198,7 +198,10 @@ CACHES = {
     },
 }
 
-if not DEBUG:
+# Fails safe: only the literal "false" turns enforcement off, a typo keeps it on.
+HTTPS_ENFORCED = env.str("HTTPS_ENFORCED", default="true").lower() != "false"
+
+if not DEBUG and HTTPS_ENFORCED:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_SSL_REDIRECT = True
