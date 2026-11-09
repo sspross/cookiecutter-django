@@ -81,6 +81,8 @@ compose host (`compose.yaml`) works the same way with a hand-written `.env`.
 | `MEDIA_ROOT` | no | `<repo>/media` | injected from the `media` volume's `MEDIA` prefix | the compose file, `/volumes/media` |
 | `MEDIA_URL` | no | `media/` | injected from the `media` volume's `MEDIA` prefix | the compose file, `/media/` |
 | `PORT` | no | `8000` | **unverified** whether Appliku injects it; `container_port` is 8000 either way | unset, `web.sh` falls back to 8000 |
+| `HTTPS_ENFORCED` | no | on: with `DEBUG` off, HTTPS redirect, secure cookies and HSTS; only the literal `false` turns them off | not set in production | not set in production; `compose.local.yaml` sets `false` |
+| `GUNICORN_WORKERS` | no | `5` | not set in production | not set in production; `compose.local.yaml` sets `2` |
 | `DJANGO_VITE_DEV_MODE` | no | unset, follows `DEBUG` | not set in production | not set in production |
 | `SENTRY_DSN` | no | blank, the Sentry SDK stays uninitialized | set manually in Appliku (`source: manual`) | repo variable, unset until Sentry is wanted |
 | `SENTRY_ENVIRONMENT` | no | `production` | not declared in `appliku.yml`, set it manually for a second deployment | repo variable |
@@ -90,9 +92,10 @@ compose host (`compose.yaml`) works the same way with a hand-written `.env`.
 | `SSO_ALLOWED_EMAILS` | no | the author email | set manually in Appliku (`source: manual`) | repo variable |
 | `SSO_SUPERUSER_EMAILS` | no | the author email | set manually in Appliku (`source: manual`) | repo variable |
 
-`PORT` is not a Django setting: `web.sh` reads it to bind gunicorn
-(`0.0.0.0:${PORT:-8000}`). Changing it means changing `container_port` in
-`appliku.yml` or the port mapping in `compose.yaml` too.
+`PORT` and `GUNICORN_WORKERS` are not Django settings: `web.sh` reads them to
+bind gunicorn (`0.0.0.0:${PORT:-8000}`) and size its worker pool. Changing
+`PORT` means changing `container_port` in `appliku.yml` or the port mapping in
+`compose.yaml` too.
 
 `POSTGRES_PASSWORD` is compose-only, a repo secret with `compose.prod.yaml`.
 Django does not read it; the compose files interpolate it into the `db`
