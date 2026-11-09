@@ -6,14 +6,20 @@ cd "$(dirname "$0")/.."
 HEALTHY_TIMEOUT_SECONDS=180
 LOGIN_USERNAME=admin
 LOGIN_PASSWORD=admin
+FIRST_PORT=8000
+LAST_PORT=8099
 
+# Two worktrees with the same folder name must not share a stack.
 stack_name() {
-	echo "{{ cookiecutter.project_slug }}-local"
+	local path_hash
+	path_hash=$(pwd -P | cksum | cut -d ' ' -f 1)
+	printf '{{ cookiecutter.project_slug }}-%08x\n' "$path_hash"
 }
 
 export COMPOSE_PROJECT_NAME
 COMPOSE_PROJECT_NAME=$(stack_name)
-export WEB_PORT="${WEB_PORT:-8000}"
+# Read during interpolation by every compose command, also those that publish nothing.
+export WEB_PORT="$FIRST_PORT"
 # Read by compose.yaml during interpolation, even when a .env sets it empty.
 export POSTGRES_PASSWORD=local
 
@@ -29,6 +35,64 @@ compose() {
 show_stack_state() {
 	compose ps --all >&2
 	compose logs --tail 30 >&2
+}
+
+published_port() {
+	local address
+	address=$(compose port web 8000 2>/dev/null) || return 0
+	case "${address##*:}" in
+		"" | 0 | *[!0-9]*) ;;
+		*) echo "${address##*:}" ;;
+	esac
+}
+
+# A connection succeeds when anything listens, a Docker port or any other process.
+port_is_taken() {
+	(exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null || (exec 3<>"/dev/tcp/::1/$1") 2>/dev/null
+}
+
+lowest_free_port_from() {
+	local port=$1
+	while [ "$port" -le "$LAST_PORT" ]; do
+		if ! port_is_taken "$port"; then
+			echo "$port"
+			return 0
+		fi
+		port=$((port + 1))
+	done
+	return 1
+}
+
+# Returns 1 only when the port was taken after it was picked; any other failure exits.
+start_on_port() {
+	local output
+	WEB_PORT=$1
+	if output=$(compose up --detach --no-build 2>&1 | tee /dev/stderr); then
+		return 0
+	fi
+	case "$output" in
+		*"address already in use"* | *"port is already allocated"*)
+			echo "Port $WEB_PORT was taken meanwhile, trying the next one." >&2
+			return 1
+			;;
+	esac
+	show_stack_state
+	fail "the stack did not start. Logs: make logs"
+}
+
+start_stack() {
+	local port
+	port=$(published_port)
+	if [ -n "$port" ]; then
+		start_on_port "$port" || fail "port $port of this running stack was taken"
+		return
+	fi
+	port=$FIRST_PORT
+	while port=$(lowest_free_port_from "$port"); do
+		start_on_port "$port" && return
+		port=$((port + 1))
+	done
+	fail "no free port between $FIRST_PORT and $LAST_PORT"
 }
 
 web_state() {
@@ -72,13 +136,19 @@ user.save()
 "
 }
 
+destroy() {
+	compose down --volumes --remove-orphans
+	# Each stack builds its own image, so it would stay behind after the worktree is gone.
+	if docker image inspect "$COMPOSE_PROJECT_NAME" >/dev/null 2>&1; then
+		docker image rm "$COMPOSE_PROJECT_NAME"
+	fi
+}
+
 up() {
 	command -v docker >/dev/null 2>&1 || fail "make up needs Docker with the compose plugin"
+	# Built first, so a port is picked right before it is bound.
 	compose build
-	if ! compose up --detach --no-build; then
-		show_stack_state
-		fail "the stack did not start. Logs: make logs"
-	fi
+	start_stack
 	wait_until_web_is_healthy
 	ensure_local_superuser
 	echo ""
@@ -89,7 +159,7 @@ up() {
 case "${1:-}" in
 	up) up ;;
 	down) compose down ;;
-	destroy) compose down --volumes --remove-orphans ;;
+	destroy) destroy ;;
 	logs) compose logs --follow ;;
 	*) fail "usage: $0 up|down|destroy|logs" ;;
 esac

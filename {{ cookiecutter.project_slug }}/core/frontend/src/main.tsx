@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router";
 
 import "./spa/index.css";
 import { App } from "./spa/App";
+import { setCsrfCookieName } from "./spa/api/csrf";
 
 // The login page loads this bundle for its CSS and has no `#app` node.
 const mountNode = document.getElementById("app");
@@ -19,6 +20,7 @@ if (mountNode) {
   });
 
   const projectName = mountNode.dataset.projectName ?? "";
+  setCsrfCookieName(mountNode.dataset.csrfCookieName ?? "");
 
   ReactDOM.createRoot(mountNode).render(
     <React.StrictMode>
