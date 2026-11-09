@@ -13,7 +13,6 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, []),
     CSRF_TRUSTED_ORIGINS=(list, []),
     REDIS_URL=(str, "redis://localhost:6379/0"),
-    DJANGO_VITE_DEV_MODE=(bool, None),
     SENTRY_DSN=(str, ""),
     SENTRY_ENVIRONMENT=(str, SENTRY_DEFAULT_ENVIRONMENT),
     GOOGLE_OAUTH_CLIENT_ID=(str, ""),
@@ -177,10 +176,8 @@ MEDIA_ROOT = env.str("MEDIA_ROOT", default=str(BASE_DIR / "media"))
 MEDIA_URL = env.str("MEDIA_URL", default="media/")
 
 # Keep `static_url_prefix` in sync with `base` in core/frontend/vite.config.mjs.
-_vite_dev_mode = env("DJANGO_VITE_DEV_MODE")
-DJANGO_VITE = {
+DJANGO_VITE: dict[str, dict[str, Any]] = {
     "default": {
-        "dev_mode": DEBUG if _vite_dev_mode is None else _vite_dev_mode,
         "static_url_prefix": "dist/js",
     },
 }

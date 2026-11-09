@@ -4,7 +4,6 @@
   "description": "",
   "scripts": {
     "build": "rimraf ../static/dist && vite build",
-    "dev": "vite",
     "lint": "biome check src",
     "lint:fix": "biome check --write src",
     "format": "biome format --write src",

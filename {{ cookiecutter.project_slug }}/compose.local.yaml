@@ -9,7 +9,6 @@ x-local-app: &local-app
     SECRET_KEY: local-only-secret-key-never-used-on-a-server-0123456789
     ALLOWED_HOSTS: localhost,127.0.0.1
     HTTPS_ENFORCED: "false"
-    DJANGO_VITE_DEV_MODE: "false"
     GUNICORN_WORKERS: "2"
     SESSION_COOKIE_NAME: "sessionid_${WEB_PORT:?set WEB_PORT}"
     CSRF_COOKIE_NAME: "csrftoken_${WEB_PORT:?set WEB_PORT}"
