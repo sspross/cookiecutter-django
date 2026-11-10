@@ -108,7 +108,7 @@ Notes:
 - Setting `SSO_ALLOWED_EMAILS` or `SSO_SUPERUSER_EMAILS` replaces the
   author-email default, so keep the author email in it where it should stay.
   A rejected Google login is a log line from `users.sso`. The rules are in
-  "SSO allowlist" in `CONTEXT.md`.
+  "SSO allowlist" in `GLOSSARY.md`.
 - `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` are comma-separated lists.
   `CSRF_TRUSTED_ORIGINS` entries need the scheme (`https://app.example.com`),
   `ALLOWED_HOSTS` entries do not (`app.example.com`).
@@ -263,7 +263,7 @@ With Google login set up (README.md > Google login), log in at
 {{ cookiecutter.author_email }}. That first login creates the superuser.
 
 Further superusers: add the email to `SSO_SUPERUSER_EMAILS` and allow it (see
-"SSO allowlist" in `CONTEXT.md`). To take the rights away, remove the email
+"SSO allowlist" in `GLOSSARY.md`). To take the rights away, remove the email
 from `SSO_SUPERUSER_EMAILS`, deploy, and use the admin: every allowed login of
 a listed email makes it superuser again.
 
@@ -375,7 +375,7 @@ Two things the `LOGGING` dict does not cover:
   `--access-logfile -` to `web.sh` if you need one; expect the volume. The
   access log would live on stdout only, never in Sentry.
 - Queue state is not a log. It is visible in the app at `/django-rq/`; see
-  CONTEXT.md.
+  GLOSSARY.md.
 
 **Muted for Sentry only, stderr untouched**: the loggers in `IGNORED_LOGGERS`
 (`core/observability.py`) are dropped by the SDK at every level, through both
@@ -440,7 +440,7 @@ the header is always the one the server used.
   same two fields on every log record, which is how they reach a Sentry Log
   entry.
 - **Request source** names which door the request came through. Every request
-  path a generated project ships reads `web`; see CONTEXT.md. A job names its
+  path a generated project ships reads `web`; see GLOSSARY.md. A job names its
   own source, below.
 - A line written outside any request (a management command, worker startup)
   reads `-` for both fields.

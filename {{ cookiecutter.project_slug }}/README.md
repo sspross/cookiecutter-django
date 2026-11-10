@@ -49,7 +49,7 @@ creates the superuser.
 3. Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`.
 4. To let anyone besides the author sign in, set `SSO_ALLOWED_DOMAINS`,
    `SSO_ALLOWED_EMAILS` and `SSO_SUPERUSER_EMAILS` (see "SSO allowlist" in
-   `CONTEXT.md`).
+   `GLOSSARY.md`).
 5. Run `make up`. If it prints port 8000, log in at `/accounts/login/` with
    "Sign in with Google".
 
