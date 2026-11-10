@@ -13,7 +13,7 @@ Run these before declaring work complete:
 
 ## Test version
 
-To let the user try your work, run `make up` and report the printed URL. It builds the image and starts an isolated stack for this worktree (login `admin` / `admin`). Run `make destroy` before removing a worktree. When `make up` fails on a new machine, `make doctor` checks the Docker setup and prints the fix for each failed check.
+To let the user try your work, run `make up` and report the printed URL. It builds the image and starts an isolated stack for this worktree (login `admin` / `admin`). Run `make destroy` before removing a worktree.
 
 ## Conventions
 

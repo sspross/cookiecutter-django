@@ -63,37 +63,15 @@ lowest_free_port_from() {
 	return 1
 }
 
-# Returns 1 only when the port was taken after it was picked; any other failure exits.
-start_on_port() {
-	local output
-	WEB_PORT=$1
-	# Not `tee /dev/stderr`: reopening stderr truncates it when it is a regular file.
-	if output=$(compose up --detach --no-build 2>&1 | tee >(cat >&2)); then
-		return 0
-	fi
-	case "$output" in
-		*"address already in use"* | *"port is already allocated"*)
-			echo "Port $WEB_PORT was taken meanwhile, trying the next one." >&2
-			return 1
-			;;
-	esac
-	show_stack_state
-	fail "the stack did not start. Logs: make logs"
-}
-
 start_stack() {
-	local port
-	port=$(published_port)
-	if [ -n "$port" ]; then
-		start_on_port "$port" || fail "port $port of this running stack was taken"
-		return
+	WEB_PORT=$(published_port)
+	if [ -z "$WEB_PORT" ]; then
+		WEB_PORT=$(lowest_free_port_from "$FIRST_PORT") || fail "no free port between $FIRST_PORT and $LAST_PORT"
 	fi
-	port=$FIRST_PORT
-	while port=$(lowest_free_port_from "$port"); do
-		start_on_port "$port" && return
-		port=$((port + 1))
-	done
-	fail "no free port between $FIRST_PORT and $LAST_PORT"
+	if ! compose up --detach --no-build; then
+		show_stack_state
+		fail "the stack did not start. Logs: make logs"
+	fi
 }
 
 web_state() {
@@ -137,23 +115,6 @@ user.save()
 "
 }
 
-stack_image_id() {
-	docker image inspect -f '{% raw %}{{.Id}}{% endraw %}' "$COMPOSE_PROJECT_NAME" 2>/dev/null || true
-}
-
-# A worktree with the same content shares the image ID through the build cache,
-# so the replaced image goes only when no stack's tag is left on it.
-remove_replaced_image() {
-	local replaced_image_id=$1 tag_count
-	if [ -z "$replaced_image_id" ] || [ "$replaced_image_id" = "$(stack_image_id)" ]; then
-		return
-	fi
-	tag_count=$(docker image inspect -f '{% raw %}{{len .RepoTags}}{% endraw %}' "$replaced_image_id" 2>/dev/null) || return 0
-	if [ "$tag_count" = 0 ]; then
-		docker image rm "$replaced_image_id" >/dev/null 2>&1 || true
-	fi
-}
-
 destroy() {
 	compose down --volumes --remove-orphans
 	# Each stack builds its own image, so it would stay behind after the worktree is gone.
@@ -163,13 +124,14 @@ destroy() {
 }
 
 up() {
-	local image_id_before_build
-	./scripts/doctor.sh fast || fail "this machine cannot run the stack. Details: make doctor"
-	image_id_before_build=$(stack_image_id)
+	local doctor_output
+	if ! doctor_output=$(./scripts/doctor.sh); then
+		echo "$doctor_output" >&2
+		fail "this machine cannot run the stack"
+	fi
 	# Built first, so a port is picked right before it is bound.
 	compose build
 	start_stack
-	remove_replaced_image "$image_id_before_build"
 	wait_until_web_is_healthy
 	ensure_local_superuser
 	echo ""

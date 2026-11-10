@@ -76,7 +76,7 @@ test:
 	$(call run_step,make lint,All checks passed)
 	$(call run_step,make format,left unchanged)
 	$(call run_step,make precommit,Passed)
-	$(call run_step,make doctor,PASS  Published port)
+	$(call run_step,make doctor,PASS  Engine)
 	$(call run_step,bash $(CURDIR)/tests/local_stack_smoke.sh,local stack smoke test passed)
 	@echo ""
 	@echo "3. Canaries:"

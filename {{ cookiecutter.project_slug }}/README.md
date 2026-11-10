@@ -8,9 +8,14 @@
 - Docker Engine 25 or newer with Compose 2.24.4 or newer, for `make up`
 - Local Redis Server for `make test`, whose worker tests perform a real job: `brew install redis`
 
-Run `make doctor` to check whether this machine can run the stack. It prints
-one line per check and the fix for each failed one, for example the
-`daemon.json` change that Docker needs on btrfs.
+Run `make doctor` to check the Docker setup of this machine. It prints one line
+per check and the fix for each failed one.
+
+When Docker's data directory is on btrfs (OrbStack Linux machines) and image
+builds fail in `apt-get install`, put
+`{"features": {"containerd-snapshotter": false}, "storage-driver": "btrfs"}`
+into `/etc/docker/daemon.json` and restart Docker. Existing images and volumes
+are hidden after the restart.
 
 ### Setup
 
