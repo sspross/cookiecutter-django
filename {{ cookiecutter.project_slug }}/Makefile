@@ -59,6 +59,9 @@ destroy:
 logs:
 	@./scripts/local-stack.sh logs
 
+doctor:
+	@./scripts/doctor.sh
+
 schema:
 	uv run python manage.py export_openapi_schema -o core/frontend/.openapi.json
 	cd core/frontend && npm run schema

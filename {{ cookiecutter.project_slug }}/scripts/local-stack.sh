@@ -67,7 +67,8 @@ lowest_free_port_from() {
 start_on_port() {
 	local output
 	WEB_PORT=$1
-	if output=$(compose up --detach --no-build 2>&1 | tee /dev/stderr); then
+	# Not `tee /dev/stderr`: reopening stderr truncates it when it is a regular file.
+	if output=$(compose up --detach --no-build 2>&1 | tee >(cat >&2)); then
 		return 0
 	fi
 	case "$output" in
@@ -136,6 +137,23 @@ user.save()
 "
 }
 
+stack_image_id() {
+	docker image inspect -f '{% raw %}{{.Id}}{% endraw %}' "$COMPOSE_PROJECT_NAME" 2>/dev/null || true
+}
+
+# A worktree with the same content shares the image ID through the build cache,
+# so the replaced image goes only when no stack's tag is left on it.
+remove_replaced_image() {
+	local replaced_image_id=$1 tag_count
+	if [ -z "$replaced_image_id" ] || [ "$replaced_image_id" = "$(stack_image_id)" ]; then
+		return
+	fi
+	tag_count=$(docker image inspect -f '{% raw %}{{len .RepoTags}}{% endraw %}' "$replaced_image_id" 2>/dev/null) || return 0
+	if [ "$tag_count" = 0 ]; then
+		docker image rm "$replaced_image_id" >/dev/null 2>&1 || true
+	fi
+}
+
 destroy() {
 	compose down --volumes --remove-orphans
 	# Each stack builds its own image, so it would stay behind after the worktree is gone.
@@ -145,10 +163,13 @@ destroy() {
 }
 
 up() {
-	command -v docker >/dev/null 2>&1 || fail "make up needs Docker with the compose plugin"
+	local image_id_before_build
+	./scripts/doctor.sh fast || fail "this machine cannot run the stack. Details: make doctor"
+	image_id_before_build=$(stack_image_id)
 	# Built first, so a port is picked right before it is bound.
 	compose build
 	start_stack
+	remove_replaced_image "$image_id_before_build"
 	wait_until_web_is_healthy
 	ensure_local_superuser
 	echo ""

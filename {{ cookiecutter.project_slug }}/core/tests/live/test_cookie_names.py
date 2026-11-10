@@ -3,11 +3,11 @@ from playwright.sync_api import Page, expect
 from api_keys.tests.factories import UserFactory
 
 
-def test_spa_writes_with_port_suffixed_cookie_names(
+def test_spa_writes_with_suffixed_cookie_names(
     page: Page, live_server, settings
 ) -> None:
-    settings.SESSION_COOKIE_NAME = "sessionid_8001"
-    settings.CSRF_COOKIE_NAME = "csrftoken_8001"
+    settings.SESSION_COOKIE_NAME = "sessionid_stack"
+    settings.CSRF_COOKIE_NAME = "csrftoken_stack"
     UserFactory.create(username="alice")
 
     page.goto(f"{live_server.url}/accounts/login/")

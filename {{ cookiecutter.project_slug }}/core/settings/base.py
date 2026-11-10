@@ -33,7 +33,7 @@ CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 
 PROJECT_NAME = "{{ cookiecutter.project_name }}"
 
-# Browsers share localhost cookies across ports, so local stacks set a port suffix.
+# Browsers share localhost cookies across ports, so each local stack sets a suffix.
 SESSION_COOKIE_NAME = env.str("SESSION_COOKIE_NAME", default="sessionid")
 CSRF_COOKIE_NAME = env.str("CSRF_COOKIE_NAME", default="csrftoken")
 

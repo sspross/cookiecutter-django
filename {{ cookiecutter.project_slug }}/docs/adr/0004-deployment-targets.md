@@ -81,11 +81,22 @@ Every worktree gets its own stack, so several can run side by side. The compose
 project name is the project slug plus a short hash of the worktree's absolute
 path, and the image is named after the project name. The web port is the first
 free one from 8000, kept while the stack runs. Browsers share `localhost`
-cookies across ports, so the session and CSRF cookie names carry the port as a
-suffix. The script supplies the values compose interpolates, such as
-`POSTGRES_PASSWORD`. Values set in the compose files win over `.env`, so a
-copied `.env.example` cannot change the local topology. The local superuser is
+cookies across ports, so the session and CSRF cookie names carry the compose
+project name as a suffix. The port can change after `make down`, the project
+name cannot, so a session survives a restart on another port. The script
+supplies the values compose interpolates, such as `POSTGRES_PASSWORD`. Values
+set in the compose files win over `.env`, so a copied `.env.example` cannot
+change the local topology. The overlay sets `SENTRY_ENVIRONMENT=local`, so a
+`SENTRY_DSN` from `.env` never reports as production. The local superuser is
 created by `make up`, never by `release.sh`.
+
+Only `web` builds the image in the overlay; `release` and `worker` reuse it.
+After a rebuild, `make up` removes the image it replaced, so a stack keeps one
+image.
+
+`make doctor` checks whether the machine can run the stack: the Docker daemon,
+the Compose and Engine versions, the lockfiles, an image build and a published
+port. `make up` runs the fast checks first, without the two probes.
 
 ## Consequences
 

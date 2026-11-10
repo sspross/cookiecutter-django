@@ -84,7 +84,7 @@ compose host (`compose.yaml`) works the same way with a hand-written `.env`.
 | `HTTPS_ENFORCED` | no | on: with `DEBUG` off, HTTPS redirect, secure cookies and HSTS; only the literal `false` turns them off | not set in production | not set in production; `compose.local.yaml` sets `false` |
 | `GUNICORN_WORKERS` | no | `5` | not set in production | not set in production; `compose.local.yaml` sets `2` |
 | `SENTRY_DSN` | no | blank, the Sentry SDK stays uninitialized | set manually in Appliku (`source: manual`) | repo variable, unset until Sentry is wanted |
-| `SENTRY_ENVIRONMENT` | no | `production` | not declared in `appliku.yml`, set it manually for a second deployment | repo variable |
+| `SENTRY_ENVIRONMENT` | no | `production` | not declared in `appliku.yml`, set it manually for a second deployment | repo variable; `compose.local.yaml` sets `local` |
 | `GOOGLE_OAUTH_CLIENT_ID` | no | blank, Google login is off | set manually in Appliku (`source: manual`) | repo variable |
 | `GOOGLE_OAUTH_CLIENT_SECRET` | no | blank | set manually in Appliku (`source: manual`) | repo secret |
 | `SSO_ALLOWED_DOMAINS` | no | empty | set manually in Appliku (`source: manual`) | repo variable |

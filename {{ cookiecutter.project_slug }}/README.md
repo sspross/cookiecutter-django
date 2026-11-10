@@ -5,23 +5,12 @@
 ### Requirements
 
 - `uv` (https://docs.astral.sh/uv/)
-- Docker with Compose 2.24.4 or newer, for `make up`
+- Docker Engine 25 or newer with Compose 2.24.4 or newer, for `make up`
 - Local Redis Server for `make test`, whose worker tests perform a real job: `brew install redis`
 
-#### Docker on btrfs
-
-Linux hosts whose Docker data dir is on btrfs (common in OrbStack Linux
-machines): Docker's default containerd overlayfs snapshotter breaks image
-builds ("operation not permitted" on the overlay mount, or dpkg "Invalid
-cross-device link"). Put this into `/etc/docker/daemon.json` and run
-`sudo systemctl restart docker`. Existing images and volumes are hidden after
-the restart.
-
-```json
-{"features": {"containerd-snapshotter": false}, "storage-driver": "btrfs"}
-```
-
-After `sudo usermod -aG docker $USER`, log in again so the group applies.
+Run `make doctor` to check whether this machine can run the stack. It prints
+one line per check and the fix for each failed one, for example the
+`daemon.json` change that Docker needs on btrfs.
 
 ### Setup
 
@@ -70,6 +59,7 @@ creates the superuser.
 - `make down` stops the stack and keeps its data.
 - `make destroy` stops the stack and deletes its volumes and image. Run it
   before removing a worktree.
+- `make doctor` checks the Docker setup of this machine.
 - `.env` is optional. When it exists, its values are loaded, but the local
   stack overrides `DEBUG`, `DATABASE_URL` and `REDIS_URL`.
 
