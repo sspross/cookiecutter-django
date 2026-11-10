@@ -138,8 +138,9 @@ user.save()
 }
 
 # Every rebuild leaves the replaced image untagged, more than 1 GB of new layers each.
+# Docker runs one prune at a time, so a stack starting next to this one makes it fail.
 remove_replaced_images() {
-	docker image prune --force --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" >/dev/null
+	docker image prune --force --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" >/dev/null 2>&1 || true
 }
 
 destroy() {

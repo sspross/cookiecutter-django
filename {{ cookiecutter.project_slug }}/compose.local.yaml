@@ -9,6 +9,7 @@ x-local-app: &local-app
     SECRET_KEY: local-only-secret-key-never-used-on-a-server-0123456789
     ALLOWED_HOSTS: localhost,127.0.0.1
     HTTPS_ENFORCED: "false"
+    PORT: "8000"
     GUNICORN_WORKERS: "2"
     SENTRY_ENVIRONMENT: local
     SESSION_COOKIE_NAME: "sessionid_${COMPOSE_PROJECT_NAME:?set COMPOSE_PROJECT_NAME}"
