@@ -27,7 +27,7 @@ REQUEST_ID_HEADER = "X-Request-ID"
 
 SOURCE_WEB = "web"
 
-# Ships empty; see CONTEXT.md "Observability" for what a second entry buys.
+# Ships empty; see GLOSSARY.md "Observability" for what a second entry buys.
 EXTERNAL_SOURCES: tuple[tuple[str, str], ...] = ()
 
 request_id: ContextVar[str] = ContextVar("request_id", default=UNSET)
