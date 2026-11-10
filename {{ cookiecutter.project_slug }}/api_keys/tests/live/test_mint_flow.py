@@ -1,11 +1,13 @@
-from django.conf import settings
 from playwright.sync_api import Page, expect
 
 from api_keys import services as api_keys
 from api_keys.tests.factories import UserFactory
 
 
-def test_full_self_service_lifecycle(page: Page, live_server):
+def test_full_self_service_lifecycle(page: Page, live_server, settings) -> None:
+    # A local stack suffixes both names; only a browser proves the SPA still writes.
+    settings.SESSION_COOKIE_NAME = "sessionid_stack"
+    settings.CSRF_COOKIE_NAME = "csrftoken_stack"
     UserFactory.create(username="alice")
 
     # Log in.
@@ -59,3 +61,7 @@ def test_full_self_service_lifecycle(page: Page, live_server):
     expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text("laptop-cli")
     expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text("Revoked")
     expect(page.locator('[data-testid^="revoke-"]')).to_have_count(0)
+
+    # Log out.
+    sidebar.get_by_role("button", name="Log out").click()
+    page.wait_for_url("**/accounts/login/")

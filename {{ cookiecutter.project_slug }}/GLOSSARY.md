@@ -138,7 +138,8 @@ API (django-ninja, dual auth, CSRF on session-authed writes):
 Every endpoint accepts **either** auth method by default:
 
 - `ninja.security.django_auth` — session cookie set at login. Used by
-  the SPA. CSRF enforced via `X-CSRFToken` header read from the `csrftoken` cookie.
+  the SPA. CSRF enforced via `X-CSRFToken` header read from the CSRF cookie
+  (`CSRF_COOKIE_NAME`, `csrftoken` by default).
 - `HttpBearer` against `UserApiKey` — `Authorization: Bearer
   {{ cookiecutter.project_slug }}_live_…`. Used by headless callers. No CSRF
   (state-changing requests are token-bound, not cookie-bound). A deactivated

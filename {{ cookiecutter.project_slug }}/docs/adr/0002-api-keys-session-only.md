@@ -79,7 +79,7 @@ Positive:
 Negative:
 
 - The "every endpoint accepts both auth methods" property of the API is
-  no longer uniformly true. CONTEXT.md and the `api_keys/api.py` module
+  no longer uniformly true. GLOSSARY.md and the `api_keys/api.py` module
   docstring both have to call out the exception.
 - Headless scripts cannot rotate their own keys via the API — they have
   to log into the SPA (or ask an operator). This is the intended

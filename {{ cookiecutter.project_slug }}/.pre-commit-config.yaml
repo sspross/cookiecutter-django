@@ -16,6 +16,11 @@ repos:
       - id: check-merge-conflict
       - id: check-toml
       - id: check-yaml
+        exclude: ^compose\.local\.yaml$
+      - id: check-yaml
+        name: check yaml (syntax only, for compose's !override and !reset tags)
+        files: ^compose\.local\.yaml$
+        args: [--unsafe]
       - id: debug-statements
       - id: detect-private-key
       - id: detect-aws-credentials

@@ -67,6 +67,36 @@ the volumes) unchanged. `compose.yaml` stays the manifest for hosts that
 deploy compose straight from git (Dokploy, Coolify) and the shape
 `compose.prod.yaml` is kept coherent with.
 
+### The local overlay
+
+`make up` runs the app locally on the same topology, through `compose.yaml`
+plus the overlay `compose.local.yaml`. So `compose.yaml` is no longer the only
+compose shape used locally. Only `scripts/local-stack.sh` passes the overlay;
+a deployment never sees it. The overlay makes `.env` optional, gives the stack
+its own image name, replaces the published port and sets the local app
+settings, including `HTTPS_ENFORCED=false` so login works over plain HTTP while
+`DEBUG` stays off.
+
+Every worktree gets its own stack, so several can run side by side. The compose
+project name is the project slug plus a short hash of the worktree's absolute
+path, and the image is named after the project name. The web port is the first
+free one from 8000, kept while the stack runs. Browsers share `localhost`
+cookies across ports, so the session and CSRF cookie names carry the compose
+project name as a suffix. The port can change after `make down`, the project
+name cannot, so a session survives a restart on another port. The script
+supplies the values compose interpolates, such as `POSTGRES_PASSWORD`. Values
+set in the compose files win over `.env`, so a copied `.env.example` cannot
+change the local topology. The overlay sets `SENTRY_ENVIRONMENT=local`, so a
+`SENTRY_DSN` from `.env` never reports as production. The local superuser is
+created by `make up`, never by `release.sh`.
+
+Only `web` builds the image in the overlay; `release` and `worker` reuse it.
+After a rebuild, `make up` prunes the image it replaced, so a stack keeps one
+image.
+
+`make doctor` checks the Docker daemon, the Compose and Engine versions and the
+lockfiles. `make up` runs it first.
+
 ## Consequences
 
 Positive:

@@ -1,0 +1,32 @@
+# See "The local overlay" in docs/adr/0004-deployment-targets.md.
+
+x-local-app: &local-app
+  image: "${COMPOSE_PROJECT_NAME:?set COMPOSE_PROJECT_NAME}:latest"
+  env_file: !override
+    - path: .env
+      required: false
+  environment:
+    SECRET_KEY: local-only-secret-key-never-used-on-a-server-0123456789
+    ALLOWED_HOSTS: localhost,127.0.0.1
+    HTTPS_ENFORCED: "false"
+    PORT: "8000"
+    GUNICORN_WORKERS: "2"
+    SENTRY_ENVIRONMENT: local
+    SESSION_COOKIE_NAME: "sessionid_${COMPOSE_PROJECT_NAME:?set COMPOSE_PROJECT_NAME}"
+    CSRF_COOKIE_NAME: "csrftoken_${COMPOSE_PROJECT_NAME:?set COMPOSE_PROJECT_NAME}"
+
+services:
+  release:
+    <<: *local-app
+    build: !reset null
+
+  web:
+    <<: *local-app
+    ports: !override
+      - "127.0.0.1:${WEB_PORT:?set WEB_PORT}:8000"
+    healthcheck:
+      start_interval: 1s
+
+  worker:
+    <<: *local-app
+    build: !reset null

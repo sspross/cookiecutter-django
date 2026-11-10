@@ -1,6 +1,6 @@
 # {{ cookiecutter.project_slug }}
 
-See `CONTEXT.md` for domain language, `docs/adr/` for the architectural decisions in effect, and `docs/OPERATIONS.md` for the production runbook.
+See `GLOSSARY.md` for domain language, `docs/adr/` for the architectural decisions in effect, and `docs/OPERATIONS.md` for the production runbook.
 
 ## Guardrails
 
@@ -10,6 +10,10 @@ Run these before declaring work complete:
 - `make lint`: static checks.
 - `make format` — apply formatting.
 - `make precommit`: full pre-commit pipeline. Together with `make lint` it covers every static check CI runs.
+
+## Test version
+
+To let the user try your work, run `make up` and report the printed URL. It builds the image and starts an isolated stack for this worktree (login `admin` / `admin`). Run `make destroy` before removing a worktree.
 
 ## Conventions
 
@@ -35,4 +39,4 @@ Canonical triage label names (`needs-triage`, `needs-info`, `ready-for-agent`, `
 
 ### Domain docs
 
-Single-context layout: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context layout: `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.

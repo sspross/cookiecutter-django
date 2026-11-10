@@ -51,8 +51,9 @@ email is unique, so `anna@company.com` and `anna@gmail.com` never clash.
 - Production needs no `createsuperuser`: the author's first Google login
   creates the first superuser. `createsuperuser` stays the fallback without
   Google credentials.
-- The template ships no seed fixture and no default password. Local
-  development without Google credentials uses `createsuperuser`.
+- The template ships no seed fixture and no default password on a server.
+  Only the local `make up` keeps an `admin` / `admin` superuser, and
+  `release.sh` never creates it.
 - Removing someone from the allowlist blocks their next login, not their open
   session. Deactivating the user in the admin ends both.
 - A Google login that links to an existing user keeps its password. allauth

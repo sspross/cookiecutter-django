@@ -17,7 +17,6 @@ SECURE_SSL_REDIRECT = False
 SECURE_HSTS_SECONDS = 0
 
 # Not STATIC_ROOT, so `make test` needs `make frontend.build` and no `collectstatic`.
-DJANGO_VITE["default"]["dev_mode"] = False  # noqa: F405
 DJANGO_VITE["default"]["manifest_path"] = (  # noqa: F405
     BASE_DIR / "core" / "static" / "dist" / "js" / "manifest.json"  # noqa: F405
 )

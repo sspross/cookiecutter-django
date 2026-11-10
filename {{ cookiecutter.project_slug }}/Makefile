@@ -47,35 +47,22 @@ frontend.install.ci:
 frontend.build:
 	cd core/frontend && npm run build
 
-frontend.dev:
-	cd core/frontend && npm run dev
+up:
+	@./scripts/local-stack.sh up
 
-backend.dev:
-	uv run python manage.py runserver
+down:
+	@./scripts/local-stack.sh down
 
-# SimpleWorker avoids os.fork(), which is unsafe on macOS, see docs/adr/0003-async-by-default.md.
-worker.dev:
-	uv run python manage.py rqworker default --worker-class rq.worker.SimpleWorker
+destroy:
+	@./scripts/local-stack.sh destroy
 
-dev:
-	./scripts/dev.sh
+logs:
+	@./scripts/local-stack.sh logs
+
+doctor:
+	@./scripts/doctor.sh
 
 schema:
 	uv run python manage.py export_openapi_schema -o core/frontend/.openapi.json
 	cd core/frontend && npm run schema
 	rm -f core/frontend/.openapi.json
-
-db.recreate:
-	dropdb --if-exists --force {{ cookiecutter.project_slug }}
-	createdb {{ cookiecutter.project_slug }}
-
-db.migrate:
-	uv run python manage.py migrate
-
-db.snapshot:
-	dropdb --if-exists {{ cookiecutter.project_slug }}_snapshot
-	createdb -O postgres -T {{ cookiecutter.project_slug }} {{ cookiecutter.project_slug }}_snapshot
-
-db.restore:
-	dropdb --if-exists {{ cookiecutter.project_slug }}
-	createdb -O postgres -T {{ cookiecutter.project_slug }}_snapshot {{ cookiecutter.project_slug }}

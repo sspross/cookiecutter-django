@@ -5,9 +5,17 @@
 ### Requirements
 
 - `uv` (https://docs.astral.sh/uv/)
-- (Optional) Local Postgres Server, if SQLite is not enough
-- (Optional) tmux for `make dev` experience: `brew install tmux`
-- Local Redis Server for the async worker and for `make test`, whose worker tests perform a real job: `brew install redis`
+- Docker Engine 25 or newer with Compose 2.24.4 or newer, for `make up`
+- Local Redis Server for `make test`, whose worker tests perform a real job: `brew install redis`
+
+Run `make doctor` to check the Docker setup of this machine. It prints one line
+per check and the fix for each failed one.
+
+When Docker's data directory is on btrfs (OrbStack Linux machines) and image
+builds fail in `apt-get install`, put
+`{"features": {"containerd-snapshotter": false}, "storage-driver": "btrfs"}`
+into `/etc/docker/daemon.json` and restart Docker. Existing images and volumes
+are hidden after the restart.
 
 ### Setup
 
@@ -24,10 +32,7 @@ wrote `.env` with a fresh `SECRET_KEY`; a later clone starts with
   - `git commit -m "Initial setup from django project template"`
 - `uv run pre-commit install`
 - `uv run playwright install chromium`
-- `make db.recreate` (Postgres only, skip if using SQLite)
-- `make db.migrate`
-- Create the first superuser: turn on Google login (see
-  [Google login](#google-login)), or run `uv run ./manage.py createsuperuser`.
+- `make up` (builds the image and starts the stack, see [Work](#work))
 
 ### Google login
 
@@ -38,26 +43,34 @@ creates the superuser.
    create an OAuth client of type "Web application".
 2. Add the redirect URIs
    `http://localhost:8000/accounts/google/login/callback/` and
-   `https://<domain>/accounts/google/login/callback/`.
+   `https://<domain>/accounts/google/login/callback/`. Google accepts only
+   registered redirect URIs, so login works on port 8000 only. `make up` uses
+   another port when 8000 is taken. Register that port's URI by hand to use it.
 3. Set `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`.
 4. To let anyone besides the author sign in, set `SSO_ALLOWED_DOMAINS`,
    `SSO_ALLOWED_EMAILS` and `SSO_SUPERUSER_EMAILS` (see "SSO allowlist" in
-   `CONTEXT.md`).
-5. Restart `make backend.dev` and log in at
-   http://localhost:8000/accounts/login/ with "Sign in with Google".
+   `GLOSSARY.md`).
+5. Run `make up`. If it prints port 8000, log in at `/accounts/login/` with
+   "Sign in with Google".
 
 ### Work
 
-- `make dev` — tmux: a shell pane + frontend/backend/worker panes
-- ...or run individually in separate terminals:
-  - `make frontend.dev` (start this first)
-  - `make backend.dev`
-  - `make worker.dev` (needs Redis; only does work once you write a job)
-- Log in at http://localhost:8000/accounts/login/
+- `make up` builds the image, starts Postgres, Redis, the release step, web and
+  worker, waits until the app is healthy and prints the URL and the login
+  (`admin` / `admin`). It uses port 8000, or the next free port when 8000 is
+  taken. Each worktree has its own stack and data, so several can run at once.
+  A code change needs another `make up`.
+- `make logs` follows the logs of this worktree's stack.
+- `make down` stops the stack and keeps its data.
+- `make destroy` stops the stack and deletes its volumes and image. Run it
+  before removing a worktree.
+- `make doctor` checks the Docker setup of this machine.
+- `.env` is optional. When it exists, its values are loaded, but the local
+  stack overrides `DEBUG`, `DATABASE_URL` and `REDIS_URL`.
 
 ### Tests
 
-- `make test` — pytest suite
+- `make test` — pytest suite (native, needs `uv` and a local Redis)
 - `make test.live.watch` — live Playwright tests, headed + slowmo (debugging)
 - `make precommit` — full pre-commit pipeline
 

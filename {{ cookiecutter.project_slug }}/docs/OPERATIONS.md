@@ -81,18 +81,20 @@ compose host (`compose.yaml`) works the same way with a hand-written `.env`.
 | `MEDIA_ROOT` | no | `<repo>/media` | injected from the `media` volume's `MEDIA` prefix | the compose file, `/volumes/media` |
 | `MEDIA_URL` | no | `media/` | injected from the `media` volume's `MEDIA` prefix | the compose file, `/media/` |
 | `PORT` | no | `8000` | **unverified** whether Appliku injects it; `container_port` is 8000 either way | unset, `web.sh` falls back to 8000 |
-| `DJANGO_VITE_DEV_MODE` | no | unset, follows `DEBUG` | not set in production | not set in production |
+| `HTTPS_ENFORCED` | no | on: with `DEBUG` off, HTTPS redirect, secure cookies and HSTS; only the literal `false` turns them off | not set in production | not set in production; `compose.local.yaml` sets `false` |
+| `GUNICORN_WORKERS` | no | `5` | not set in production | not set in production; `compose.local.yaml` sets `2` |
 | `SENTRY_DSN` | no | blank, the Sentry SDK stays uninitialized | set manually in Appliku (`source: manual`) | repo variable, unset until Sentry is wanted |
-| `SENTRY_ENVIRONMENT` | no | `production` | not declared in `appliku.yml`, set it manually for a second deployment | repo variable |
+| `SENTRY_ENVIRONMENT` | no | `production` | not declared in `appliku.yml`, set it manually for a second deployment | repo variable; `compose.local.yaml` sets `local` |
 | `GOOGLE_OAUTH_CLIENT_ID` | no | blank, Google login is off | set manually in Appliku (`source: manual`) | repo variable |
 | `GOOGLE_OAUTH_CLIENT_SECRET` | no | blank | set manually in Appliku (`source: manual`) | repo secret |
 | `SSO_ALLOWED_DOMAINS` | no | empty | set manually in Appliku (`source: manual`) | repo variable |
 | `SSO_ALLOWED_EMAILS` | no | the author email | set manually in Appliku (`source: manual`) | repo variable |
 | `SSO_SUPERUSER_EMAILS` | no | the author email | set manually in Appliku (`source: manual`) | repo variable |
 
-`PORT` is not a Django setting: `web.sh` reads it to bind gunicorn
-(`0.0.0.0:${PORT:-8000}`). Changing it means changing `container_port` in
-`appliku.yml` or the port mapping in `compose.yaml` too.
+`PORT` and `GUNICORN_WORKERS` are not Django settings: `web.sh` reads them to
+bind gunicorn (`0.0.0.0:${PORT:-8000}`) and size its worker pool. Changing
+`PORT` means changing `container_port` in `appliku.yml` or the port mapping in
+`compose.yaml` too.
 
 `POSTGRES_PASSWORD` is compose-only, a repo secret with `compose.prod.yaml`.
 Django does not read it; the compose files interpolate it into the `db`
@@ -106,7 +108,7 @@ Notes:
 - Setting `SSO_ALLOWED_EMAILS` or `SSO_SUPERUSER_EMAILS` replaces the
   author-email default, so keep the author email in it where it should stay.
   A rejected Google login is a log line from `users.sso`. The rules are in
-  "SSO allowlist" in `CONTEXT.md`.
+  "SSO allowlist" in `GLOSSARY.md`.
 - `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` are comma-separated lists.
   `CSRF_TRUSTED_ORIGINS` entries need the scheme (`https://app.example.com`),
   `ALLOWED_HOSTS` entries do not (`app.example.com`).
@@ -261,7 +263,7 @@ With Google login set up (README.md > Google login), log in at
 {{ cookiecutter.author_email }}. That first login creates the superuser.
 
 Further superusers: add the email to `SSO_SUPERUSER_EMAILS` and allow it (see
-"SSO allowlist" in `CONTEXT.md`). To take the rights away, remove the email
+"SSO allowlist" in `GLOSSARY.md`). To take the rights away, remove the email
 from `SSO_SUPERUSER_EMAILS`, deploy, and use the admin: every allowed login of
 a listed email makes it superuser again.
 
@@ -373,7 +375,7 @@ Two things the `LOGGING` dict does not cover:
   `--access-logfile -` to `web.sh` if you need one; expect the volume. The
   access log would live on stdout only, never in Sentry.
 - Queue state is not a log. It is visible in the app at `/django-rq/`; see
-  CONTEXT.md.
+  GLOSSARY.md.
 
 **Muted for Sentry only, stderr untouched**: the loggers in `IGNORED_LOGGERS`
 (`core/observability.py`) are dropped by the SDK at every level, through both
@@ -438,7 +440,7 @@ the header is always the one the server used.
   same two fields on every log record, which is how they reach a Sentry Log
   entry.
 - **Request source** names which door the request came through. Every request
-  path a generated project ships reads `web`; see CONTEXT.md. A job names its
+  path a generated project ships reads `web`; see GLOSSARY.md. A job names its
   own source, below.
 - A line written outside any request (a management command, worker startup)
   reads `-` for both fields.

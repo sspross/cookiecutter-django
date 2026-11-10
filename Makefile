@@ -33,37 +33,6 @@ define run_step
 	$(show_tail)
 endef
 
-# $(2) is required: it is the exit condition, and an empty one kills the command
-# at its first output line and passes.
-define run_step_smoke
-	@printf "  \`$(1)\`"; \
-	logfile=$$(mktemp); \
-	( cd $(PROJDIR) && NO_COLOR=1 PYTHONUNBUFFERED=1 $(1) ) > "$$logfile" 2>&1 & \
-	pid=$$!; \
-	for i in $$(seq 1 150); do \
-		if grep -q "$(2)" "$$logfile" 2>/dev/null; then break; fi; \
-		if ! kill -0 $$pid 2>/dev/null; then break; fi; \
-		sleep 0.1; \
-	done; \
-	kill_tree() { \
-		for child in $$(pgrep -P "$$1" 2>/dev/null); do \
-			kill_tree "$$child"; \
-		done; \
-		kill -KILL "$$1" 2>/dev/null; \
-	}; \
-	kill_tree $$pid; \
-	wait $$pid 2>/dev/null; \
-	output=$$(cat "$$logfile"); \
-	rm -f "$$logfile"; \
-	if ! echo "$$output" | grep -q "$(2)"; then \
-		echo " FAILED (expected: $(2))"; \
-		echo "$$output"; \
-		exit 1; \
-	fi; \
-	echo ""; \
-	$(show_tail)
-endef
-
 # $(1) is the check, $(2) what it must print, $(3) the file to plant in, $(4) the planted
 # code (\n for a newline, no commas or single quotes).
 define run_canary
@@ -97,7 +66,6 @@ test:
 	$(call run_step,git ls-files --error-unmatch uv.lock core/frontend/package-lock.json,package-lock.json)
 	$(call run_step,git ls-files --error-unmatch .template.json,.template.json)
 	$(call run_step,uv run playwright install chromium)
-	$(call run_step,make db.migrate,Applying)
 	$(call run_step,make lint,All checks passed)
 	$(call run_step,make frontend.build,built in)
 	$(call run_step,uv run python manage.py collectstatic --noinput,static files copied)
@@ -105,11 +73,10 @@ test:
 	@echo "2. Verification:"
 	@echo ""
 	$(call run_step,make test,passed)
-	$(call run_step,make lint,All checks passed)
 	$(call run_step,make format,left unchanged)
 	$(call run_step,make precommit,Passed)
-	$(call run_step_smoke,make frontend.dev,Local:)
-	$(call run_step_smoke,uv run python manage.py runserver,Starting WSGI development server)
+	$(call run_step,make doctor,PASS  Engine)
+	$(call run_step,bash $(CURDIR)/tests/local_stack_smoke.sh,local stack smoke test passed)
 	@echo ""
 	@echo "3. Canaries:"
 	@echo ""

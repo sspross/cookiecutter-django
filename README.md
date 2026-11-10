@@ -18,4 +18,6 @@ uv run --with cookiecutter python -m cookiecutter https://github.com/sspross/coo
 
 ## Working on this template
 
-- Run `make test` to verify if using the template still works as expected
+- Run `make test` to verify if using the template still works as expected. It
+  needs Docker, because it runs the generated project's `make doctor` and
+  `make up` for two stacks side by side. Other stacks may run at the same time.

@@ -13,7 +13,6 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, []),
     CSRF_TRUSTED_ORIGINS=(list, []),
     REDIS_URL=(str, "redis://localhost:6379/0"),
-    DJANGO_VITE_DEV_MODE=(bool, None),
     SENTRY_DSN=(str, ""),
     SENTRY_ENVIRONMENT=(str, SENTRY_DEFAULT_ENVIRONMENT),
     GOOGLE_OAUTH_CLIENT_ID=(str, ""),
@@ -33,6 +32,10 @@ ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 
 PROJECT_NAME = "{{ cookiecutter.project_name }}"
+
+# Browsers share localhost cookies across ports, so each local stack sets a suffix.
+SESSION_COOKIE_NAME = env.str("SESSION_COOKIE_NAME", default="sessionid")
+CSRF_COOKIE_NAME = env.str("CSRF_COOKIE_NAME", default="csrftoken")
 
 # Only safe while the proxy in front of the app strips a client-supplied
 # X-Forwarded-Proto.
@@ -173,10 +176,8 @@ MEDIA_ROOT = env.str("MEDIA_ROOT", default=str(BASE_DIR / "media"))
 MEDIA_URL = env.str("MEDIA_URL", default="media/")
 
 # Keep `static_url_prefix` in sync with `base` in core/frontend/vite.config.mjs.
-_vite_dev_mode = env("DJANGO_VITE_DEV_MODE")
-DJANGO_VITE = {
+DJANGO_VITE: dict[str, dict[str, Any]] = {
     "default": {
-        "dev_mode": DEBUG if _vite_dev_mode is None else _vite_dev_mode,
         "static_url_prefix": "dist/js",
     },
 }
@@ -198,7 +199,10 @@ CACHES = {
     },
 }
 
-if not DEBUG:
+# Fails safe: only the literal "false" turns enforcement off, a typo keeps it on.
+HTTPS_ENFORCED = env.str("HTTPS_ENFORCED", default="true").lower() != "false"
+
+if not DEBUG and HTTPS_ENFORCED:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_SSL_REDIRECT = True
