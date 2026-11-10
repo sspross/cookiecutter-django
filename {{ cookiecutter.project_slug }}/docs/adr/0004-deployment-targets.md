@@ -91,8 +91,8 @@ change the local topology. The overlay sets `SENTRY_ENVIRONMENT=local`, so a
 created by `make up`, never by `release.sh`.
 
 Only `web` builds the image in the overlay; `release` and `worker` reuse it.
-A rebuild leaves the replaced image untagged, for `docker image prune` to
-remove.
+After a rebuild, `make up` prunes the image it replaced, so a stack keeps one
+image.
 
 `make doctor` checks the Docker daemon, the Compose and Engine versions and the
 lockfiles. `make up` runs it first.

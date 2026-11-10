@@ -34,6 +34,7 @@ port_is_free() {
 	[ $? -eq 7 ]
 }
 
+# The output goes to a regular file, as an agent's `make up > up.log 2>&1` does.
 up() {
 	local log="$workdir/up.log"
 	(cd "$1" && make up >"$log" 2>&1) || fail "make up exited non-zero:
@@ -44,7 +45,11 @@ $(cat "$log")"
 $(cat "$log")"
 	grep -q 'admin / admin' "$log" || fail "make up did not print the login:
 $(cat "$log")"
-	echo "make up: a URL and the login"
+	grep -q 'load build definition' "$log" || fail "the redirected make up output lost the build output:
+$(cat "$log")"
+	grep -q 'Container .*web' "$log" || fail "the redirected make up output lost the start output:
+$(cat "$log")"
+	echo "make up: a URL, the login and the full output in a redirected log"
 }
 
 http_status() {
@@ -80,6 +85,10 @@ cookie_value() {
 	awk -v name="$1" '$6 == name { print $7 }' "$cookies"
 }
 
+web_image_of_port() {
+	docker inspect -f '{{.Image}}' "$(docker ps -q --filter "publish=$1")"
+}
+
 block_port() {
 	python3 -m http.server "$1" --bind 127.0.0.1 >/dev/null 2>&1 &
 	blocker_pid=$!
@@ -109,6 +118,8 @@ expect_admin_status "$first_url" 200 "second make up on a running stack keeps po
 
 mkdir -p "$copy"
 tar -C "$project" --exclude ./.venv --exclude ./core/frontend/node_modules --exclude ./.git -cf - . | tar -C "$copy" -xf -
+# With the same content, the copy would share the first stack's image through the build cache.
+echo "# the copy's own code" >>"$copy/manage.py"
 up "$copy"
 second_url="$url"
 second_port="$port"
@@ -121,6 +132,16 @@ status=$(curl -s -o /dev/null -w '%{http_code}' -b "$second_session_name=$(cooki
 [ "$status" = "302" ] || fail "the copy accepted the first stack's session ($status), so it shares its data"
 echo "copy has its own data: first stack's session unknown there"
 expect_admin_status "$first_url" 200 "logging in on the copy keeps the session on the first stack"
+
+replaced_image=$(web_image_of_port "$second_port")
+echo "# a code change" >>"$copy/manage.py"
+up "$copy"
+[ "$port" = "$second_port" ] || fail "a rebuild moved the copy from port $second_port to $port"
+[ "$(web_image_of_port "$second_port")" != "$replaced_image" ] || fail "a code change did not lead to a new image"
+if docker image inspect "$replaced_image" >/dev/null 2>&1; then
+	fail "the rebuild left the replaced image $replaced_image behind"
+fi
+echo "rebuild after a code change removes the replaced image"
 
 (cd "$copy" && make destroy >/dev/null 2>&1) || fail "make destroy in the copy exited non-zero"
 expect_admin_status "$first_url" 200 "make destroy in the copy leaves the first stack alone"

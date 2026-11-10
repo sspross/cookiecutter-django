@@ -63,15 +63,37 @@ lowest_free_port_from() {
 	return 1
 }
 
+# Returns 1 only when the port was taken after it was picked; any other failure exits.
+start_on_port() {
+	local output
+	WEB_PORT=$1
+	# Not `tee /dev/stderr`: reopening stderr truncates it when it is a regular file.
+	if output=$(compose up --detach --no-build 2>&1 | tee >(cat >&2)); then
+		return 0
+	fi
+	case "$output" in
+		*"address already in use"* | *"port is already allocated"*)
+			echo "Port $WEB_PORT was taken meanwhile, trying the next one." >&2
+			return 1
+			;;
+	esac
+	show_stack_state
+	fail "the stack did not start. Logs: make logs"
+}
+
 start_stack() {
-	WEB_PORT=$(published_port)
-	if [ -z "$WEB_PORT" ]; then
-		WEB_PORT=$(lowest_free_port_from "$FIRST_PORT") || fail "no free port between $FIRST_PORT and $LAST_PORT"
+	local port
+	port=$(published_port)
+	if [ -n "$port" ]; then
+		start_on_port "$port" || fail "port $port of this running stack was taken"
+		return
 	fi
-	if ! compose up --detach --no-build; then
-		show_stack_state
-		fail "the stack did not start. Logs: make logs"
-	fi
+	port=$FIRST_PORT
+	while port=$(lowest_free_port_from "$port"); do
+		start_on_port "$port" && return
+		port=$((port + 1))
+	done
+	fail "no free port between $FIRST_PORT and $LAST_PORT"
 }
 
 web_state() {
@@ -115,6 +137,11 @@ user.save()
 "
 }
 
+# Every rebuild leaves the replaced image untagged, more than 1 GB of new layers each.
+remove_replaced_images() {
+	docker image prune --force --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" >/dev/null
+}
+
 destroy() {
 	compose down --volumes --remove-orphans
 	# Each stack builds its own image, so it would stay behind after the worktree is gone.
@@ -129,9 +156,10 @@ up() {
 		echo "$doctor_output" >&2
 		fail "this machine cannot run the stack"
 	fi
-	# Built first, so a port is picked right before it is bound.
+	# Built first, so the port is picked as late as possible.
 	compose build
 	start_stack
+	remove_replaced_images
 	wait_until_web_is_healthy
 	ensure_local_superuser
 	echo ""
