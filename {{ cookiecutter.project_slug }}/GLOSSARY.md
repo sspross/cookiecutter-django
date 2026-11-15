@@ -39,8 +39,8 @@ allow a login, and a login never demotes. See ADR-0009.
 A user-issued bearer credential for the headless API path. Stored as `UserApiKey`
 (`user FK, name, prefix, hash, created_at, last_used_at, revoked_at`). The raw token is
 `{{ cookiecutter.project_slug }}_live_` + `secrets.token_urlsafe(32)`; only `sha256(token)`
-is persisted. Provisioned two ways: (1) self-service in the SPA's **API Access** section —
-list / mint / revoke own keys; (2) Django admin (kept for emergency provisioning and
+is persisted. Provisioned two ways: (1) self-service in the SPA's **API Access** section
+(list / mint / revoke own keys); (2) Django admin (kept for emergency provisioning and
 cross-user revoke). The raw token is shown exactly once on creation. A user can hold
 multiple keys (rotatable, named per use case). User-facing copy says **Revoke**:
 the row stays, so the audit trail (`created_at`, `last_used_at`, `revoked_at`) is
@@ -49,16 +49,16 @@ preserved, and revoked keys remain listed with a "Revoked" badge.
 ### Soft-delete vocabulary
 Two soft-delete semantics are named here, and the name carries the distinction:
 
-- **`revoked_at` / `is_revoked`** — *visible-but-marked*. The row stays listed in the
+- **`revoked_at` / `is_revoked`**: *visible-but-marked*. The row stays listed in the
   user-facing surface and is rendered with a "Revoked" badge. Used by `UserApiKey`
   so the audit trail (`created_at`, `last_used_at`, `revoked_at`) stays in front of the
   owner.
-- **`deleted_at` / `is_deleted`** — *hidden from users*. The row is filtered out of
+- **`deleted_at` / `is_deleted`**: *hidden from users*. The row is filtered out of
   every user-facing read and only operators see it (Django admin, raw DB).
 
 No shipped model uses `deleted_at`; adopt that pattern when you need "hide from
 users" semantics. When introducing soft-delete on a new model, pick the
-pattern that matches the desired visibility — never invent a third name. Both
+pattern that matches the desired visibility; never invent a third name. Both
 patterns share the same field shape: a nullable `DateTimeField` plus an `is_*`
 `@property`.
 
@@ -102,8 +102,8 @@ ninja's `/api/docs` and `/api/openapi.json`):
 
 HTML pages:
 
-- `/` — Django shell that mounts the React SPA on the **Dashboard** route.
-- `/api-access/` — same SPA mount, react-router renders the **API Access** route.
+- `/`: Django shell that mounts the React SPA on the **Dashboard** route.
+- `/api-access/`: same SPA mount, react-router renders the **API Access** route.
 - `/accounts/login/` & `/accounts/logout/`: Django built-in auth views.
   Password change and reset are not mounted (no templates, no mailer), so
   those URLs 404. The login page shows Django messages and, when Google
@@ -115,32 +115,32 @@ HTML pages:
   other allauth page is mounted. Every outcome that is not a login redirects
   to `/accounts/login/` with a message. A direct GET on the first URL renders
   allauth's own confirmation page; the login page's POST skips it.
-- `/admin/` — Django admin. `/admin/login/` redirects to `/accounts/login/`
+- `/admin/`: Django admin. `/admin/login/` redirects to `/accounts/login/`
   (keeping `next`), so the admin has one login page with Google login too.
   Superuser creates non-staff `User` accounts here,
   mints `UserApiKey` rows through the standard add form, and revokes them via a
   custom admin action.
-- `/django-rq/` — django-rq queue dashboard, gated to staff users by django-rq itself.
+- `/django-rq/`: django-rq queue dashboard, gated to staff users by django-rq itself.
 - `/healthz`, anonymous JSON probe (`{database, redis}`, each `ok` or `error`): 200 when both respond, 503 otherwise; never sets a cookie; exempt from the SSL redirect.
 
 API (django-ninja, dual auth, CSRF on session-authed writes):
 
-- `GET  /api/me` — the current user (`{username}`, schema `core.schemas.MeOut`).
+- `GET  /api/me`: the current user (`{username}`, schema `core.schemas.MeOut`).
   Dual auth, so it doubles as a headless `whoami`; the SPA reads it via
   `useMe()` for the "Signed in as …" footer. See ADR-0006.
-- `GET  /api/api-keys/` — list the requesting user's keys (active and revoked,
+- `GET  /api/api-keys/`: list the requesting user's keys (active and revoked,
   newest-first)
-- `POST /api/api-keys/` — body `{name}`; responds 201 with the created row plus the
+- `POST /api/api-keys/`: body `{name}`; responds 201 with the created row plus the
   raw token, the only API response that carries it. Throttled to 10 mints
   per hour per user, 429 beyond that; list and revoke are not throttled
-- `POST /api/api-keys/{id}/revoke/` — idempotent soft-delete; cross-user 404, not 403
+- `POST /api/api-keys/{id}/revoke/`: idempotent soft-delete; cross-user 404, not 403
 
 Every endpoint accepts **either** auth method by default:
 
-- `ninja.security.django_auth` — session cookie set at login. Used by
+- `ninja.security.django_auth`: session cookie set at login. Used by
   the SPA. CSRF enforced via `X-CSRFToken` header read from the CSRF cookie
   (`CSRF_COOKIE_NAME`, `csrftoken` by default).
-- `HttpBearer` against `UserApiKey` — `Authorization: Bearer
+- `HttpBearer` against `UserApiKey`: `Authorization: Bearer
   {{ cookiecutter.project_slug }}_live_…`. Used by headless callers. No CSRF
   (state-changing requests are token-bound, not cookie-bound). A deactivated
   user's keys stop working at once: `verify()` rejects a key whose owner has
@@ -157,13 +157,13 @@ App layout:
 ```
 core/                # settings package and Django app in one (namespace package)
   apps.py
-  admin.py           # empty — scaffold for your own admin registrations
-  models.py          # empty — scaffold for your own models
+  admin.py           # empty, scaffold for your own admin registrations
+  models.py          # empty, scaffold for your own models
   api.py             # NinjaAPI mount; [ApiKeyBearer(), django_auth]; GET /api/me
   context.py         # template context_processor: project_name
   observability.py   # init_sentry / sentry_options / IGNORED_LOGGERS; a DSN turns the SDK on. See ADR-0007
   request_context.py # request id + source: middleware, log filter, bound()
-  schemas.py         # MeOut — the /api/me wire shape
+  schemas.py         # MeOut: the /api/me wire shape
   settings/
     base.py          # env-driven settings
     test.py          # test overrides (async guard, MD5 hasher, vite manifest, dummy cache, Google login on)
@@ -196,7 +196,7 @@ api_keys/
   auth.py            # HttpBearer subclass resolving Bearer token → User
   models.py          # UserApiKey
   schemas.py         # ApiKeyOut, ApiKeyCreateIn, ApiKeyMintOut
-  services.py        # mint(), verify(), revoke() — token engine
+  services.py        # mint(), verify(), revoke(): token engine
   migrations/
   tests/
     factories.py
@@ -231,7 +231,7 @@ spa/
     csrf.ts         # csrfFetch wrapper
   queries/
     use-api-keys.ts # TanStack Query hooks for api keys
-    use-me.ts       # useMe() — current user from /api/me
+    use-me.ts       # useMe(): current user from /api/me
   routes/
     index.tsx       # Dashboard (inline cards, no abstractions yet)
     api-access.tsx
@@ -262,28 +262,28 @@ ninja `Schema`s in `*/schemas.py` are the **single source of truth**; everything
 to their right is generated:
 
 ```
-<app>/schemas.py  (hand-written ninja Schema — the SOURCE)
+<app>/schemas.py  (hand-written ninja Schema, the SOURCE)
   └─ manage.py export_openapi_schema → .openapi.json (transient, gitignored)
        └─ openapi-typescript → src/spa/api/schema.d.ts (GENERATED, never hand-edit)
             └─ import type { components } in the FE api layer
 ```
 
-`make schema` runs that pipeline **offline** — `export_openapi_schema`
+`make schema` runs that pipeline **offline**: `export_openapi_schema`
 introspects the API in-process (no running server, no DB connection), so it also
 works in CI. The committed `schema.d.ts` is raw `openapi-typescript` output
 (`biome.json` excludes it from formatting so it stays byte-identical), and the
 **`schema-fresh` pre-commit hook** (manual stage, like `pip-audit`) regenerates
-it and fails if it drifts from `schemas.py` — run `make schema` and commit.
+it and fails if it drifts from `schemas.py`. Run `make schema` and commit.
 
 `typescript` stays on `^5.9`: `openapi-typescript` declares a peer range on
 TypeScript 5.x, so raise the pin only once it supports the next major.
 
 Schema conventions (so the generated TS and API docs stay rich):
 
-- **Enum-ish fields use `Literal[...]`, not `str`** — keep the literals in sync
+- **Enum-ish fields use `Literal[...]`, not `str`**: keep the literals in sync
   with the model's `TextChoices`. `str` collapses to a bare TS `string`;
   `Literal` gives the FE a real union.
-- **Document fields with `Field(description=...)`, not `#` comments** — only the
+- **Document fields with `Field(description=...)`, not `#` comments**: only the
   `Field` description reaches OpenAPI, so it flows into both the generated TS
   (`@description` JSDoc on hover) and the `/api/docs` page. A docstring on the
   `Schema`/endpoint propagates the same way.
@@ -307,14 +307,14 @@ visual tokens are shared.
 
 No JS unit tests. Frontend correctness is exercised end-to-end by the Python
 **live tests** under `*/tests/live/`. A live test is a plain pytest function
-taking pytest-django's `live_server` and pytest-playwright's `page` fixtures —
+taking pytest-django's `live_server` and pytest-playwright's `page` fixtures,
 no bespoke base class. It drives the real SPA against a real Django server.
 
 Conventions:
 
 - **Web-first assertions.** Use Playwright's auto-retrying `expect(locator)`
   (e.g. `to_be_visible()`, `to_contain_text()`, `to_have_count()`) rather than
-  bare instant reads — the retry absorbs animation/transition timing.
+  bare instant reads: the retry absorbs animation/transition timing.
 - **Artifacts on failure** are captured natively by pytest-playwright into
   `test-results/` (a trace + screenshot; configured via the `--tracing` /
   `--screenshot` addopts in `pyproject.toml`). Inspect a trace with

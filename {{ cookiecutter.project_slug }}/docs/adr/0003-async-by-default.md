@@ -1,17 +1,17 @@
-# 0003 — Async runtime ships by default
+# 0003 - Async runtime ships by default
 
 ## Context
 
 Most Django projects spawned from this template will eventually need
 background work: an outbound LLM call, a long-running export, a webhook
-fan-out, an email send. Django's async views do not cover this — they solve
+fan-out, an email send. Django's async views do not cover this: they solve
 concurrency, not deferred work; a long-running outbound call still wants to
 live off the request thread. Retrofitting an async runtime later is more
 painful than carrying it from day one: it touches `INSTALLED_APPS`,
 settings, the deployment manifests, and CI shape.
 
 The template ships *infrastructure* for async work, not jobs. There are
-no actual `@job`-decorated functions in the generated project — only the
+no actual `@job`-decorated functions in the generated project, only the
 RQ + Redis wiring that lets a developer add one in five minutes.
 
 ## Decision
@@ -24,7 +24,7 @@ The template ships:
 - A `redis` backing service in every deployment manifest: Appliku's managed
   Redis in `appliku.yml`, the `redis:7` service in `compose.yaml` and
   `compose.prod.yaml`.
-- `worker.sh` script: `uv run python manage.py rqworker default` — the
+- `worker.sh` script: `uv run python manage.py rqworker default`, the
   *forking* worker. It runs in production and in the local compose stack
   (`make up`), both in Linux containers, so macOS never forks. It raises
   `JobTimeoutException` inside a job that outruns `RQ_QUEUES`

@@ -18,7 +18,7 @@ test.live.record: frontend.build
 	@dirs=$$(find . -type d -path '*/tests/live' -not -path '*/.venv/*' -not -path '*/node_modules/*'); \
 	if [ -z "$$dirs" ]; then echo "No tests/live directories found"; exit 1; fi; \
 	uv run pytest --video on --tracing on --output test-results $$dirs; \
-	echo "Artifacts in ./test-results — drag trace.zip to https://trace.playwright.dev"
+	echo "Artifacts in ./test-results. Drag trace.zip to https://trace.playwright.dev"
 
 lint:
 	uv run ruff check .

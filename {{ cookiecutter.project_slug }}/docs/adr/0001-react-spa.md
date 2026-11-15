@@ -1,4 +1,4 @@
-# 0001 — React SPA + shadcn/ui for the authenticated app
+# 0001 - React SPA + shadcn/ui for the authenticated app
 
 ## Context
 
@@ -27,7 +27,7 @@ Concretely:
   CSRF via `X-CSRFToken` header. A second `HttpBearer` auth class accepts
   `Authorization: Bearer <prefix>_live_…` against the `UserApiKey` model.
   Both auth methods resolve to `request.user` and are accepted on the
-  same endpoints — no `/api/v2/` split. The exception is the
+  same endpoints, no `/api/v2/` split. The exception is the
   `/api/api-keys/*` router; see ADR-0002.
 - **API contract.** `openapi-typescript` generates `schema.d.ts` from
   ninja's OpenAPI document, exported offline by `make schema`;
@@ -49,7 +49,7 @@ Positive:
   copy-paste-able.
 - Typed API contract (generated, not hand-written) catches schema drift
   at compile time.
-- Token-auth API path is first-class — headless callers and the SPA
+- Token-auth API path is first-class: headless callers and the SPA
   share one canonical data path.
 
 Negative:

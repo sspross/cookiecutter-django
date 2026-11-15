@@ -70,9 +70,9 @@ creates the superuser.
 
 ### Tests
 
-- `make test` — pytest suite (native, needs `uv` and a local Redis)
-- `make test.live.watch` — live Playwright tests, headed + slowmo (debugging)
-- `make precommit` — full pre-commit pipeline
+- `make test`: pytest suite (native, needs `uv` and a local Redis)
+- `make test.live.watch`: live Playwright tests, headed + slowmo (debugging)
+- `make precommit`: full pre-commit pipeline
 
 ### Frontend type generation
 

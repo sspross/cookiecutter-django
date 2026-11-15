@@ -57,7 +57,7 @@ class UserApiKeyAdmin(admin.ModelAdmin[UserApiKey]):
                 request,
                 format_html(
                     "API key <strong>{}</strong> minted for {}. "
-                    "<strong>Copy this token now — it will not be "
+                    "<strong>Copy this token now, it will not be "
                     "shown again:</strong> "
                     '<code style="display:block;margin-top:0.5em;'
                     "padding:0.5em;background:#f5f5f5;border:1px solid "
