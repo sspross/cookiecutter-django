@@ -35,7 +35,7 @@ and ninja builds the `/api/docs` page from them (see `docs/ARCHITECTURE.md`
 ## Testing
 
 No JS unit tests. Frontend correctness is exercised end-to-end by the Python
-**live journey**, `api_keys/tests/live/test_mint_flow.py`. A live test is a
+**live journey**, `core/tests/live/test_journey.py`. A live test is a
 plain pytest function taking pytest-django's `live_server` and
 pytest-playwright's `page` fixtures, no bespoke base class. It drives the real
 SPA against a real Django server.

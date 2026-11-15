@@ -16,12 +16,12 @@ from django.test import Client, RequestFactory, override_settings
 from django.urls import path
 from pytest_django.fixtures import Settings
 
-from api_keys.tests.factories import UserFactory
 from core.asgi import application as asgi_application
 from core.request_context import bound
 from core.tests.probes import PROBE_MESSAGE
 from core.tests.sentry_capture import CapturingTransport, flush_sentry
 from core.wsgi import application as wsgi_application
+from users.tests.factories import UserFactory
 
 REQUEST_ID = re.compile(r"\A[0-9a-f]{32}\Z")
 

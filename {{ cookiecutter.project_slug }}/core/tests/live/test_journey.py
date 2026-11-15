@@ -1,7 +1,7 @@
 from playwright.sync_api import Page, expect
 
 from api_keys import services as api_keys
-from api_keys.tests.factories import UserFactory
+from users.tests.factories import UserFactory
 
 
 def test_full_self_service_lifecycle(page: Page, live_server, settings) -> None:

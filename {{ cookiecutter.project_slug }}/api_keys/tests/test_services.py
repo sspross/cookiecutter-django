@@ -2,7 +2,7 @@ import pytest
 
 from api_keys import services as api_keys
 from api_keys.models import UserApiKey
-from api_keys.tests.factories import UserFactory
+from users.tests.factories import UserFactory
 
 
 @pytest.mark.django_db

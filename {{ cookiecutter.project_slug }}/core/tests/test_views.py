@@ -1,7 +1,7 @@
 import pytest
 from django.urls import reverse
 
-from api_keys.tests.factories import UserFactory
+from users.tests.factories import UserFactory
 
 QUEUE_DASHBOARD_URL = "/django-rq/"
 

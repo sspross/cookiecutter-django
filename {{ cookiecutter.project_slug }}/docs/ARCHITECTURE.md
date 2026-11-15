@@ -23,7 +23,7 @@ Shared places:
 - `core/frontend/src/spa/api/schema.d.ts`: the generated API client types.
   `make schema` regenerates it (see Frontend & API contract).
 - `core/frontend/src/spa/components/`: shared UI (`ui/` is shadcn).
-- `api_keys/tests/live/test_mint_flow.py`: the one live journey (see
+- `core/tests/live/test_journey.py`: the one live journey (see
   `CODING_STANDARDS.md`).
 
 ## Surfaces

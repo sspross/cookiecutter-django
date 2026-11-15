@@ -12,9 +12,9 @@ from django.http.response import HttpResponseBase
 from django.test import Client
 from django.urls import reverse
 
-from api_keys.tests.factories import UserFactory
 from users.models import User
 from users.sso import CANCELLED_MESSAGE, FAILED_MESSAGE, NOT_ALLOWED_MESSAGE
+from users.tests.factories import UserFactory
 
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 
