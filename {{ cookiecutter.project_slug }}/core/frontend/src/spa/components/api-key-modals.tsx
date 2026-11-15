@@ -123,7 +123,7 @@ export function RevealApiKeyModal({ result, onAcknowledge }: RevealModalProps) {
           <DialogTitle>Copy your API key now</DialogTitle>
           <DialogDescription>
             This is the <strong>only</strong> time the full token will be shown. Store
-            it somewhere safe — once you close this dialog, it is gone.
+            it somewhere safe. Once you close this dialog, it is gone.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
@@ -178,7 +178,7 @@ export function RevokeApiKeyModal({ apiKey, onClose }: RevokeModalProps) {
           <DialogDescription>
             <code className="font-mono">{apiKey?.name}</code> (prefix{" "}
             <code className="font-mono">{apiKey?.prefix}</code>) will stop
-            authenticating immediately. This cannot be undone — the key will remain
+            authenticating immediately. This cannot be undone. The key will remain
             visible in your list with a "Revoked" badge for audit purposes.
           </DialogDescription>
         </DialogHeader>
