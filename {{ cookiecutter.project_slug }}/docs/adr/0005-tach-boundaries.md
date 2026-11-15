@@ -1,4 +1,4 @@
-# 0005 — Module boundaries enforced by tach; type-hint imports allowed across them
+# 0005 - Module boundaries enforced by tach; type-hint imports allowed across them
 
 ## Context
 
@@ -12,8 +12,8 @@ another boundary.
 
 Two facts make `tach` confusing on first contact:
 
-1. A forbidden import and a type annotation look identical in source —
-   `from other_app.models import Thing` — but they are not the same thing. The
+1. A forbidden import and a type annotation look identical in source
+   (`from other_app.models import Thing`), but they are not the same thing. The
    first is a runtime dependency; the second, under a guard, is just a name used
    to describe a value. Developers hit a `tach check` failure on a model import
    and conclude "I can't reference that type at all," then either reach for
@@ -31,8 +31,8 @@ Two facts make `tach` confusing on first contact:
 `ignore_type_checking_imports = true` so that type-hint-only imports may cross a
 boundary the runtime arrow forbids.**
 
-- **A `TYPE_CHECKING` import of another module's type — including a `models`
-  type — is allowed, even when the runtime import is forbidden.** Pair it with
+- **A `TYPE_CHECKING` import of another module's type, including a `models`
+  type, is allowed, even when the runtime import is forbidden.** Pair it with
   `from __future__ import annotations`:
 
   ```python
@@ -103,7 +103,7 @@ boundary the runtime arrow forbids.**
 
 Positive:
 
-- The boundary is mechanical, not convention — `tach check` fails on a forbidden
+- The boundary is mechanical, not convention: `tach check` fails on a forbidden
   runtime import, so an inverted dependency can't land silently.
 - Full type coverage survives the boundary: you annotate with the real type, not
   `Any` or a duplicate, because type-hint imports cross freely under the guard.
@@ -117,5 +117,5 @@ Negative:
   answer, and without it someone "fixes" the boundary instead of guarding the
   import.
 - `ignore_type_checking_imports = true` trusts that guarded imports are honest
-  about direction. The same-direction rule is a convention `tach` can't check —
+  about direction. The same-direction rule is a convention `tach` can't check:
   review catches an inverted guard, not the tool.

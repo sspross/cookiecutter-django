@@ -1,4 +1,4 @@
-# 0006 — Boot data is typed: constants are server-rendered, per-user data goes through the API
+# 0006 - Boot data is typed: constants are server-rendered, per-user data goes through the API
 
 ## Context
 
@@ -23,7 +23,7 @@ Split the boot payload by nature:
   `mountNode.dataset.csrfCookieName`. No inline `<script>`, no `window` global,
   no TS fallback literal.
 - **Per-user data goes through the typed API.** A `GET /api/me` endpoint
-  (schema `core.schemas.MeOut`, dual auth like every other endpoint — so it
+  (schema `core.schemas.MeOut`, dual auth like every other endpoint, so it
   also serves as a headless `whoami`) returns the current user. The SPA
   fetches it with a `useMe()` TanStack Query hook, exactly as it fetches any
   other server state. The type flows from the ninja schema through
@@ -47,5 +47,5 @@ Positive:
 Negative:
 
 - The footer's "Signed in as …" resolves after a fetch rather than on
-  first paint — a negligible flash, accepted in exchange for the typing.
+  first paint, a negligible flash, accepted in exchange for the typing.
 - One more endpoint and one more query hook than inlining the blob.

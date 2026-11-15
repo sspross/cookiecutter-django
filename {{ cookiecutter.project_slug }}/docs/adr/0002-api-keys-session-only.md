@@ -1,4 +1,4 @@
-# 0002 — API key management endpoints are session-only
+# 0002 - API key management endpoints are session-only
 
 ## Context
 
@@ -14,7 +14,7 @@ token can be used to mint another bearer token.
 That is a token-escalation hazard. The whole point of `revoke()` is that
 a leaked credential becomes worthless once the user notices and revokes
 it. If the leaked credential can mint a sibling key behind the user's
-back, revocation is no longer a backstop — the attacker just rotates to
+back, revocation is no longer a backstop: the attacker just rotates to
 a freshly-minted key the user has never heard of.
 
 ## Decision
@@ -33,7 +33,7 @@ Concretely:
   `POST /api/api-keys/{id}/revoke/`.
 - Each endpoint scopes by `request.user`; revoking a key the requester
   does not own returns `404` (not `403`) so existence is not disclosed.
-- The Django admin mint/revoke flow (`UserApiKeyAdmin`) is unaffected —
+- The Django admin mint/revoke flow (`UserApiKeyAdmin`) is unaffected:
   it remains the operator backstop for cross-user revoke and emergency
   provisioning.
 
@@ -81,6 +81,6 @@ Negative:
 - The "every endpoint accepts both auth methods" property of the API is
   no longer uniformly true. GLOSSARY.md and the `api_keys/api.py` module
   docstring both have to call out the exception.
-- Headless scripts cannot rotate their own keys via the API — they have
+- Headless scripts cannot rotate their own keys via the API: they have
   to log into the SPA (or ask an operator). This is the intended
   trade-off; key rotation is a UI workflow, not a programmable one.
