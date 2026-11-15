@@ -36,15 +36,15 @@ behaviour lives in their route file.
   and reset are not mounted, so those URLs 404. The login page loads the SPA
   bundle for its styles; `main.tsx` finds no `#app` there and does not mount.
 - `/accounts/google/login/` and its callback: allauth, mounted only when
-  `GOOGLE_OAUTH_CLIENT_ID` is set (ADR-0009). No other allauth page is
-  mounted.
+  `GOOGLE_OAUTH_CLIENT_ID` is set (ADR-0009).
 - `/admin/`: Django admin. `/admin/login/` redirects to `/accounts/login/`, so
   there is one login page.
 - `/django-rq/`: queue dashboard, staff only.
 - `/healthz`: anonymous probe, see `docs/OPERATIONS.md` "Health probing".
 
-API: django-ninja under `/api/`, one router per app in `<app>/api.py`. The
-endpoint reference is the generated `/api/docs` page (and `schema.d.ts`).
+API: django-ninja under `/api/`, mounted in `core/api.py`, with an app's
+router in `<app>/api.py`. The endpoint reference is the generated `/api/docs`
+page (and `schema.d.ts`). `/api/docs` and `/api/openapi.json` need no login.
 
 ## Authentication
 
@@ -83,7 +83,7 @@ A user-issued bearer credential for the headless API path, stored as
 `UserApiKey`. The raw token is `{{ cookiecutter.project_slug }}_live_` +
 `secrets.token_urlsafe(32)`; only `sha256(token)` is persisted, and the raw
 token is shown exactly once on creation. A user can hold several keys, named
-per use case. Minting is throttled to 10 keys per hour per user.
+per use case.
 
 Provisioned two ways: self-service on the SPA's API Access page (list, mint
 and revoke own keys), or the Django admin (emergency provisioning and
@@ -100,9 +100,8 @@ bundle is loaded via `django-vite`'s manifest. Server state lives in TanStack
 Query.
 
 The SPA's typed API client is generated from ninja's OpenAPI schema using
-`openapi-typescript` (types) + `openapi-fetch` (typed fetch). The ninja
-`Schema` classes in `*/schemas.py` are Python, written by hand, and the **single
-source of truth**. `make schema` generates everything below them:
+`openapi-typescript` (types) + `openapi-fetch` (typed fetch). `make schema`
+generates everything below the ninja `Schema` classes:
 
 ```
 <app>/schemas.py  (Python ninja Schema classes, written by hand: the SOURCE)

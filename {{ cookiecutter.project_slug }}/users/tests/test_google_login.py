@@ -27,6 +27,16 @@ def _start(client: Client, next_url: str | None) -> str:
     return parse_qs(urlparse(response["Location"]).query)["state"][0]
 
 
+@pytest.mark.django_db
+def test_a_direct_get_asks_for_confirmation_before_leaving_for_google(
+    client: Client,
+) -> None:
+    response = client.get(reverse("google_login"))
+
+    assert response.status_code == 200
+    assert b"<form" in response.content
+
+
 def _id_token(email: str, email_verified: bool, hd: str | None) -> str:
     """Any key works: allauth skips the signature check for an ID token it fetched
     from Google's token endpoint itself, over TLS."""
