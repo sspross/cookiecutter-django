@@ -87,3 +87,21 @@ class TestLoginPage:
         response = client.get(login_url)
 
         assert "Sign in with Google" not in response.content.decode()
+
+
+@pytest.mark.django_db
+class TestQueueDashboard:
+    URL = "/django-rq/"
+
+    def test_turns_away_a_user_who_is_not_staff(self, client):
+        client.force_login(UserFactory.create())
+
+        response = client.get(self.URL)
+
+        assert response.status_code == 302
+        assert response["Location"] == "/admin/login/?next=/django-rq/"
+
+    def test_opens_for_a_staff_user(self, client):
+        client.force_login(UserFactory.create(is_staff=True))
+
+        assert client.get(self.URL).status_code == 200
