@@ -1,6 +1,6 @@
 # {{ cookiecutter.project_slug }}
 
-See `GLOSSARY.md` for domain language, `docs/adr/` for the architectural decisions in effect, and `docs/OPERATIONS.md` for the production runbook.
+See `GLOSSARY.md` for domain language, `docs/ARCHITECTURE.md` for the code map and the HTML and API surfaces, `CODING_STANDARDS.md` for review rules, `docs/adr/` for the architectural decisions in effect, and `docs/OPERATIONS.md` for the production runbook.
 
 ## Guardrails
 

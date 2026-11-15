@@ -107,8 +107,7 @@ Notes:
 
 - Setting `SSO_ALLOWED_EMAILS` or `SSO_SUPERUSER_EMAILS` replaces the
   author-email default, so keep the author email in it where it should stay.
-  A rejected Google login is a log line from `users.sso`. The rules are in
-  "SSO allowlist" in `GLOSSARY.md`.
+  The rules are in [SSO allowlist](#sso-allowlist).
 - `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` are comma-separated lists.
   `CSRF_TRUSTED_ORIGINS` entries need the scheme (`https://app.example.com`),
   `ALLOWED_HOSTS` entries do not (`app.example.com`).
@@ -256,6 +255,28 @@ On a generic compose host the equivalent is
 `docker compose run --rm web uv run ./manage.py <command>`, which starts a
 throwaway container from the same image with the same environment.
 
+## SSO allowlist
+
+The rule that decides whether a Google identity may log in (`users/sso.py`).
+Allowed when Google verified the email, the user is not inactive, and one of
+these holds:
+
+- Google's `hd` claim is in `SSO_ALLOWED_DOMAINS` (the email suffix never
+  matches);
+- the email is in `SSO_ALLOWED_EMAILS`.
+
+The lists are comma-separated, case-insensitive env vars, checked on every
+Google login. A rejection is a log line from `users.sso`, not a Sentry event
+(ADR-0007).
+
+The first Google login creates a user with the full email as username, or
+links to the existing user with the same email and keeps its password.
+`User.email` is stored lowercased, so linking ignores case.
+
+Every allowed Google login of an email in `SSO_SUPERUSER_EMAILS` makes its
+user superuser and staff. That list alone does not allow a login, and a login
+never demotes. See ADR-0009.
+
 ## First superuser
 
 With Google login set up (README.md > Google login), log in at
@@ -263,7 +284,7 @@ With Google login set up (README.md > Google login), log in at
 {{ cookiecutter.author_email }}. That first login creates the superuser.
 
 Further superusers: add the email to `SSO_SUPERUSER_EMAILS` and allow it (see
-"SSO allowlist" in `GLOSSARY.md`). To take the rights away, remove the email
+[SSO allowlist](#sso-allowlist)). To take the rights away, remove the email
 from `SSO_SUPERUSER_EMAILS`, deploy, and use the admin: every allowed login of
 a listed email makes it superuser again.
 
@@ -368,14 +389,14 @@ lowering one logger moves stderr and Sentry Logs together. The levels:
   SDK adds no second policy on top of these levels.
 - Raising verbosity for one app means editing `LOGGING` and deploying. There is
   no env-var log-level knob.
+
 Two things the `LOGGING` dict does not cover:
 
 - gunicorn runs with `--log-file -`, which is its **error** log only. `web.sh`
   passes no `--access-logfile`, so there is no per-request access log. Add
   `--access-logfile -` to `web.sh` if you need one; expect the volume. The
   access log would live on stdout only, never in Sentry.
-- Queue state is not a log. It is visible in the app at `/django-rq/`; see
-  GLOSSARY.md.
+- Queue state is not a log. Staff see it in the app at `/django-rq/`.
 
 **Muted for Sentry only, stderr untouched**: the loggers in `IGNORED_LOGGERS`
 (`core/observability.py`) are dropped by the SDK at every level, through both
@@ -440,10 +461,12 @@ the header is always the one the server used.
   same two fields on every log record, which is how they reach a Sentry Log
   entry.
 - **Request source** names which door the request came through. Every request
-  path a generated project ships reads `web`; see GLOSSARY.md. A job names its
-  own source, below.
+  path reads `web`, because the classification table `EXTERNAL_SOURCES`
+  (`core/request_context.py`) ships empty. A project adding a second API
+  surface per audience (the growth path in ADR-0002) names that door with one
+  tuple there. A job names its own source, below.
 - A line written outside any request (a management command, worker startup)
-  reads `-` for both fields.
+  reads `-` for both fields, and an error event from there carries neither tag.
 
 Ask a caller reporting a problem for the `X-Request-ID` of the failing response.
 It is the only handle that ties their response to the lines behind it.
