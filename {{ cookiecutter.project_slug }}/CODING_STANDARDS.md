@@ -1,0 +1,68 @@
+# Coding standards
+
+Review rules that no linter enforces. The mechanical ones live in
+`.pre-commit-config.yaml`, `pyproject.toml` (ruff), `biome.json` and
+`tach.toml`. The conventions in `CLAUDE.md` apply too.
+
+## API schemas
+
+The ninja `Schema` classes in `*/schemas.py` are Python, written by hand. They
+are the source: `make schema` generates the TS types (`schema.d.ts`) from them,
+and ninja builds the `/api/docs` page from them (see `docs/ARCHITECTURE.md`
+"Frontend & API contract"). Keep both rich:
+
+- **Enum-ish fields use `Literal[...]`, not `str`.** Keep the literals in sync
+  with the model's `TextChoices`. `str` collapses to a bare TS `string`;
+  `Literal` gives the FE a real union.
+- **Document fields with `Field(description=...)`, not `#` comments.** Only the
+  `Field` description reaches OpenAPI, so it flows into both the generated TS
+  (`@description` JSDoc on hover) and the `/api/docs` page. A docstring on the
+  `Schema` or endpoint propagates the same way.
+- **Optional artifact:** a Pydantic field with a default (`x: T | None = None`)
+  renders as `x?:` *optional* in the generated TS even though the server always
+  serializes it. Either coalesce at the use site or accept the widened type.
+  Keep the default: dropping it to "fix" the type changes the API contract.
+
+## Naming
+
+- **Soft-delete has two names, and the name carries the visibility.**
+  `revoked_at` / `is_revoked` keeps the row listed with a "Revoked" badge
+  (`UserApiKey`, so the owner sees the audit trail). `deleted_at` /
+  `is_deleted` hides the row from every user-facing read; only operators see
+  it. No model uses `deleted_at` yet. Both are a nullable `DateTimeField` plus
+  an `is_*` `@property`. Never invent a third name.
+
+## Testing
+
+No JS unit tests. Frontend correctness is exercised end-to-end by the Python
+**live journey**, `api_keys/tests/live/test_mint_flow.py`. A live test is a
+plain pytest function taking pytest-django's `live_server` and
+pytest-playwright's `page` fixtures, no bespoke base class. It drives the real
+SPA against a real Django server.
+
+- **One journey, not many small e2e tests.** A live test drives a browser,
+  which costs far more than a `client` test. Extend the existing journey with
+  another step rather than adding a second browser session, and only assert
+  what a browser is needed for: real rendering, focus, keyboard, viewport,
+  static serving. Anything reachable from `client` belongs in `tests/test_*.py`.
+- **Web-first assertions.** Use Playwright's auto-retrying `expect(locator)`
+  (e.g. `to_be_visible()`, `to_contain_text()`, `to_have_count()`) rather than
+  bare instant reads. The retry absorbs animation and transition timing.
+- **Artifacts on failure** are captured natively by pytest-playwright into
+  `test-results/` (a trace + screenshot; configured via the `--tracing` /
+  `--screenshot` addopts in `pyproject.toml`). Inspect a trace with
+  `uv run playwright show-trace test-results/<…>/trace.zip`.
+- **Dev knobs** are Playwright-native: `uv run pytest --headed --slowmo 500`
+  (wrapped by `make test.live.watch`), or `PWDEBUG=1` for the inspector.
+- **Tests run in random order.** pytest prints `Using --randomly-seed=<seed>`;
+  `uv run pytest --randomly-seed=<seed>` replays that order. With `-n 4` the
+  split across workers depends on timing, so a failure may need a few runs with
+  the same seed to come back. Fix an order-dependent test, do not pin it.
+- **A warning fails the run.** Fix it. A third-party warning that cannot be
+  fixed gets a narrow ignore under `filterwarnings` with a comment saying why.
+
+Static correctness on the TS side is covered by `tsc --noEmit` and biome (both
+run in pre-commit).
+
+A unit test that cannot be expressed as a live test may bring vitest in, with
+the reason stated in its PR.

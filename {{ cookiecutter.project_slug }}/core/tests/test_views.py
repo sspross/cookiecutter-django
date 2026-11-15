@@ -3,6 +3,8 @@ from django.urls import reverse
 
 from api_keys.tests.factories import UserFactory
 
+QUEUE_DASHBOARD_URL = "/django-rq/"
+
 
 @pytest.mark.django_db
 class TestHomeView:
@@ -87,3 +89,19 @@ class TestLoginPage:
         response = client.get(login_url)
 
         assert "Sign in with Google" not in response.content.decode()
+
+
+@pytest.mark.django_db
+class TestQueueDashboard:
+    def test_turns_away_a_user_who_is_not_staff(self, client):
+        client.force_login(UserFactory.create())
+
+        response = client.get(QUEUE_DASHBOARD_URL)
+
+        assert response.status_code == 302
+        assert "login" in response["Location"]
+
+    def test_opens_for_a_staff_user(self, client):
+        client.force_login(UserFactory.create(is_staff=True))
+
+        assert client.get(QUEUE_DASHBOARD_URL).status_code == 200
