@@ -1,7 +1,7 @@
 import pytest
 
 from api_keys.services import mint
-from api_keys.tests.factories import UserFactory
+from users.tests.factories import UserFactory
 
 ME_URL = "/api/me"
 

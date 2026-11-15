@@ -4,7 +4,7 @@ import pytest
 from django.test import Client
 
 from api_keys import services as api_keys
-from api_keys.tests.factories import UserFactory
+from users.tests.factories import UserFactory
 
 CHANGELIST_URL = "/admin/api_keys/userapikey/"
 
