@@ -224,8 +224,9 @@ bundle is loaded via `django-vite`'s manifest. Server state lives in TanStack
 Query.
 
 SPA imports flow one way: `App.tsx -> routes -> components -> queries -> api`,
-with `lib` and `components/ui` usable from anywhere. `biome.json` enforces who
-may import routes and the API client.
+with `lib` and `components/ui` usable from anywhere. `biome.json` enforces it:
+`components`, `queries`, `api` and `lib` import nothing to their left, and routes,
+components and hooks reach the API client only through `queries`.
 
 The SPA's typed API client is generated from ninja's OpenAPI schema using
 `openapi-typescript` (types) + `openapi-fetch` (typed fetch). `make schema`
