@@ -1,5 +1,7 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useTimedFlag } from "@/hooks/use-timed-flag";
+
+const COPIED_LABEL_MS = 1500;
 
 interface CopyButtonProps {
   value: string;
@@ -8,15 +10,14 @@ interface CopyButtonProps {
 }
 
 export function CopyButton({ value, label, "data-testid": testId }: CopyButtonProps) {
-  const [copied, setCopied] = useState(false);
+  const [copied, showCopied] = useTimedFlag(COPIED_LABEL_MS);
   async function copy() {
     try {
       await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
     } catch {
-      setCopied(false);
+      return;
     }
+    showCopied();
   }
   return (
     <Button

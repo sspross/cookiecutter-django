@@ -1,3 +1,5 @@
+import re
+
 from playwright.sync_api import Page, expect
 
 from api_keys import services as api_keys
@@ -42,6 +44,13 @@ def test_full_self_service_lifecycle(page: Page, live_server, settings) -> None:
     page.keyboard.press("Escape")
     expect(page.locator('[data-testid="reveal-modal"]')).to_be_visible()
 
+    # The copy button confirms, then goes back to its label.
+    page.context.grant_permissions(["clipboard-write"])
+    copy_token = page.locator('[data-testid="copy-token"]')
+    copy_token.click()
+    expect(copy_token).to_have_text("Copied!")
+    expect(copy_token).to_have_text("Copy to clipboard")
+
     # Acknowledge to dismiss.
     page.click('[data-testid="ack-token"]')
     page.wait_for_selector('[data-testid="reveal-modal"]', state="detached")
@@ -61,6 +70,22 @@ def test_full_self_service_lifecycle(page: Page, live_server, settings) -> None:
     expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text("laptop-cli")
     expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text("Revoked")
     expect(page.locator('[data-testid^="revoke-"]')).to_have_count(0)
+
+    # On "system" the color mode follows the system setting.
+    dark = re.compile(r"\bdark\b")
+    page.emulate_media(color_scheme="dark")
+    expect(page.locator("html")).to_have_class(dark)
+    page.emulate_media(color_scheme="light")
+    expect(page.locator("html")).not_to_have_class(dark)
+
+    # The mobile nav closes after navigating.
+    page.set_viewport_size({"width": 390, "height": 800})
+    page.get_by_role("button", name="Open menu").click()
+    mobile_nav = page.locator("#mobile-nav")
+    mobile_nav.get_by_role("link", name="Dashboard").click()
+    page.wait_for_url(f"{live_server.url}/")
+    expect(mobile_nav).to_have_count(0)
+    page.set_viewport_size({"width": 1280, "height": 720})
 
     # Log out.
     sidebar.get_by_role("button", name="Log out").click()

@@ -101,6 +101,12 @@ repos:
         language: system
         files: ^core/frontend/(src/|vite\.config\.mjs|biome\.json|package\.json|tsconfig).*
         pass_filenames: false
+      - id: no-biome-ignore
+        name: no biome-ignore outside hooks (fix the cause or move the code into a hook under @/hooks)
+        entry: biome-ignore
+        language: pygrep
+        files: ^core/frontend/src/
+        exclude: ^core/frontend/src/spa/(hooks|components/ui)/
       - id: tsc-typecheck
         name: tsc typecheck (core/frontend)
         entry: bash -c 'cd core/frontend && npx --no-install tsc --noEmit'

@@ -13,7 +13,9 @@ Each app uses this shape, with only the files it needs:
 - `<app>/models.py`, `api.py` (ninja router), `schemas.py`, `services.py`,
   `admin.py`, `tests/`.
 - An app's frontend lives in `core/frontend/src/spa/`, not in the app:
-  `queries/` (TanStack Query hooks) and `routes/` (one file per page).
+  `queries/` (TanStack Query hooks), `routes/` (one file per page) and
+  `hooks/` (the only place for effects and timers; biome fails them anywhere
+  else).
 
 Shared places:
 
