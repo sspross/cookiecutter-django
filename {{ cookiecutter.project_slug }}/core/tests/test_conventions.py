@@ -8,7 +8,7 @@ from django.apps import AppConfig, apps
 from django.conf import settings
 from django.db import models
 from django.test.utils import isolate_apps
-from ninja import Schema
+from ninja import ModelSchema, Schema
 
 INVENTED_SOFT_DELETE_NAMES = frozenset(
     {
@@ -55,7 +55,8 @@ def soft_delete_violations(model_classes: Iterable[type[models.Model]]) -> list[
     return violations
 
 
-def choices_class_name(model: type[models.Model], field: models.Field[Any, Any]) -> str:
+def choices_class_name(field: models.Field[Any, Any]) -> str:
+    model = field.model
     for name, value in vars(model).items():
         if (
             isinstance(value, type)
@@ -70,26 +71,54 @@ def is_bare_str(annotation: object) -> bool:
     return annotation is str or annotation == (str | None)
 
 
+def choices_fields_by_name(
+    model_classes: Iterable[type[models.Model]],
+) -> dict[str, list[models.Field[Any, Any]]]:
+    by_name: dict[str, list[models.Field[Any, Any]]] = {}
+    for model in model_classes:
+        for field in model._meta.get_fields():
+            if isinstance(field, models.Field) and field.choices:
+                by_name.setdefault(field.name, []).append(field)
+    return by_name
+
+
+def model_of(schema: type[ModelSchema]) -> type[models.Model]:
+    model = schema.Meta.model  # type: ignore[attr-defined]
+    return apps.get_model(model) if isinstance(model, str) else model
+
+
+def app_label_of(schema: type[Schema]) -> str | None:
+    app = apps.get_containing_app_config(schema.__module__)
+    return app.label if app else None
+
+
+def models_a_schema_can_mirror(
+    schema: type[Schema], model_classes: Iterable[type[models.Model]]
+) -> list[type[models.Model]]:
+    if issubclass(schema, ModelSchema):
+        return [model_of(schema)]
+    app_label = app_label_of(schema)
+    return [model for model in model_classes if model._meta.app_label == app_label]
+
+
 def choices_schema_violations(
     model_classes: Iterable[type[models.Model]],
     schema_classes: Iterable[type[Schema]],
 ) -> list[str]:
-    choices_fields = {
-        field.name: (model, field)
-        for model in model_classes
-        for field in model._meta.get_fields()
-        if isinstance(field, models.Field) and field.choices
-    }
+    all_models = list(model_classes)
     violations: list[str] = []
     for schema in schema_classes:
+        choices_fields = choices_fields_by_name(
+            models_a_schema_can_mirror(schema, all_models)
+        )
         for name, schema_field in schema.model_fields.items():
-            if name not in choices_fields or not is_bare_str(schema_field.annotation):
+            if not is_bare_str(schema_field.annotation):
                 continue
-            model, field = choices_fields[name]
-            violations.append(
-                f"{schema.__name__}.{name}: {model.__name__}.{name} has choices. "
-                f"Type it as {choices_class_name(model, field)} so the generated TS "
+            violations.extend(
+                f"{schema.__name__}.{name}: {field.model.__name__}.{name} has choices. "
+                f"Type it as {choices_class_name(field)} so the generated TS "
                 "is a union, not string."
+                for field in choices_fields.get(name, [])
             )
     return violations
 
@@ -220,9 +249,13 @@ def test_schema_rejects_str_for_a_choices_field() -> None:
             app_label = "core"
 
     class InvoiceOut(Schema):
+        __module__ = "core.schemas"
+
         status: str
 
     class InvoicePatchIn(Schema):
+        __module__ = "core.schemas"
+
         status: str | None = None
 
     assert choices_schema_violations([Invoice], [InvoiceOut, InvoicePatchIn]) == [
@@ -231,6 +264,107 @@ def test_schema_rejects_str_for_a_choices_field() -> None:
         "InvoicePatchIn.status: Invoice.status has choices. Type it as "
         "Invoice.Status so the generated TS is a union, not string.",
     ]
+
+
+@isolate_apps("core")
+def test_schema_names_every_model_of_its_app_sharing_the_choices_field_name() -> None:
+    class Invoice(models.Model):  # noqa: DJ008
+        class Status(models.TextChoices):
+            DRAFT = "draft"
+            PAID = "paid"
+
+        status = models.CharField(max_length=8, choices=Status.choices)
+
+        class Meta:
+            app_label = "core"
+
+    class Shipment(models.Model):  # noqa: DJ008
+        class Status(models.TextChoices):
+            PACKED = "packed"
+            SENT = "sent"
+
+        status = models.CharField(max_length=8, choices=Status.choices)
+
+        class Meta:
+            app_label = "core"
+
+    class StatusOut(Schema):
+        __module__ = "core.schemas"
+
+        status: str
+
+    assert choices_schema_violations([Invoice, Shipment], [StatusOut]) == [
+        "StatusOut.status: Invoice.status has choices. Type it as Invoice.Status "
+        "so the generated TS is a union, not string.",
+        "StatusOut.status: Shipment.status has choices. Type it as Shipment.Status "
+        "so the generated TS is a union, not string.",
+    ]
+
+
+@isolate_apps("core")
+def test_model_schema_is_checked_against_its_own_model_only() -> None:
+    class Invoice(models.Model):  # noqa: DJ008
+        class Status(models.TextChoices):
+            DRAFT = "draft"
+            PAID = "paid"
+
+        status = models.CharField(max_length=8, choices=Status.choices)
+
+        class Meta:
+            app_label = "core"
+
+    class Shipment(models.Model):  # noqa: DJ008
+        class Status(models.TextChoices):
+            PACKED = "packed"
+            SENT = "sent"
+
+        status = models.CharField(max_length=8, choices=Status.choices)
+
+        class Meta:
+            app_label = "core"
+
+    class FreeTextStatusNote(models.Model):  # noqa: DJ008
+        status = models.CharField(max_length=8)
+
+        class Meta:
+            app_label = "core"
+
+    class ShipmentOut(ModelSchema):
+        class Meta:
+            model = Shipment
+            fields = ["status"]
+
+    class FreeTextStatusNoteOut(ModelSchema):
+        class Meta:
+            model = FreeTextStatusNote
+            fields = ["status"]
+
+    assert choices_schema_violations(
+        [Invoice, Shipment, FreeTextStatusNote], [ShipmentOut, FreeTextStatusNoteOut]
+    ) == [
+        "ShipmentOut.status: Shipment.status has choices. Type it as "
+        "Shipment.Status so the generated TS is a union, not string.",
+    ]
+
+
+@isolate_apps("core")
+def test_schema_in_another_app_may_type_the_same_field_name_as_str() -> None:
+    class Invoice(models.Model):  # noqa: DJ008
+        class Status(models.TextChoices):
+            DRAFT = "draft"
+            PAID = "paid"
+
+        status = models.CharField(max_length=8, choices=Status.choices)
+
+        class Meta:
+            app_label = "core"
+
+    class HealthOut(Schema):
+        __module__ = "users.schemas"
+
+        status: str
+
+    assert choices_schema_violations([Invoice], [HealthOut]) == []
 
 
 @isolate_apps("core")
