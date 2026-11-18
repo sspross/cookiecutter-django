@@ -89,6 +89,10 @@ test:
 	$(call run_canary,uv run pytest core/tests/test_healthz.py -k canary,UserWarning: canary,core/tests/test_healthz.py,import warnings\n\n\ndef test_canary() -> None:\n    warnings.warn("canary"))
 	$(call run_canary,npm --prefix core/frontend run lint,Effects are banned in product code,core/frontend/src/spa/App.tsx,import { useEffect } from "react";\nuseEffect;)
 	$(call run_canary,npm --prefix core/frontend run lint,Timers are banned in product code,core/frontend/src/spa/App.tsx,setTimeout(() => {});)
+	$(call run_canary,npm --prefix core/frontend run lint,Effects are banned in product code,core/frontend/src/spa/routes/index.tsx,import { useEffect } from "react";\nuseEffect;)
+	$(call run_canary,npm --prefix core/frontend run lint,Only App.tsx imports routes,core/frontend/src/spa/components/copy-button.tsx,import { DashboardRoute } from "@/routes/index";\nDashboardRoute;)
+	$(call run_canary,npm --prefix core/frontend run lint,Call the API through a hook in @/queries,core/frontend/src/spa/routes/index.tsx,import { apiClient } from "@/api/client";\napiClient;)
+	$(call run_canary,npm --prefix core/frontend run lint,Call the API through a hook in @/queries,core/frontend/src/spa/components/copy-button.tsx,import { apiClient } from "@/api/client";\napiClient;)
 	$(call run_canary,uv run pre-commit run no-biome-ignore --all-files,move the code into a hook under @/hooks,core/frontend/src/spa/App.tsx,// biome-ignore lint: canary)
 	$(call run_step,make lint,All checks passed)
 	@echo ""

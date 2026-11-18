@@ -101,6 +101,9 @@ every SPA route carrying `@login_required` + `@ensure_csrf_cookie`; the SPA
 bundle is loaded via `django-vite`'s manifest. Server state lives in TanStack
 Query.
 
+SPA imports flow one way: `App.tsx -> routes -> components -> queries -> api`,
+with `lib` and `components/ui` usable from anywhere. `biome.json` enforces it.
+
 The SPA's typed API client is generated from ninja's OpenAPI schema using
 `openapi-typescript` (types) + `openapi-fetch` (typed fetch). `make schema`
 generates everything below the ninja `Schema` classes:

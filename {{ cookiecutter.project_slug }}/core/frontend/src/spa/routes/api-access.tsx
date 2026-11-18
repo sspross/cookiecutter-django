@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ApiKey, ApiKeyMintOut } from "@/api/client";
+import type { ApiKey, ApiKeyMintOut } from "@/api/types";
 import {
   MintApiKeyModal,
   RevealApiKeyModal,
