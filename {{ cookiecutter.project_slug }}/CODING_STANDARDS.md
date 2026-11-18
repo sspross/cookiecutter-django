@@ -1,8 +1,9 @@
 # Coding standards
 
 Review rules that no linter enforces. The mechanical ones live in
-`.pre-commit-config.yaml`, `pyproject.toml` (ruff), `biome.json` and
-`tach.toml`. The conventions in `CLAUDE.md` apply too.
+`.pre-commit-config.yaml`, `pyproject.toml` (ruff), `biome.json`,
+`tach.toml` and `core/tests/test_conventions.py`. The conventions in
+`CLAUDE.md` apply too.
 
 ## API schemas
 
@@ -11,9 +12,10 @@ are the source: `make schema` generates the TS types (`schema.d.ts`) from them,
 and ninja builds the `/api/docs` page from them (see `docs/ARCHITECTURE.md`
 "Frontend & API contract"). Keep both rich:
 
-- **Enum-ish fields use `Literal[...]`, not `str`.** Keep the literals in sync
-  with the model's `TextChoices`. `str` collapses to a bare TS `string`;
-  `Literal` gives the FE a real union.
+- **Enum-ish fields use the model's `TextChoices` class as their type**
+  (`status: Invoice.Status`). The values then have one source, and the
+  generated TS is a union of the values. Use `Literal[...]` only where the API
+  exposes fewer values than the model.
 - **Document fields with `Field(description=...)`, not `#` comments.** Only the
   `Field` description reaches OpenAPI, so it flows into both the generated TS
   (`@description` JSDoc on hover) and the `/api/docs` page. A docstring on the
@@ -25,12 +27,11 @@ and ninja builds the `/api/docs` page from them (see `docs/ARCHITECTURE.md`
 
 ## Naming
 
-- **Soft-delete has two names, and the name carries the visibility.**
-  `revoked_at` / `is_revoked` keeps the row listed with a "Revoked" badge
-  (`UserApiKey`, so the owner sees the audit trail). `deleted_at` /
-  `is_deleted` hides the row from every user-facing read; only operators see
-  it. No model uses `deleted_at` yet. Both are a nullable `DateTimeField` plus
-  an `is_*` `@property`. Never invent a third name.
+- **The soft-delete name carries the visibility.** `revoked_at` /
+  `is_revoked` keeps the row listed with a "Revoked" badge (`UserApiKey`, so
+  the owner sees the audit trail). `deleted_at` / `is_deleted` hides the row
+  from every user-facing read; only operators see it. No model uses
+  `deleted_at` yet.
 
 ## Testing
 
@@ -40,11 +41,9 @@ plain pytest function taking pytest-django's `live_server` and
 pytest-playwright's `page` fixtures, no bespoke base class. It drives the real
 SPA against a real Django server.
 
-- **One journey, not many small e2e tests.** A live test drives a browser,
-  which costs far more than a `client` test. Extend the existing journey with
-  another step rather than adding a second browser session, and only assert
-  what a browser is needed for: real rendering, focus, keyboard, viewport,
-  static serving. Anything reachable from `client` belongs in `tests/test_*.py`.
+- **Assert in the journey only what a browser is needed for**: real rendering,
+  focus, keyboard, viewport, static serving. A live test drives a browser,
+  which costs far more than a `client` test.
 - **Web-first assertions.** Use Playwright's auto-retrying `expect(locator)`
   (e.g. `to_be_visible()`, `to_contain_text()`, `to_have_count()`) rather than
   bare instant reads. The retry absorbs animation and transition timing.
