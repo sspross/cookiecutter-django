@@ -1,9 +1,13 @@
 import re
 
-from playwright.sync_api import Locator, Page, expect
+from playwright.sync_api import Locator, Page, ViewportSize, expect
 
 from api_keys import services as api_keys
 from users.tests.factories import UserFactory
+
+DESKTOP: ViewportSize = {"width": 1280, "height": 720}
+MOBILE: ViewportSize = {"width": 390, "height": 800}
+DARK_CLASS = re.compile(r"\bdark\b")
 
 
 def test_full_self_service_lifecycle(page: Page, live_server, settings) -> None:
@@ -21,6 +25,7 @@ def test_full_self_service_lifecycle(page: Page, live_server, settings) -> None:
     _revoke_the_key_and_confirm(page)
     _see_the_key_still_listed_as_revoked_without_a_revoke_action(page)
     _see_the_color_mode_follow_the_system_setting(page)
+    _pick_a_color_mode_in_one_toggle_and_see_the_other_toggle_show_it(page, sidebar)
     _see_the_mobile_nav_close_after_navigating(page, live_server.url)
     _log_out(page, sidebar)
 
@@ -101,21 +106,40 @@ def _see_the_key_still_listed_as_revoked_without_a_revoke_action(page: Page) -> 
 
 
 def _see_the_color_mode_follow_the_system_setting(page: Page) -> None:
-    dark = re.compile(r"\bdark\b")
     page.emulate_media(color_scheme="dark")
-    expect(page.locator("html")).to_have_class(dark)
+    expect(page.locator("html")).to_have_class(DARK_CLASS)
     page.emulate_media(color_scheme="light")
-    expect(page.locator("html")).not_to_have_class(dark)
+    expect(page.locator("html")).not_to_have_class(DARK_CLASS)
+
+
+def _pick_a_color_mode_in_one_toggle_and_see_the_other_toggle_show_it(
+    page: Page, sidebar: Locator
+) -> None:
+    mobile_nav = page.locator("#mobile-nav")
+
+    page.set_viewport_size(MOBILE)
+    page.get_by_role("button", name="Open menu").click()
+    mobile_nav.locator("label", has_text="Dark").click()
+    expect(page.locator("html")).to_have_class(DARK_CLASS)
+    page.set_viewport_size(DESKTOP)
+    expect(sidebar.get_by_role("radio", name="Dark")).to_be_checked()
+
+    sidebar.locator("label", has_text="System").click()
+    expect(page.locator("html")).not_to_have_class(DARK_CLASS)
+    page.set_viewport_size(MOBILE)
+    expect(mobile_nav.get_by_role("radio", name="System")).to_be_checked()
+    page.get_by_role("button", name="Close menu").click()
+    page.set_viewport_size(DESKTOP)
 
 
 def _see_the_mobile_nav_close_after_navigating(page: Page, base_url: str) -> None:
-    page.set_viewport_size({"width": 390, "height": 800})
+    page.set_viewport_size(MOBILE)
     page.get_by_role("button", name="Open menu").click()
     mobile_nav = page.locator("#mobile-nav")
     mobile_nav.get_by_role("link", name="Dashboard").click()
     page.wait_for_url(f"{base_url}/")
     expect(mobile_nav).to_have_count(0)
-    page.set_viewport_size({"width": 1280, "height": 720})
+    page.set_viewport_size(DESKTOP)
 
 
 def _log_out(page: Page, sidebar: Locator) -> None:
