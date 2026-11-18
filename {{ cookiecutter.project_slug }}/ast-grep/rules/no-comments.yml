@@ -1,11 +1,14 @@
 id: no-comments-python
 language: python
 severity: error
-message: Comments are banned. Put the reason in a name, a test, or an ADR.
+message: >-
+  Comments are banned. Put the reason in a name, a test, or an ADR. A
+  suppression names what it suppresses: "# noqa: <CODE>" or
+  "# type: ignore[<code>]", with an optional short reason after it.
 rule:
   kind: comment
   not:
-    regex: '^#(!|\s*(noqa|type:\s*ignore)\b)'
+    regex: '^(#!.*|(#\s*(noqa:\s*[A-Z]+[0-9]+\b|type:\s*ignore\[[a-z][a-z, -]*\])[^#]*)+)$'
 ignores: ["**/migrations/**"]
 ---
 id: no-docstrings-python
