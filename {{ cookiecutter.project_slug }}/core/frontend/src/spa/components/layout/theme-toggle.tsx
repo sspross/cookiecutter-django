@@ -1,45 +1,13 @@
-import { useEffect, useId, useState } from "react";
+import { useId } from "react";
 import { Monitor, Moon, Sun } from "@/components/layout/icons";
+import { type ColorMode, useColorMode } from "@/hooks/use-color-mode";
 import { cn } from "@/lib/utils";
 
-type Mode = "system" | "light" | "dark";
-
-const STORAGE_KEY = "app-color-mode";
-
-function readStored(): Mode {
-  if (typeof localStorage === "undefined") return "system";
-  const v = localStorage.getItem(STORAGE_KEY);
-  return v === "light" || v === "dark" || v === "system" ? v : "system";
-}
-
-function applyMode(mode: Mode) {
-  const isDark =
-    mode === "dark" ||
-    (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-  document.documentElement.classList.toggle("dark", isDark);
-}
-
 export function ThemeToggle() {
-  const [mode, setMode] = useState<Mode>(() => readStored());
-  // The shell renders this twice; a fixed radio name would merge both groups.
-  const groupName = useId();
+  const [mode, pick] = useColorMode();
+  const radioGroupNameUniquePerInstance = useId();
 
-  useEffect(() => {
-    applyMode(mode);
-    if (mode === "system" && typeof window !== "undefined") {
-      const mq = window.matchMedia("(prefers-color-scheme: dark)");
-      const handler = () => applyMode("system");
-      mq.addEventListener("change", handler);
-      return () => mq.removeEventListener("change", handler);
-    }
-  }, [mode]);
-
-  function pick(next: Mode) {
-    setMode(next);
-    localStorage.setItem(STORAGE_KEY, next);
-  }
-
-  const options: { value: Mode; Icon: typeof Sun; label: string }[] = [
+  const options: { value: ColorMode; Icon: typeof Sun; label: string }[] = [
     { value: "system", Icon: Monitor, label: "System" },
     { value: "light", Icon: Sun, label: "Light" },
     { value: "dark", Icon: Moon, label: "Dark" },
@@ -58,7 +26,7 @@ export function ThemeToggle() {
         >
           <input
             type="radio"
-            name={groupName}
+            name={radioGroupNameUniquePerInstance}
             value={value}
             checked={mode === value}
             onChange={() => pick(value)}

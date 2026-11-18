@@ -10,8 +10,6 @@ from core import views
 from core.api import api
 
 urlpatterns = [
-    # In lockstep with the routes in core/frontend/src/spa/App.tsx: a route missing
-    # here 404s on a hard reload.
     path("", views.app_view, name="home"),
     path("api-access/", views.app_view),
     path("api/", api.urls),
@@ -23,7 +21,6 @@ urlpatterns = [
         RedirectView.as_view(url=reverse_lazy("login"), query_string=True),
     ),
     path("admin/", admin.site.urls),
-    # django-rq gates this dashboard to staff itself, so no decorator here.
     path("django-rq/", include("django_rq.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

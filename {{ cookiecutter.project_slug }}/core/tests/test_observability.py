@@ -31,7 +31,11 @@ from core.observability import (
     sentry_options,
 )
 from core.request_context import bound
-from core.tests.sentry_capture import TEST_DSN, CapturingTransport, flush_sentry
+from core.tests.sentry_capture import (
+    UNRESOLVABLE_TEST_DSN,
+    CapturingTransport,
+    flush_sentry,
+)
 
 BOOT_PROBE = """
 import json
@@ -64,9 +68,6 @@ urlpatterns = [path("boom", boom), path("test-api/", test_api.urls)]
 
 @contextmanager
 def console_output() -> Iterator[io.StringIO]:
-    """Not captured stderr: a handler holds the ``sys.stderr`` it was built with, which
-    pytest replaced later."""
-
     stream = io.StringIO()
     loggers = [logging.getLogger(), *logging.getLogger().manager.loggerDict.values()]
     handlers = {
@@ -103,16 +104,15 @@ def failing_job() -> None:
 
 
 def failing_bound_job() -> None:
-    # The pattern OPERATIONS.md "Correlating a job" documents.
     job = get_current_job()
     assert job is not None
     with bound(job.id, "worker"):
         raise RuntimeError("bound job boom")
 
 
-def perform_failing_jobs(queue_name: str, *funcs: Callable[[], None]) -> list[str]:
-    # One real worker: RQ's integration reports from ``Worker.handle_exception`` alone,
-    # which the synchronous enqueue of the test settings never reaches.
+def perform_failing_jobs_on_a_real_worker(
+    queue_name: str, *funcs: Callable[[], None]
+) -> list[str]:
     connection = django_rq.get_connection()
     queue = Queue(queue_name, connection=connection)
     jobs = [
@@ -127,7 +127,6 @@ def perform_failing_jobs(queue_name: str, *funcs: Callable[[], None]) -> list[st
             job.save()
             worker.execute_job(job, queue)
     finally:
-        # A failed job carries RQ's default one-year failure_ttl, so these keys persist.
         for job in jobs:
             Result.delete_all(job)
             job.delete()
@@ -138,12 +137,10 @@ def perform_failing_jobs(queue_name: str, *funcs: Callable[[], None]) -> list[st
 
 
 def run_failing_job(queue_name: str) -> str:
-    return perform_failing_jobs(queue_name, failing_job)[0]
+    return perform_failing_jobs_on_a_real_worker(queue_name, failing_job)[0]
 
 
-def boot(settings_module: str, **environment: str) -> dict[str, Any]:
-    # A child process because SDK initialization happens once per process during
-    # ``django.setup()``, which the suite has already passed.
+def boot_in_a_child_process(settings_module: str, **environment: str) -> dict[str, Any]:
     result = subprocess.run(
         [sys.executable, "-c", BOOT_PROBE],
         cwd=settings.BASE_DIR,
@@ -167,29 +164,36 @@ class TestInitialization:
         assert sentry_sdk.get_client().is_active() is False
 
     def test_the_test_settings_win_over_a_dsn_in_the_environment(self) -> None:
-        assert boot("core.settings.test", SENTRY_DSN=TEST_DSN)["active"] is False
+        probe = boot_in_a_child_process(
+            "core.settings.test", SENTRY_DSN=UNRESOLVABLE_TEST_DSN
+        )
+        assert probe["active"] is False
 
     def test_the_deployed_settings_initialize_from_the_environment(self) -> None:
-        client = boot("core.settings.base", SENTRY_DSN=TEST_DSN)
+        client = boot_in_a_child_process(
+            "core.settings.base", SENTRY_DSN=UNRESOLVABLE_TEST_DSN
+        )
         assert client["active"] is True
-        assert client["dsn"] == TEST_DSN
+        assert client["dsn"] == UNRESOLVABLE_TEST_DSN
 
     def test_the_environment_defaults_to_production(self) -> None:
         assert DEFAULT_ENVIRONMENT == "production"
         assert settings.SENTRY_ENVIRONMENT == "production"
-        assert sentry_options(TEST_DSN)["environment"] == "production"
+        assert sentry_options(UNRESOLVABLE_TEST_DSN)["environment"] == "production"
 
     def test_the_options_carry_the_django_rq_and_logging_integrations(self) -> None:
         integrations = {
             type(integration).__name__
-            for integration in sentry_options(TEST_DSN, "test")["integrations"]
+            for integration in sentry_options(UNRESOLVABLE_TEST_DSN, "test")[
+                "integrations"
+            ]
         }
         assert {"DjangoIntegration", "RqIntegration", "LoggingIntegration"} <= (
             integrations
         )
 
     def test_nothing_is_traced(self) -> None:
-        options = sentry_options(TEST_DSN, "test")
+        options = sentry_options(UNRESOLVABLE_TEST_DSN, "test")
         assert "traces_sample_rate" not in options
         assert options["auto_session_tracking"] is False
 
@@ -211,9 +215,10 @@ class TestErrorEvents:
     def test_an_unhandled_ninja_exception_becomes_an_event(
         self, client: Client, sentry: CapturingTransport
     ) -> None:
-        # ninja re-raises an unhandled exception only when DEBUG is off; with
-        # DEBUG on it renders the traceback itself and Django never sees it.
-        assert settings.DEBUG is False
+        assert settings.DEBUG is False, (
+            "ninja re-raises an unhandled exception only when DEBUG is off; with "
+            "DEBUG on it renders the traceback itself and Django never sees it"
+        )
         client.raise_request_exception = False
         with override_settings(ROOT_URLCONF=__name__):
             response = client.get("/test-api/boom")
@@ -233,14 +238,12 @@ class TestErrorEvents:
         assert event["extra"]["rq-job"]["job_id"] == job_id
 
     def test_a_failing_job_leaves_no_redis_keys_behind(self) -> None:
-        # Scoped to a unique queue because other tests and concurrent runs write rq:*
-        # keys to the same Redis.
-        queue_name = f"observability-test-cleanup-{uuid4().hex}"
-        job_id = run_failing_job(queue_name)
+        queue_no_other_run_writes_to = f"observability-test-cleanup-{uuid4().hex}"
+        job_id = run_failing_job(queue_no_other_run_writes_to)
         leftovers = [
             key
             for key in django_rq.get_connection().keys("rq:*")
-            if queue_name.encode() in key or job_id.encode() in key
+            if queue_no_other_run_writes_to.encode() in key or job_id.encode() in key
         ]
         assert leftovers == []
 
@@ -271,7 +274,9 @@ class TestJobCorrelation:
     def test_a_job_that_raises_inside_bound_produces_a_correlated_event(
         self, sentry: CapturingTransport
     ) -> None:
-        (job_id,) = perform_failing_jobs("observability-test-bound", failing_bound_job)
+        (job_id,) = perform_failing_jobs_on_a_real_worker(
+            "observability-test-bound", failing_bound_job
+        )
         flush_sentry()
         tags = sentry.event_with("bound job boom")["tags"]
         assert (tags["request_id"], tags["request_source"]) == (job_id, "worker")
@@ -279,7 +284,7 @@ class TestJobCorrelation:
     def test_the_next_job_on_the_same_worker_carries_no_tags(
         self, sentry: CapturingTransport
     ) -> None:
-        perform_failing_jobs(
+        perform_failing_jobs_on_a_real_worker(
             "observability-test-bound-next", failing_bound_job, failing_job
         )
         flush_sentry()
@@ -385,26 +390,33 @@ class TestIgnoredLoggers:
         assert sentry.log_bodies() == []
 
 
-# transaction=True: the WSGI handler's close_old_connections closes a non-autocommit
-# connection, which on Postgres breaks the default test transaction (503 from /healthz).
-@pytest.mark.django_db(transaction=True)
+def get_through_the_wsgi_handler_the_sdk_hooks_into(path: str) -> tuple[str, bytes]:
+    application = get_wsgi_application()
+    environ = RequestFactory(headers={"host": "localhost"}).get(path).environ
+    statuses: list[str] = []
+    response = application(
+        environ,
+        lambda status, headers: statuses.append(status),  # type: ignore[arg-type]
+    )
+    body = b"".join(response)
+    response.close()
+    (status,) = statuses
+    return status, body
+
+
+survives_the_wsgi_handler_closing_old_connections = pytest.mark.django_db(
+    transaction=True
+)
+
+
+@survives_the_wsgi_handler_closing_old_connections
 class TestHealthzIsSilent:
     def test_the_probe_generates_no_sentry_traffic(
         self, sentry: CapturingTransport
     ) -> None:
-        # Not the test client: the SDK's request handling lives in
-        # ``WSGIHandler.__call__``, which it bypasses.
-        application = get_wsgi_application()
-        environ = RequestFactory(headers={"host": "localhost"}).get("/healthz").environ
-        statuses: list[str] = []
         with mock.patch.object(redis.Redis, "ping", return_value=True):
-            response = application(
-                environ,
-                lambda status, headers: statuses.append(status),  # type: ignore[arg-type]
-            )
-            body = b"".join(response)
-            response.close()
-        assert statuses == ["200 OK"]
+            status, body = get_through_the_wsgi_handler_the_sdk_hooks_into("/healthz")
+        assert status == "200 OK"
         assert json.loads(body) == {"database": "ok", "redis": "ok"}
 
         flush_sentry()

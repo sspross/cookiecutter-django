@@ -1,6 +1,6 @@
 import pytest
 
-from core.tests.fresh_settings import production_settings
+from core.tests.fresh_settings import freshly_imported_production_settings
 
 ENFORCED = {
     "SECURE_SSL_REDIRECT": True,
@@ -17,7 +17,9 @@ NOT_ENFORCED = {
 
 
 def https_settings(**overrides: str) -> dict[str, object]:
-    return production_settings(ENFORCED, unset=["HTTPS_ENFORCED"], **overrides)
+    return freshly_imported_production_settings(
+        ENFORCED, unset=["HTTPS_ENFORCED"], **overrides
+    )
 
 
 def test_https_is_enforced_by_default() -> None:

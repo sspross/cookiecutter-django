@@ -8,9 +8,9 @@ from api_keys.auth import ApiKeyBearer
 from core.schemas import MeOut
 from users.models import User
 
-# Bearer first: django_auth's CSRF check runs before it reads the session cookie,
-# so it would 403 a bearer-authed write before ApiKeyBearer ran.
-api = NinjaAPI(auth=[ApiKeyBearer(), django_auth])
+BEARER_BEFORE_SESSION = [ApiKeyBearer(), django_auth]
+
+api = NinjaAPI(auth=BEARER_BEFORE_SESSION)
 api.add_router("/api-keys/", api_keys_router)
 
 

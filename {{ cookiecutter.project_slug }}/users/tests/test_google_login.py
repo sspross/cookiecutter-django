@@ -17,6 +17,7 @@ from users.sso import CANCELLED_MESSAGE, FAILED_MESSAGE, NOT_ALLOWED_MESSAGE
 from users.tests.factories import UserFactory
 
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+SIGNING_KEY_ALLAUTH_NEVER_VERIFIES = "never-verified-" + "x" * 32
 
 
 def _start(client: Client, next_url: str | None) -> str:
@@ -38,8 +39,6 @@ def test_a_direct_get_asks_for_confirmation_before_leaving_for_google(
 
 
 def _id_token(email: str, email_verified: bool, hd: str | None) -> str:
-    """Any key works: allauth skips the signature check for an ID token it fetched
-    from Google's token endpoint itself, over TLS."""
     claims = {
         "iss": "https://accounts.google.com",
         "aud": settings.SOCIALACCOUNT_PROVIDERS["google"]["APP"]["client_id"],
@@ -52,7 +51,7 @@ def _id_token(email: str, email_verified: bool, hd: str | None) -> str:
     }
     if hd is not None:
         claims["hd"] = hd
-    return jwt.encode(claims, "never-verified-" + "x" * 32, algorithm="HS256")
+    return jwt.encode(claims, SIGNING_KEY_ALLAUTH_NEVER_VERIFIES, algorithm="HS256")
 
 
 def sign_in_with_google(

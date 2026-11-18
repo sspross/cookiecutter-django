@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { apiClient, type Me, requireData } from "@/api/client";
+import { apiClient, requireData } from "@/api/client";
+import type { Me } from "@/api/types";
 
 export const meKeys = {
   me: () => ["me"] as const,

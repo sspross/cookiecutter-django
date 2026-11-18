@@ -43,7 +43,6 @@ def sentry_options(dsn: str, environment: str = DEFAULT_ENVIRONMENT) -> dict[str
         "integrations": [
             DjangoIntegration(),
             RqIntegration(),
-            # Listed because `capture_sentry_logs` defaults to off. Levels: ADR-0007.
             LoggingIntegration(
                 capture_sentry_logs=True,
                 event_level=None,

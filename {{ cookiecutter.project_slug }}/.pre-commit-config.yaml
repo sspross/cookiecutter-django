@@ -16,7 +16,11 @@ repos:
       - id: check-merge-conflict
       - id: check-toml
       - id: check-yaml
-        exclude: ^compose\.local\.yaml$
+        exclude: ^(compose\.local\.yaml|ast-grep/rules/.*)$
+      - id: check-yaml
+        name: check yaml (several documents per file, for the ast-grep rules)
+        files: ^ast-grep/rules/
+        args: [--allow-multiple-documents]
       - id: check-yaml
         name: check yaml (syntax only, for compose's !override and !reset tags)
         files: ^compose\.local\.yaml$
@@ -63,6 +67,12 @@ repos:
       - id: deptry
         name: deptry
         entry: uv run deptry .
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: ast-grep
+        name: ast-grep
+        entry: uv run ast-grep scan
         language: system
         pass_filenames: false
         always_run: true

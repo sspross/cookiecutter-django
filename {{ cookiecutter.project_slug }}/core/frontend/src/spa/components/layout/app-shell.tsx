@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, NavLink, useLocation } from "react-router";
+import { useState } from "react";
+import { Link, NavLink } from "react-router";
 import { readCsrfCookie } from "@/api/csrf";
 import { HomeIcon, KeyIcon, Menu, X } from "@/components/layout/icons";
 import { Logo } from "@/components/layout/logo";
@@ -18,7 +18,6 @@ const NAV_ITEMS = [
 ];
 
 function LogoutForm({ className }: { className?: string }) {
-  // Django's LogoutView only accepts POST, so an <a href> would 405.
   const csrfToken = readCsrfCookie() ?? "";
   return (
     <form method="post" action="/accounts/logout/" className={className}>
@@ -33,9 +32,6 @@ function LogoutForm({ className }: { className?: string }) {
 export function AppShell({ projectName, children }: AppShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { data: me } = useMe();
-  const { pathname } = useLocation();
-  // biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger to close nav on route change
-  useEffect(() => setMobileNavOpen(false), [pathname]);
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
       <aside
@@ -77,7 +73,12 @@ export function AppShell({ projectName, children }: AppShellProps) {
       <main className="flex min-w-0 flex-1 flex-col">
         <header className="flex flex-col border-b border-border md:hidden">
           <div className="flex items-center gap-4 px-4 py-3">
-            <Link to="/" aria-label={projectName} className="hover:opacity-80">
+            <Link
+              to="/"
+              aria-label={projectName}
+              className="hover:opacity-80"
+              onClick={() => setMobileNavOpen(false)}
+            >
               <Logo label={projectName} />
             </Link>
             <div className="ml-auto flex items-center gap-2">
@@ -107,6 +108,7 @@ export function AppShell({ projectName, children }: AppShellProps) {
                   key={to}
                   to={to}
                   end={end}
+                  onClick={() => setMobileNavOpen(false)}
                   className={({ isActive }) =>
                     cn(
                       "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium",

@@ -6,6 +6,10 @@ from users.tests.factories import UserFactory
 QUEUE_DASHBOARD_URL = "/django-rq/"
 
 
+def _import_the_urlconf_while_the_google_routes_are_configured() -> None:
+    reverse("login")
+
+
 @pytest.mark.django_db
 class TestHomeView:
     def test_home_redirects_anonymous(self, client):
@@ -81,12 +85,10 @@ class TestLoginPage:
         assert content.index("google-login-form") < content.index('"login-form"')
 
     def test_hides_google_button_without_a_client_id(self, client, settings):
-        # core.urls reads this setting at import. Load it first, or this process keeps
-        # a URLconf without the Google routes.
-        login_url = reverse("login")
+        _import_the_urlconf_while_the_google_routes_are_configured()
         settings.SOCIALACCOUNT_PROVIDERS = {}
 
-        response = client.get(login_url)
+        response = client.get(reverse("login"))
 
         assert "Sign in with Google" not in response.content.decode()
 
