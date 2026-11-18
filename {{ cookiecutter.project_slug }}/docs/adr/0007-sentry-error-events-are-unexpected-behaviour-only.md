@@ -3,7 +3,8 @@
 ## Context
 
 The Sentry SDK is initialized whenever `SENTRY_DSN` is set (`core/observability.py`,
-called from `CoreConfig.ready`). Once a DSN is present, every `sentry_sdk.capture_exception`
+called from `CoreConfig.ready`, not from the settings module: `core/settings/test.py`
+blanks the DSN only after `base.py` has run). Once a DSN is present, every `sentry_sdk.capture_exception`
 and every log line the logging integration is allowed to promote lands in the issue stream,
 and every issue is a candidate for an alert. A project that captures expected failures
 (a retry that gave up, a third-party call that timed out and was recorded, a validation

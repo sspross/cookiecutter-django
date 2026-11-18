@@ -109,7 +109,6 @@ interface RevealModalProps {
 }
 
 export function RevealApiKeyModal({ result, onAcknowledge }: RevealModalProps) {
-  // The token is shown once, so the acknowledge button is the only exit.
   return (
     <Dialog open={result !== null}>
       <DialogContent

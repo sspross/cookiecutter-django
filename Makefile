@@ -89,7 +89,10 @@ test:
 	$(call run_canary,uv run pytest core/tests/test_healthz.py -k canary,UserWarning: canary,core/tests/test_healthz.py,import warnings\n\n\ndef test_canary() -> None:\n    warnings.warn("canary"))
 	$(call run_canary,npm --prefix core/frontend run lint,Effects are banned in product code,core/frontend/src/spa/App.tsx,import { useEffect } from "react";\nuseEffect;)
 	$(call run_canary,npm --prefix core/frontend run lint,Timers are banned in product code,core/frontend/src/spa/App.tsx,setTimeout(() => {});)
-	$(call run_canary,uv run pre-commit run no-biome-ignore --all-files,move the code into a hook under @/hooks,core/frontend/src/spa/App.tsx,// biome-ignore lint: canary)
+	$(call run_canary,uv run ast-grep scan,no-comments-python.*Comments are banned,core/urls.py,# canary)
+	$(call run_canary,uv run ast-grep scan,no-docstrings-python.*Docstrings are banned,core/urls.py,def canary() -> None:\n    """canary""")
+	$(call run_canary,uv run ast-grep scan,no-comments-tsx.*Comments are banned,core/frontend/src/spa/App.tsx,// canary)
+	$(call run_canary,uv run ast-grep scan,no-biome-ignore-tsx.*move the code into a hook under @/hooks,core/frontend/src/spa/App.tsx,// biome-ignore lint: canary)
 	$(call run_step,make lint,All checks passed)
 	@echo ""
 	@rm -rf "$(TMPDIR)"

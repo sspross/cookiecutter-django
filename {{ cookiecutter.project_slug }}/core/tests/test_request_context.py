@@ -55,9 +55,11 @@ def closing_probe(request: HttpRequest) -> HttpResponse:
 urlpatterns = [path("boom", boom), path("closing-probe", closing_probe)]
 
 
-async def asgi_get(path: str) -> dict[str, str]:
-    """Not ``AsyncClient``: it bypasses the parent-task close in ``handle()``."""
+async def block_until_the_handler_cancels_the_disconnect_listener() -> None:
+    await asyncio.Event().wait()
 
+
+async def asgi_get_through_the_handler(path: str) -> dict[str, str]:
     scope: dict[str, Any] = {
         "type": "http",
         "asgi": {"version": "3.0"},
@@ -79,8 +81,7 @@ async def asgi_get(path: str) -> dict[str, str]:
         if not body_sent:
             body_sent = True
             return {"type": "http.request", "body": b"", "more_body": False}
-        # The disconnect listener waits here until the handler cancels it.
-        await asyncio.Event().wait()
+        await block_until_the_handler_cancels_the_disconnect_listener()
         raise AssertionError("unreachable")
 
     sent: list[Mapping[str, Any]] = []
@@ -95,8 +96,6 @@ async def asgi_get(path: str) -> dict[str, str]:
 
 
 def serve_wsgi(path: str) -> tuple[HttpResponseBase, dict[str, str]]:
-    # Not ``get_wsgi_application()``: that re-runs ``django.setup()``, whose logging
-    # ``dictConfig`` replaces the root handlers and takes caplog's with it.
     environ = RequestFactory(headers={"host": "localhost"}).get(path).environ
     headers: dict[str, str] = {}
 
@@ -115,9 +114,7 @@ def wsgi_get(path: str) -> dict[str, str]:
     return headers
 
 
-def wsgi_get_closed_elsewhere(path: str) -> dict[str, str]:
-    """The ASGI foreign-context close without Django's ASGI machinery in the way."""
-
+def wsgi_get_closed_in_a_foreign_context_like_asgi(path: str) -> dict[str, str]:
     headers: dict[str, str] = {}
 
     def serve() -> None:
@@ -135,8 +132,7 @@ def _healthz(client: Client, **extra: Any) -> HttpResponseBase:
 
 
 @pytest.fixture
-def probed(settings: Settings) -> None:
-    # Appended last so the probe runs innermost, inside the request-id binding.
+def probed_innermost(settings: Settings) -> None:
     settings.MIDDLEWARE = [
         *settings.MIDDLEWARE,
         "core.tests.probes.LoggingProbeMiddleware",
@@ -144,7 +140,7 @@ def probed(settings: Settings) -> None:
 
 
 @pytest.fixture
-def call(db: None, client: Client, probed: None) -> dict[str, Call]:
+def call(db: None, client: Client, probed_innermost: None) -> dict[str, Call]:
     client.force_login(UserFactory.create(username="operator", is_staff=True))
     return {
         "spa page": lambda **extra: client.get("/", **extra),
@@ -273,9 +269,14 @@ class TestResponseClose:
     @pytest.mark.parametrize(
         "get",
         [
-            pytest.param(lambda path: asyncio.run(asgi_get(path)), id="asgi"),
+            pytest.param(
+                lambda path: asyncio.run(asgi_get_through_the_handler(path)), id="asgi"
+            ),
             pytest.param(wsgi_get, id="wsgi"),
-            pytest.param(wsgi_get_closed_elsewhere, id="wsgi-closed-elsewhere"),
+            pytest.param(
+                wsgi_get_closed_in_a_foreign_context_like_asgi,
+                id="wsgi-closed-in-a-foreign-context",
+            ),
         ],
     )
     def test_the_close_line_carries_the_id(
@@ -298,7 +299,6 @@ class TestResponseClose:
     def test_the_line_after_a_wsgi_close_reads_dashes(
         self, caplog: pytest.LogCaptureFixture
     ) -> None:
-        # WSGI only: an ASGI request never binds the caller's context.
         with (
             caplog.at_level(logging.INFO, logger=PROBE_LOGGER),
             override_settings(ROOT_URLCONF=__name__),
@@ -309,11 +309,24 @@ class TestResponseClose:
         (record,) = self._records(caplog, PROBE_MESSAGE)
         assert (record.request_id, record.request_source) == ("-", "-")
 
+    def test_a_response_closing_inside_a_bound_block_keeps_that_blocks_binding(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        with (
+            caplog.at_level(logging.INFO, logger=PROBE_LOGGER),
+            bound("job-1", "worker"),
+        ):
+            HttpResponse("built by a job").close()
+            logging.getLogger(PROBE_LOGGER).info(PROBE_MESSAGE)
+
+        (record,) = self._records(caplog, PROBE_MESSAGE)
+        assert (record.request_id, record.request_source) == ("job-1", "worker")
+
 
 @pytest.mark.django_db
 class TestMiddlewarePlacement:
     @pytest.fixture
-    def unknown_host(self, probed: None) -> Callable[[], HttpResponseBase]:
+    def unknown_host(self, probed_innermost: None) -> Callable[[], HttpResponseBase]:
         return lambda: Client(headers={"host": UNKNOWN_HOST}).get("/")
 
     def test_a_response_produced_by_middleware_carries_the_header(

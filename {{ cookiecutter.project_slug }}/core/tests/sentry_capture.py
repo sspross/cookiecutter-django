@@ -4,9 +4,7 @@ import sentry_sdk
 from sentry_sdk.envelope import Envelope
 from sentry_sdk.transport import Transport
 
-# Parses, but the host never resolves: the backstop for anything that initializes
-# the real SDK without one of our transports.
-TEST_DSN = "https://public@sentry.invalid/1"
+UNRESOLVABLE_TEST_DSN = "https://public@sentry.invalid/1"
 
 type Payload = dict[str, Any]
 

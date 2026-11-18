@@ -2,8 +2,8 @@
 
 Review rules that no linter enforces. The mechanical ones live in
 `.pre-commit-config.yaml`, `pyproject.toml` (ruff), `biome.json`,
-`tach.toml` and `core/tests/test_conventions.py`. The conventions in
-`CLAUDE.md` apply too.
+`tach.toml`, `ast-grep/rules/` and `core/tests/test_conventions.py`. The
+conventions in `CLAUDE.md` apply too.
 
 ## API schemas
 
@@ -16,10 +16,10 @@ and ninja builds the `/api/docs` page from them (see `docs/ARCHITECTURE.md`
   (`status: Invoice.Status`). The values then have one source, and the
   generated TS is a union of the values. Use `Literal[...]` only where the API
   exposes fewer values than the model.
-- **Document fields with `Field(description=...)`, not `#` comments.** Only the
-  `Field` description reaches OpenAPI, so it flows into both the generated TS
-  (`@description` JSDoc on hover) and the `/api/docs` page. A docstring on the
-  `Schema` or endpoint propagates the same way.
+- **Document fields with `Field(description=...)`.** The description reaches
+  OpenAPI, so it flows into both the generated TS (`@description` JSDoc on
+  hover) and the `/api/docs` page. A docstring on the `Schema` or endpoint
+  propagates the same way.
 - **Optional artifact:** a Pydantic field with a default (`x: T | None = None`)
   renders as `x?:` *optional* in the generated TS even though the server always
   serializes it. Either coalesce at the use site or accept the widened type.

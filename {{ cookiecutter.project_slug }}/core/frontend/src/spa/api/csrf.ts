@@ -30,7 +30,6 @@ export interface CsrfFetchOptions extends RequestInit {
   cookieJar?: string;
 }
 
-// `openapi-fetch` calls a custom fetch with a `Request` and an empty `init`.
 function methodOf(input: RequestInfo | URL, init: CsrfFetchOptions): string {
   if (init.method) return init.method.toUpperCase();
   if (typeof Request !== "undefined" && input instanceof Request) {

@@ -5,8 +5,7 @@ import { cn } from "@/lib/utils";
 
 export function ThemeToggle() {
   const [mode, pick] = useColorMode();
-  // The shell renders this twice; a fixed radio name would merge both groups.
-  const groupName = useId();
+  const radioGroupNameUniquePerInstance = useId();
 
   const options: { value: ColorMode; Icon: typeof Sun; label: string }[] = [
     { value: "system", Icon: Monitor, label: "System" },
@@ -27,7 +26,7 @@ export function ThemeToggle() {
         >
           <input
             type="radio"
-            name={groupName}
+            name={radioGroupNameUniquePerInstance}
             value={value}
             checked={mode === value}
             onChange={() => pick(value)}

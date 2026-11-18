@@ -1,5 +1,3 @@
-"""``django_auth`` only, so a leaked bearer token cannot mint a sibling (ADR-0002)."""
-
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

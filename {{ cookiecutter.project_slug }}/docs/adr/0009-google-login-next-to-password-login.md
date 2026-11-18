@@ -22,7 +22,12 @@ security-critical code of our own than an adapter hook. The two views of the red
 (`/accounts/google/login/` and its callback) are mounted when
 `GOOGLE_OAUTH_CLIENT_ID` is set, and not at all otherwise. allauth's own login,
 signup, password reset and email pages are not mounted. Every outcome that is
-not a login redirects to the login page with a message. The one allauth template
+not a login redirects to the login page with a message. That includes an
+inactive user, whom allauth would answer with a page of its own. allauth never
+sends mail either: the allowlist rejects unverified emails, so
+`SOCIALACCOUNT_EMAIL_VERIFICATION` is `none`. The account adapter drops
+allauth's own messages, because the SPA renders none and one would surface on
+the next login page. The one allauth template
 in reach is the confirmation page a direct GET on `/accounts/google/login/`
 renders; the login form POSTs past it. The provider is configured in settings, not as a `SocialApp`
 row, so there is no `django.contrib.sites` setup.

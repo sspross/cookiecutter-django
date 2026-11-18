@@ -1,0 +1,90 @@
+id: no-comments-python
+language: python
+severity: error
+message: Comments are banned. Put the reason in a name, a test, or an ADR.
+rule:
+  kind: comment
+  not:
+    regex: '^#(!|\s*(noqa|type:\s*ignore)\b)'
+ignores: ["**/migrations/**"]
+---
+id: no-docstrings-python
+language: python
+severity: error
+message: >-
+  Docstrings are banned. Put the reason in a name, a test, or an ADR. Only a
+  ninja Schema subclass and a ninja endpoint function (@router.<method>,
+  @api.<method>) keep theirs, because it reaches the OpenAPI schema.
+rule:
+  any:
+    - kind: string
+    - kind: concatenated_string
+  inside:
+    kind: expression_statement
+    nthChild:
+      position: 1
+      ofRule:
+        not:
+          kind: comment
+    inside:
+      any:
+        - kind: module
+        - kind: block
+          inside:
+            any:
+              - kind: class_definition
+                not:
+                  has:
+                    field: superclasses
+                    has:
+                      regex: 'Schema$'
+              - kind: function_definition
+                not:
+                  inside:
+                    kind: decorated_definition
+                    has:
+                      kind: decorator
+                      regex: '^@(router|api)\.(get|post|put|patch|delete|api_operation)\('
+ignores: ["**/migrations/**"]
+---
+id: no-comments-ts
+language: typescript
+severity: error
+message: Comments are banned. Put the reason in a name, a test, or an ADR.
+rule:
+  kind: comment
+  not:
+    regex: '^(//|/\*)\s*biome-ignore\b'
+ignores: ["**/schema.d.ts", "**/components/ui/**"]
+---
+id: no-comments-tsx
+language: tsx
+severity: error
+message: Comments are banned. Put the reason in a name, a test, or an ADR.
+rule:
+  kind: comment
+  not:
+    regex: '^(//|/\*)\s*biome-ignore\b'
+ignores: ["**/schema.d.ts", "**/components/ui/**"]
+---
+id: no-biome-ignore-ts
+language: typescript
+severity: error
+message: >-
+  biome-ignore is allowed only under src/spa/hooks/. Fix the cause or move the
+  code into a hook under @/hooks.
+rule:
+  kind: comment
+  regex: '^(//|/\*)\s*biome-ignore\b'
+ignores: ["**/schema.d.ts", "**/components/ui/**", "**/src/spa/hooks/**"]
+---
+id: no-biome-ignore-tsx
+language: tsx
+severity: error
+message: >-
+  biome-ignore is allowed only under src/spa/hooks/. Fix the cause or move the
+  code into a hook under @/hooks.
+rule:
+  kind: comment
+  regex: '^(//|/\*)\s*biome-ignore\b'
+ignores: ["**/schema.d.ts", "**/components/ui/**", "**/src/spa/hooks/**"]
