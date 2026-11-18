@@ -77,9 +77,14 @@
                   "react": {
                     "importNames": ["useEffect", "useLayoutEffect"],
                     "message": "Effects are banned in product code. Derive state during render, handle it in the event handler, or use a hook from @/hooks."
-                  },
-                  "@/api/client": "Call the API through a hook in @/queries. Types live in @/api/types."
-                }
+                  }
+                },
+                "patterns": [
+                  {
+                    "group": ["@/api/client", "**/api/client"],
+                    "message": "Call the API through a hook in @/queries. Types live in @/api/types."
+                  }
+                ]
               }
             }
           }
@@ -98,12 +103,15 @@
                   "react": {
                     "importNames": ["useEffect", "useLayoutEffect"],
                     "message": "Effects are banned in product code. Derive state during render, handle it in the event handler, or use a hook from @/hooks."
-                  },
-                  "@/api/client": "Call the API through a hook in @/queries. Types live in @/api/types."
+                  }
                 },
                 "patterns": [
                   {
-                    "group": ["@/routes/**"],
+                    "group": ["@/api/client", "**/api/client"],
+                    "message": "Call the API through a hook in @/queries. Types live in @/api/types."
+                  },
+                  {
+                    "group": ["@/routes/**", "**/routes/**"],
                     "message": "Only App.tsx imports routes. Direction: routes -> components -> queries -> api."
                   }
                 ]
@@ -129,7 +137,7 @@
                 },
                 "patterns": [
                   {
-                    "group": ["@/routes/**"],
+                    "group": ["@/routes/**", "**/routes/**"],
                     "message": "Only App.tsx imports routes. Direction: routes -> components -> queries -> api."
                   }
                 ]
@@ -147,12 +155,13 @@
             "noRestrictedImports": {
               "level": "error",
               "options": {
-                "paths": {
-                  "@/api/client": "Call the API through a hook in @/queries. Types live in @/api/types."
-                },
                 "patterns": [
                   {
-                    "group": ["@/routes/**"],
+                    "group": ["@/api/client", "**/api/client"],
+                    "message": "Call the API through a hook in @/queries. Types live in @/api/types."
+                  },
+                  {
+                    "group": ["@/routes/**", "**/routes/**"],
                     "message": "Only App.tsx imports routes. Direction: routes -> components -> queries -> api."
                   }
                 ]
