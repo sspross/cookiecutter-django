@@ -40,6 +40,7 @@ dev = [
 	"responses",
 	"mypy",
 	"django-stubs[compatible-mypy]",
+	"ast-grep-cli>=0.51.3",
 ]
 
 [tool.ruff]

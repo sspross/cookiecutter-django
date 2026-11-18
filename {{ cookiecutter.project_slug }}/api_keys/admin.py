@@ -40,7 +40,6 @@ class UserApiKeyAdmin(admin.ModelAdmin[UserApiKey]):
         if change:
             super().save_model(request, obj, form, change)
             return
-        # services.mint owns the prefix/hash policy, so it creates the row, not super().
         result = api_keys_services.mint(user=obj.user, name=obj.name)
         obj.pk = result.api_key.pk
         request._minted_raw_token = result.raw_token  # type: ignore[attr-defined]

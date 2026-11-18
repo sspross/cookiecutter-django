@@ -1,6 +1,6 @@
 # {{ cookiecutter.project_slug }}
 
-See `GLOSSARY.md` for domain language, `docs/ARCHITECTURE.md` for the code map and the HTML and API surfaces, `CODING_STANDARDS.md` for review rules, `docs/adr/` for the architectural decisions in effect, and `docs/OPERATIONS.md` for the production runbook.
+See `GLOSSARY.md` for domain language, `docs/ARCHITECTURE.md` for the code map, the HTML and API surfaces, the request context and the test harness, `CODING_STANDARDS.md` for review rules, `docs/adr/` for the architectural decisions in effect, and `docs/OPERATIONS.md` for the production runbook.
 
 ## Guardrails
 
@@ -18,7 +18,7 @@ To let the user try your work, run `make up` and report the printed URL. It buil
 ## Conventions
 
 - **Python tooling is `uv`**: `uv add`, `uv run`, etc. Never `pip`.
-- **Outside a `TYPE_CHECKING` guard, defer an import only for a genuine circular cycle.** Add `# noqa: PLC0415` and a comment naming the cycle, e.g. `# avoid circular: jobs → services → models → jobs`.
+- **Outside a `TYPE_CHECKING` guard, defer an import only for a genuine circular cycle.** Add `# noqa: PLC0415` with the cycle named on the same line, e.g. `# noqa: PLC0415 circular: jobs → services → models → jobs`.
 - **A `TYPE_CHECKING` import may cross a `tach` boundary for type hints, but must follow the runtime arrow.** See ADR-0005.
 - **Put units in names**: `TIMEOUT_SECONDS`, `MAX_SIZE_MB`, `DELAY_MS`.
 - **While iterating run only the tests you touched; run the full suite once at the end.**

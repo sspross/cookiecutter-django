@@ -16,11 +16,9 @@ print(json.dumps({name: getattr(settings, name) for name in sys.argv[1:]}))
 """
 
 
-def production_settings(
+def freshly_imported_production_settings(
     names: Iterable[str], unset: Iterable[str] = (), **overrides: str
 ) -> dict[str, object]:
-    """Imports the real settings in a fresh interpreter, because they are read from
-    the environment once, at import time."""
     cleared = set(unset)
     environment = {
         key: value for key, value in os.environ.items() if key not in cleared

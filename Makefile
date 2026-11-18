@@ -93,7 +93,10 @@ test:
 	$(call run_canary,npm --prefix core/frontend run lint,Only App.tsx imports routes,core/frontend/src/spa/components/copy-button.tsx,import { DashboardRoute } from "@/routes/index";\nDashboardRoute;)
 	$(call run_canary,npm --prefix core/frontend run lint,Call the API through a hook in @/queries,core/frontend/src/spa/routes/index.tsx,import { apiClient } from "@/api/client";\napiClient;)
 	$(call run_canary,npm --prefix core/frontend run lint,Call the API through a hook in @/queries,core/frontend/src/spa/components/copy-button.tsx,import { apiClient } from "@/api/client";\napiClient;)
-	$(call run_canary,uv run pre-commit run no-biome-ignore --all-files,move the code into a hook under @/hooks,core/frontend/src/spa/App.tsx,// biome-ignore lint: canary)
+	$(call run_canary,uv run ast-grep scan,no-comments-python.*Comments are banned,core/urls.py,# canary)
+	$(call run_canary,uv run ast-grep scan,no-docstrings-python.*Docstrings are banned,core/urls.py,def canary() -> None:\n    """canary""")
+	$(call run_canary,uv run ast-grep scan,no-comments-tsx.*Comments are banned,core/frontend/src/spa/App.tsx,// canary)
+	$(call run_canary,uv run ast-grep scan,no-biome-ignore-tsx.*move the code into a hook under @/hooks,core/frontend/src/spa/App.tsx,// biome-ignore lint: canary)
 	$(call run_step,make lint,All checks passed)
 	@echo ""
 	@rm -rf "$(TMPDIR)"

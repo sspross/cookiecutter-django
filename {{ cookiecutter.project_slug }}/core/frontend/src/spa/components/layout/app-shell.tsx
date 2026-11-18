@@ -18,7 +18,6 @@ const NAV_ITEMS = [
 ];
 
 function LogoutForm({ className }: { className?: string }) {
-  // Django's LogoutView only accepts POST, so an <a href> would 405.
   const csrfToken = readCsrfCookie() ?? "";
   return (
     <form method="post" action="/accounts/logout/" className={className}>

@@ -16,7 +16,11 @@ repos:
       - id: check-merge-conflict
       - id: check-toml
       - id: check-yaml
-        exclude: ^compose\.local\.yaml$
+        exclude: ^(compose\.local\.yaml|ast-grep/rules/.*)$
+      - id: check-yaml
+        name: check yaml (several documents per file, for the ast-grep rules)
+        files: ^ast-grep/rules/
+        args: [--allow-multiple-documents]
       - id: check-yaml
         name: check yaml (syntax only, for compose's !override and !reset tags)
         files: ^compose\.local\.yaml$
@@ -66,6 +70,12 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: ast-grep
+        name: ast-grep
+        entry: uv run ast-grep scan
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: mypy
         name: mypy
         entry: uv run mypy .
@@ -101,12 +111,6 @@ repos:
         language: system
         files: ^core/frontend/(src/|vite\.config\.mjs|biome\.json|package\.json|tsconfig).*
         pass_filenames: false
-      - id: no-biome-ignore
-        name: no biome-ignore outside hooks (fix the cause or move the code into a hook under @/hooks)
-        entry: biome-ignore
-        language: pygrep
-        files: ^core/frontend/src/
-        exclude: ^core/frontend/src/spa/(hooks|components/ui)/
       - id: tsc-typecheck
         name: tsc typecheck (core/frontend)
         entry: bash -c 'cd core/frontend && npx --no-install tsc --noEmit'

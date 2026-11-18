@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 import redis
 
-from core.tests.fresh_settings import production_settings
+from core.tests.fresh_settings import freshly_imported_production_settings
 
 HEALTHZ_URL = "/healthz"
 
@@ -31,7 +31,7 @@ class TestHealthz:
         assert response.cookies == {}
 
     def test_is_not_redirected_to_https(self, client, settings):
-        exempt = production_settings(["SECURE_REDIRECT_EXEMPT"])
+        exempt = freshly_imported_production_settings(["SECURE_REDIRECT_EXEMPT"])
         settings.SECURE_SSL_REDIRECT = True
         settings.SECURE_REDIRECT_EXEMPT = exempt["SECURE_REDIRECT_EXEMPT"]
 

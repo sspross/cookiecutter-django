@@ -3,7 +3,6 @@ interface LogoProps {
   className?: string;
 }
 
-// Mirror of core/templates/_logo.html. Update both together.
 export function Logo({ label = "{{ cookiecutter.project_name }}", className }: LogoProps) {
   const initial = label.charAt(0).toUpperCase();
   return (

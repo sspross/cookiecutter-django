@@ -56,9 +56,12 @@ TLS in front of it; `compose.yaml` publishes it on `127.0.0.1:8000` and
 expects the reverse proxy to, `compose.prod.yaml` puts `web` on the `ingress`
 network as `{{ cookiecutter.project_slug }}-web` for a reverse proxy on that
 network. Either way the proxy forwards
-`X-Forwarded-Proto`, which `SECURE_PROXY_SSL_HEADER` trusts. With `DEBUG=false`
-the app sets `SECURE_SSL_REDIRECT`, secure session and CSRF cookies, and one
-year of HSTS.
+`X-Forwarded-Proto`, which `SECURE_PROXY_SSL_HEADER` trusts. That is only safe
+while the proxy strips an `X-Forwarded-Proto` sent by the client. With
+`DEBUG=false` the app sets `SECURE_SSL_REDIRECT`, secure session and CSRF
+cookies, and one year of HSTS. HSTS covers this host only, with no subdomains
+and no preload. That scope is deliberate, so the two system checks that flag
+it (`security.W005`, `security.W021`) are silenced.
 
 ## Environment variables
 
@@ -380,13 +383,15 @@ lowering one logger moves stderr and Sentry Logs together. The levels:
   probes (`Not Found: /.env`). A 500 is unaffected: its `ERROR` line reaches both
   sinks, and the Django integration reports it as an error event.
 - Every logger entry is level-only, with no handler of its own, so each record
-  is printed exactly once, by the root console handler.
+  is printed exactly once, by the root console handler. A level-only entry
+  still clears the handlers Django's default logging config put on that logger.
 - The console format is
   `%(asctime)s %(levelname)s [%(request_id)s %(request_source)s] %(name)s %(message)s`;
   the bracket carries the request id and request source of the line, see
   "Correlating a response with its logs and its Sentry items" below.
 - Sentry's own log threshold is `NOTSET` rather than its `INFO` default, so the
-  SDK adds no second policy on top of these levels.
+  SDK adds no second policy on top of these levels. `LoggingIntegration` is
+  listed in `sentry_options` because its `capture_sentry_logs` defaults to off.
 - Raising verbosity for one app means editing `LOGGING` and deploying. There is
   no env-var log-level knob.
 
@@ -494,7 +499,8 @@ Inside the block every line carries the job id and `worker` in the bracket, and
 every Sentry item is stamped with the same pair; so is the error event RQ
 reports after the block has raised, which means an issue, the job's log lines
 and its `/django-rq/` entry share one handle. After the block the lines read
-`-` again.
+`-` again. `TestJobCorrelation` in `core/tests/test_observability.py` runs this
+pattern.
 
 ## Database backups and restore
 

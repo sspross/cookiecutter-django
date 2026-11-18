@@ -1,10 +1,12 @@
-from core.tests.fresh_settings import production_settings
+from core.tests.fresh_settings import freshly_imported_production_settings
 
 COOKIE_NAMES = ["SESSION_COOKIE_NAME", "CSRF_COOKIE_NAME"]
 
 
 def cookie_names(**overrides: str) -> dict[str, object]:
-    return production_settings(COOKIE_NAMES, unset=COOKIE_NAMES, **overrides)
+    return freshly_imported_production_settings(
+        COOKIE_NAMES, unset=COOKIE_NAMES, **overrides
+    )
 
 
 def test_cookie_names_default_to_djangos() -> None:

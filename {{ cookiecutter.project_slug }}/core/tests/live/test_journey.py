@@ -1,42 +1,65 @@
 import re
 
-from playwright.sync_api import Page, expect
+from playwright.sync_api import Locator, Page, expect
 
 from api_keys import services as api_keys
 from users.tests.factories import UserFactory
 
 
 def test_full_self_service_lifecycle(page: Page, live_server, settings) -> None:
-    # A local stack suffixes both names; only a browser proves the SPA still writes.
-    settings.SESSION_COOKIE_NAME = "sessionid_stack"
-    settings.CSRF_COOKIE_NAME = "csrftoken_stack"
+    _suffix_the_cookie_names_like_a_local_stack(settings)
     UserFactory.create(username="alice")
 
-    # Log in.
-    page.goto(f"{live_server.url}/accounts/login/")
+    sidebar = _log_in(page, live_server.url)
+    _see_the_server_rendered_constant_next_to_the_api_fetched_user(sidebar, settings)
+    _open_api_access_and_see_the_empty_state(page)
+    _mint_a_key_from_the_empty_state(page)
+    _see_the_token_in_a_modal_that_escape_does_not_close(page)
+    _copy_the_token_and_see_the_button_confirm_then_reset(page)
+    _acknowledge_the_token(page)
+    _see_the_new_key_listed_as_active(page)
+    _revoke_the_key_and_confirm(page)
+    _see_the_key_still_listed_as_revoked_without_a_revoke_action(page)
+    _see_the_color_mode_follow_the_system_setting(page)
+    _see_the_mobile_nav_close_after_navigating(page, live_server.url)
+    _log_out(page, sidebar)
+
+
+def _suffix_the_cookie_names_like_a_local_stack(settings) -> None:
+    settings.SESSION_COOKIE_NAME = "sessionid_stack"
+    settings.CSRF_COOKIE_NAME = "csrftoken_stack"
+
+
+def _log_in(page: Page, base_url: str) -> Locator:
+    page.goto(f"{base_url}/accounts/login/")
     page.fill('input[name="username"]', "alice")
     page.fill('input[name="password"]', "pw-12345!")
     page.click('[data-testid="login-form"] button[type="submit"]')
     sidebar = page.locator('[data-testid="sidebar"]')
     expect(sidebar).to_be_visible()
+    return sidebar
 
-    # ADR-0006 boot seam: only a browser proves the SPA renders both sources together.
+
+def _see_the_server_rendered_constant_next_to_the_api_fetched_user(
+    sidebar: Locator, settings
+) -> None:
     expect(sidebar).to_contain_text(settings.PROJECT_NAME)
     expect(sidebar).to_contain_text("Signed in as alice")
 
-    # Click the API sidebar nav item.
+
+def _open_api_access_and_see_the_empty_state(page: Page) -> None:
     page.click('[data-testid="sidebar"] >> text=API')
     page.wait_for_url("**/api-access")
-
-    # Empty state with CTA visible.
     expect(page.locator('[data-testid="api-keys-empty"]')).to_be_visible()
 
-    # Mint via the empty-state CTA.
+
+def _mint_a_key_from_the_empty_state(page: Page) -> None:
     page.click('[data-testid="empty-state-mint"]')
     page.fill('[data-testid="api-key-name"]', "laptop-cli")
     page.click('[data-testid="submit-mint"]')
 
-    # Reveal modal: token visible + ack required.
+
+def _see_the_token_in_a_modal_that_escape_does_not_close(page: Page) -> None:
     expect(page.locator('[data-testid="reveal-modal"]')).to_be_visible()
     expect(page.locator('[data-testid="raw-token"]')).to_contain_text(
         api_keys.TOKEN_PREFIX
@@ -44,49 +67,57 @@ def test_full_self_service_lifecycle(page: Page, live_server, settings) -> None:
     page.keyboard.press("Escape")
     expect(page.locator('[data-testid="reveal-modal"]')).to_be_visible()
 
-    # The copy button confirms, then goes back to its label.
+
+def _copy_the_token_and_see_the_button_confirm_then_reset(page: Page) -> None:
     page.context.grant_permissions(["clipboard-write"])
     copy_token = page.locator('[data-testid="copy-token"]')
     copy_token.click()
     expect(copy_token).to_have_text("Copied!")
     expect(copy_token).to_have_text("Copy to clipboard")
 
-    # Acknowledge to dismiss.
+
+def _acknowledge_the_token(page: Page) -> None:
     page.click('[data-testid="ack-token"]')
     page.wait_for_selector('[data-testid="reveal-modal"]', state="detached")
 
-    # The new key shows up in the list, marked Active.
+
+def _see_the_new_key_listed_as_active(page: Page) -> None:
     expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text("laptop-cli")
     expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text("Active")
 
-    # Click revoke; confirm in the dialog.
+
+def _revoke_the_key_and_confirm(page: Page) -> None:
     page.click('[data-testid^="revoke-"]')
     expect(page.locator('[data-testid="revoke-modal"]')).to_be_visible()
     page.click('[data-testid="confirm-revoke"]')
     page.wait_for_selector('[data-testid="revoke-modal"]', state="detached")
 
-    # Row stays visible with a Revoked badge; revoke action is gone.
+
+def _see_the_key_still_listed_as_revoked_without_a_revoke_action(page: Page) -> None:
     expect(page.locator('[data-testid^="api-key-revoked-"]')).to_be_visible()
     expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text("laptop-cli")
     expect(page.locator('[data-testid="api-keys-table"]')).to_contain_text("Revoked")
     expect(page.locator('[data-testid^="revoke-"]')).to_have_count(0)
 
-    # On "system" the color mode follows the system setting.
+
+def _see_the_color_mode_follow_the_system_setting(page: Page) -> None:
     dark = re.compile(r"\bdark\b")
     page.emulate_media(color_scheme="dark")
     expect(page.locator("html")).to_have_class(dark)
     page.emulate_media(color_scheme="light")
     expect(page.locator("html")).not_to_have_class(dark)
 
-    # The mobile nav closes after navigating.
+
+def _see_the_mobile_nav_close_after_navigating(page: Page, base_url: str) -> None:
     page.set_viewport_size({"width": 390, "height": 800})
     page.get_by_role("button", name="Open menu").click()
     mobile_nav = page.locator("#mobile-nav")
     mobile_nav.get_by_role("link", name="Dashboard").click()
-    page.wait_for_url(f"{live_server.url}/")
+    page.wait_for_url(f"{base_url}/")
     expect(mobile_nav).to_have_count(0)
     page.set_viewport_size({"width": 1280, "height": 720})
 
-    # Log out.
+
+def _log_out(page: Page, sidebar: Locator) -> None:
     sidebar.get_by_role("button", name="Log out").click()
     page.wait_for_url("**/accounts/login/")

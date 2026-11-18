@@ -64,7 +64,6 @@ def _promote(user: User, *, save: bool) -> None:
 
 
 def _trust_email_set_outside_google(user: User, email: str) -> None:
-    """Keeps allauth from wiping the linked user's password (see ADR-0009)."""
     EmailAddress.objects.update_or_create(
         user=user, email=email, defaults={"verified": True}
     )
@@ -77,7 +76,7 @@ def _back_to_login(request: HttpRequest, message: str) -> HttpResponseRedirect:
 
 class SsoAccountAdapter(DefaultAccountAdapter):
     def add_message(self, *args: Any, **kwargs: Any) -> None:
-        """No-op: the SPA renders no messages, so one would surface at next login."""
+        return None
 
 
 class SsoSocialAccountAdapter(DefaultSocialAccountAdapter):
@@ -85,7 +84,6 @@ class SsoSocialAccountAdapter(DefaultSocialAccountAdapter):
         identity = GoogleIdentity.from_claims(sociallogin.account.extra_data)
         reason = rejection_reason(identity)
         user = sociallogin.user
-        # allauth answers an inactive user with its own page, not mounted here.
         if reason is None and sociallogin.is_existing and not user.is_active:
             reason = "user is inactive"
         if reason is not None:

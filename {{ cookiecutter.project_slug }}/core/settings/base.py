@@ -33,12 +33,9 @@ CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 
 PROJECT_NAME = "{{ cookiecutter.project_name }}"
 
-# Browsers share localhost cookies across ports, so each local stack sets a suffix.
 SESSION_COOKIE_NAME = env.str("SESSION_COOKIE_NAME", default="sessionid")
 CSRF_COOKIE_NAME = env.str("CSRF_COOKIE_NAME", default="csrftoken")
 
-# Only safe while the proxy in front of the app strips a client-supplied
-# X-Forwarded-Proto.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 INSTALLED_APPS = [
@@ -62,7 +59,6 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
-    # First, so a response another middleware produces is correlated too.
     "core.request_context.RequestContextMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -129,7 +125,6 @@ ACCOUNT_ADAPTER = "users.sso.SsoAccountAdapter"
 SOCIALACCOUNT_ADAPTER = "users.sso.SsoSocialAccountAdapter"
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
-# The allowlist rejects unverified emails, so allauth never has to send mail.
 SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
 SSO_ALLOWED_DOMAINS = env("SSO_ALLOWED_DOMAINS")
 SSO_ALLOWED_EMAILS = env("SSO_ALLOWED_EMAILS")
@@ -175,7 +170,6 @@ STORAGES = {
 MEDIA_ROOT = env.str("MEDIA_ROOT", default=str(BASE_DIR / "media"))
 MEDIA_URL = env.str("MEDIA_URL", default="media/")
 
-# Keep `static_url_prefix` in sync with `base` in core/frontend/vite.config.mjs.
 DJANGO_VITE: dict[str, dict[str, Any]] = {
     "default": {
         "static_url_prefix": "dist/js",
@@ -190,7 +184,6 @@ RQ_QUEUES = {
     },
 }
 
-# Shares the RQ database, so cache.clear() drops queued jobs. See docs/OPERATIONS.md.
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
@@ -199,7 +192,6 @@ CACHES = {
     },
 }
 
-# Fails safe: only the literal "false" turns enforcement off, a typo keeps it on.
 HTTPS_ENFORCED = env.str("HTTPS_ENFORCED", default="true").lower() != "false"
 
 if not DEBUG and HTTPS_ENFORCED:
@@ -211,7 +203,6 @@ if not DEBUG and HTTPS_ENFORCED:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = False
     SECURE_HSTS_PRELOAD = False
 
-# W005 and W021 flag the two HSTS scope settings above, which are deliberate.
 SILENCED_SYSTEM_CHECKS = ["security.W005", "security.W021"]
 
 LOGGING: dict[str, Any] = {
@@ -241,8 +232,6 @@ LOGGING: dict[str, Any] = {
         "handlers": ["console"],
         "level": "WARNING",
     },
-    # A level-only entry still clears the handlers Django's logging config put on
-    # that logger, leaving root as the one place a record is printed.
     "loggers": {
         "core": {"level": "INFO"},
         "api_keys": {"level": "INFO"},
