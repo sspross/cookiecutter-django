@@ -28,7 +28,28 @@
         "noExplicitAny": "error"
       },
       "style": {
-        "noNonNullAssertion": "warn"
+        "noNonNullAssertion": "warn",
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "react": {
+                "importNames": ["useEffect", "useLayoutEffect"],
+                "message": "Effects are banned in product code. Derive state during render, handle it in the event handler, or use a hook from @/hooks."
+              }
+            }
+          }
+        },
+        "noRestrictedGlobals": {
+          "level": "error",
+          "options": {
+            "deniedGlobals": {
+              "setTimeout": "Timers are banned in product code. Use a hook from @/hooks.",
+              "setInterval": "Timers are banned in product code. Use a hook from @/hooks.",
+              "requestAnimationFrame": "Timers are banned in product code. Use a hook from @/hooks."
+            }
+          }
+        }
       },
       "a11y": {
         "useSemanticElements": "warn"
@@ -44,6 +65,17 @@
     }
   },
   "overrides": [
+    {
+      "includes": ["src/spa/hooks/**/*"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": "off",
+            "noRestrictedGlobals": "off"
+          }
+        }
+      }
+    },
     {
       "includes": ["src/spa/components/ui/**/*"],
       "linter": {
