@@ -1,74 +1,31 @@
-# 0009 - Google login next to password login, allowlist in env vars
+# Google login next to password login, allowlist in env vars
 
-## Context
+"Sign in with Google" sits next to the username and password form, on Django's
+own `LoginView`. Most people who get access already have a Google account, and
+creating each account in the admin with a password does not scale. The
+password form stays because some people have no Google account, and it keeps a
+Google outage from being an outage of the app.
 
-Most people who get access to a project already have a Google account, usually
-a Google Workspace account on a company domain, sometimes a private one.
-Creating each account in the admin and handing out a password does not scale.
-Some people still have no Google account, so a password account has to remain
-possible.
+Google login is django-allauth with its Google provider, and only the two
+views of the redirect flow are mounted. social-auth-app-django's domain
+whitelist checks the email suffix and not Google's `hd` claim, and a
+hand-written OIDC flow is more security-critical code of our own than an
+adapter hook.
 
-## Decision
+The SSO allowlist lives in env vars: `SSO_ALLOWED_DOMAINS` matches the `hd`
+claim, never the email suffix, because a private Google account can carry a
+verified `name@company.com` address; `SSO_ALLOWED_EMAILS` matches single
+verified emails. A database allowlist would need its own UI and migrations for
+a list that changes rarely. Changing the list is a config change and a
+restart, and it blocks the next login, not an open session.
 
-**"Sign in with Google" sits next to the username and password form.** Django's
-own `LoginView` and `LogoutView` stay the login and logout views, and an
-account created in the admin with a password logs in with it. The password form
-also keeps a Google outage from being an outage of the app.
+Superusers come from a third, independent list, `SSO_SUPERUSER_EMAILS`. It
+never allows a login by itself, and a login never demotes, so taking rights
+away stays the admin's job.
 
-**Google login is django-allauth with its Google provider, and only that part
-of allauth is mounted.** social-auth-app-django's built-in domain whitelist
-checks only the email suffix, not `hd`, and a hand-written OIDC flow is more
-security-critical code of our own than an adapter hook. The two views of the redirect flow
-(`/accounts/google/login/` and its callback) are mounted when
-`GOOGLE_OAUTH_CLIENT_ID` is set, and not at all otherwise. allauth's own login,
-signup, password reset and email pages are not mounted. Every outcome that is
-not a login redirects to the login page with a message. That includes an
-inactive user, whom allauth would answer with a page of its own. allauth never
-sends mail either: the allowlist rejects unverified emails, so
-`SOCIALACCOUNT_EMAIL_VERIFICATION` is `none`. The account adapter drops
-allauth's own messages, because the SPA renders none and one would surface on
-the next login page. The one allauth template
-in reach is the confirmation page a direct GET on `/accounts/google/login/`
-renders; the login form POSTs past it. The provider is configured in settings, not as a `SocialApp`
-row, so there is no `django.contrib.sites` setup.
-
-**The SSO allowlist lives in env vars.** `SSO_ALLOWED_DOMAINS` matches Google's
-`hd` claim, never the email suffix: a private Google account can carry a
-verified `name@company.com` address. `SSO_ALLOWED_EMAILS` matches single
-verified emails. The allowlist gates Google login only; the admin stays the
-gate for password accounts. A database allowlist would need its own UI and
-migrations for a list that changes rarely.
-
-**Superusers come from a third, independent list,** `SSO_SUPERUSER_EMAILS`.
-It never allows a login by itself, and a login never demotes, so taking
-rights away stays the admin's job. Both email lists default to the author
-email, so a fresh project lets the author in as superuser with no config.
-
-**A Google login links to an existing user with the same email** instead of
-creating a second one. This is safe because Google verifies the email and an
+A Google login links to an existing user with the same email instead of
+creating a second one. That is safe because Google verified the email and an
 unverified one is rejected first.
 
-**A user created by Google login gets its full email as username.** The
-email is unique, so `anna@company.com` and `anna@gmail.com` never clash.
-
-## Consequences
-
-- Production needs no `createsuperuser`: the author's first Google login
-  creates the first superuser. `createsuperuser` stays the fallback without
-  Google credentials.
-- The template ships no seed fixture and no default password on a server.
-  Only the local `make up` keeps an `admin` / `admin` superuser, and
-  `release.sh` never creates it.
-- Removing someone from the allowlist blocks their next login, not their open
-  session. Deactivating the user in the admin ends both.
-- A Google login that links to an existing user keeps its password. allauth
-  would make that password unusable, because nobody verified the address;
-  that guards against an attacker who signed up with a victim's email and set
-  the password. Here users only come from the admin, `createsuperuser` or
-  Google login, so the adapter marks the linked email as verified first
-  (allauth's `EmailAddress`), and such a user can use both logins.
-- `User.email` is stored lowercased on every save. allauth links by exact
-  match on the lowercased Google email, and Django's `normalize_email`
-  lowercases only the domain, so a user saved as `Guest@gmail.com` would get
-  a second user.
-- Changing the allowlist is a config change and a restart, not a data change.
+How it is wired: `docs/ARCHITECTURE.md` "Google login". The rule in
+production: `docs/OPERATIONS.md` "SSO allowlist".

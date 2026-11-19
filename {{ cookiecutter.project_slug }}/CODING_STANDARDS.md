@@ -25,6 +25,17 @@ and ninja builds the `/api/docs` page from them (see `docs/ARCHITECTURE.md`
   serializes it. Either coalesce at the use site or accept the widened type.
   Keep the default: dropping it to "fix" the type changes the API contract.
 
+## Boot data
+
+What the SPA needs at boot has two channels and no third:
+
+- **A build-time constant is server-rendered** as a `data-*` attribute on the
+  `#app` mount node. No inline `<script>`, no `window` global, no fallback
+  literal in TS.
+- **Per-user or dynamic data is a field on `MeOut`**, fetched from `/api/me`.
+  It stays inside the OpenAPI contract, so a field added in Python and read in
+  TS is typed end to end. An untyped blob drifts with nothing to catch it.
+
 ## Naming
 
 - **The soft-delete name carries the visibility.** `revoked_at` /

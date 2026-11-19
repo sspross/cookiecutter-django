@@ -164,6 +164,7 @@ The host has to provide (whoever runs it, an infra repo or a person):
   ingress`) that proxies the app's hostname to
   `{{ cookiecutter.project_slug }}-web:8000`, terminates TLS and forwards
   `X-Forwarded-Proto`.
+- Named volumes that survive: nothing on the host prunes them.
 
 First-time setup in the repository settings (Secrets and variables > Actions):
 

@@ -1,121 +1,15 @@
-# 0005 - Module boundaries enforced by tach; type-hint imports allowed across them
+# Module boundaries are a runtime rule; type-hint imports may cross them
 
-## Context
+`tach check` enforces the dependency graph between the Django apps.
+`tach.toml` sets `ignore_type_checking_imports = true`, so an import under
+`TYPE_CHECKING` may cross a boundary the runtime graph forbids. Naming a type
+in an annotation creates no runtime dependency. Without the flag a boundary
+failure reads as "I cannot use this type at all", and people reach for `Any`,
+duplicate the type, invert a dependency or add a neutral `types` module for a
+single shared type.
 
-The template ships `tach` and a `tach.toml` that declares an explicit dependency
-graph between Django apps. `tach check` (wired into `make lint` / pre-commit)
-fails the build on any import that crosses a boundary the graph doesn't permit.
-The baseline graph is two arrows out of `core`: `core → api_keys` and
-`core → users` (`core` may import both; `api_keys` and `users` may import
-nothing). As the project grows, each team-added `[[modules]]` block draws
-another boundary.
+A guarded import has to point the way the runtime arrow points, or would
+point, and never against it: otherwise it hides an inverted dependency. `tach`
+cannot check that direction, so review does.
 
-Two facts make `tach` confusing on first contact:
-
-1. A forbidden import and a type annotation look identical in source
-   (`from other_app.models import Thing`), but they are not the same thing. The
-   first is a runtime dependency; the second, under a guard, is just a name used
-   to describe a value. Developers hit a `tach check` failure on a model import
-   and conclude "I can't reference that type at all," then either reach for
-   `Any`, duplicate the type, or invert a dependency to dodge the check.
-2. `tach` draws two kinds of boundary: which apps may depend on which
-   (`[[modules]]`), and which of an app's modules other apps may import
-   (`[[interfaces]]`). `core → api_keys` is an allowed arrow, yet `core` may not
-   import `api_keys.models`. There the "may I name a `models` type?" question is
-   sharper still, because the interface deliberately forbids the runtime import
-   while the type is exactly what you want to annotate.
-
-## Decision
-
-**Boundaries are a runtime-arrow rule, and `tach.toml` sets
-`ignore_type_checking_imports = true` so that type-hint-only imports may cross a
-boundary the runtime arrow forbids.**
-
-- **A `TYPE_CHECKING` import of another module's type, including a `models`
-  type, is allowed, even when the runtime import is forbidden.** Pair it with
-  `from __future__ import annotations`:
-
-  ```python
-  from __future__ import annotations
-  from typing import TYPE_CHECKING
-
-  if TYPE_CHECKING:
-      from other_app.models import Thing  # for type hints only
-
-
-  def handle(thing: Thing) -> None: ...
-  ```
-
-  Naming a model type in an annotation touches no ORM and creates no runtime
-  dependency, so it does not violate the boundary. This is the point most people
-  miss: **the boundary blocks runtime imports, not the ability to type-hint.**
-
-- **A `TYPE_CHECKING` import may only travel the SAME direction as the runtime
-  arrow, never against it.** In the baseline graph, `api_keys` naming
-  `users.models.User` is honest: no runtime arrow exists, and `api_keys → users`
-  is the way one would point, because a key belongs to a user and `users` knows
-  nothing about keys. The forbidden move is `api_keys` reaching for a `core` type
-  under the guard, which would hide an inverted `api_keys → core` dependency
-  behind `TYPE_CHECKING` and lie about the real direction. The rule: **a type-hint import points the same way
-  the runtime arrow already points (or would point); it never inverts a
-  boundary.**
-
-- **A neutral top-level `types`/`contracts` module is not the answer to a
-  boundary-crossing type hint.** It is a whole module for what is usually a
-  single shared type. Reach for it when a genuinely shared contract object
-  appears, not to dodge a type hint the guard already allows.
-
-- **Each app declares its public modules with a `[[interfaces]]` block in
-  `tach.toml`.** Other apps may import only what an interface exposes, so
-  `api_keys.models` is reachable only from inside `api_keys`. A new app adds one
-  block:
-
-  ```toml
-  [[interfaces]]
-  expose = ["api(\\..*)?", "services(\\..*)?"]
-  from = ["new_app"]
-  ```
-
-  `expose` entries are full-match regexes on the path below the app, so `api`
-  alone exposes the name `api` but not `api.router`; append `(\\..*)?` to expose
-  the module and its members. An app without an `[[interfaces]]` block exposes
-  everything.
-
-  For a hard "write through `services`, never touch the ORM directly" seam between
-  apps, expose `services` and not `models`. A direct `from app.models import …`
-  from another app then fails `tach check`, while a `TYPE_CHECKING` import of an
-  `app.models` type for an annotation stays legal.
-
-- **Sub-package `[[modules]]` are for layering inside one app.** An interface
-  gates what other apps import, not what an app's own modules import. To keep
-  `app.api` away from `app.models`, declare `app.models` and `app.services` as
-  distinct `[[modules]]`: `app.models` depends on nothing, `app.services` may
-  depend on `app.models`, and `app` and other apps depend on `app.services` only.
-  Add the sub-package blocks only once the packages exist: a block on an absent
-  path enforces nothing, and `tach check` only warns about it.
-
-- **Tests, migrations, management commands, and `manage.py` are exempt**
-  (`tach.toml` excludes them). A management command is a composition root that may
-  wire anything; the seam is enforced where it matters (services and the
-  app-to-app edges), not on glue.
-
-## Consequences
-
-Positive:
-
-- The boundary is mechanical, not convention: `tach check` fails on a forbidden
-  runtime import, so an inverted dependency can't land silently.
-- Full type coverage survives the boundary: you annotate with the real type, not
-  `Any` or a duplicate, because type-hint imports cross freely under the guard.
-- A write seam between apps is one `expose` line. Layering inside an app takes
-  sub-package blocks, only where it is needed.
-
-Negative:
-
-- The `from other_app.models import X` failure reads as "you can't use this
-  type," which is wrong; this ADR is the
-  answer, and without it someone "fixes" the boundary instead of guarding the
-  import.
-- `ignore_type_checking_imports = true` trusts that guarded imports are honest
-  about direction. The same-direction rule is a convention `tach` can't check:
-  review catches an inverted guard, not the tool.
+How to declare a boundary: `docs/ARCHITECTURE.md` "Module boundaries".

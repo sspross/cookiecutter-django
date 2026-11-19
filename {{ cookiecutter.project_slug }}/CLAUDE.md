@@ -35,7 +35,7 @@ Agents are authorized to use the `gh` CLI to read, comment on, label, open, and 
 
 ### Triage labels
 
-Canonical triage label names (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), no overrides. See `docs/agents/triage-labels.md`.
+Canonical triage label names (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), no overrides. A generated repo creates them once with `gh label create`. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

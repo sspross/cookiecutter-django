@@ -1,40 +1,23 @@
-# 0007 - Sentry error events are unexpected behaviour only
+# Sentry error events are unexpected behaviour only
 
-## Context
+A Sentry error event means an unhandled exception, reported by an SDK
+integration (`DjangoIntegration` for web requests, `RqIntegration` for jobs).
+The app captures nothing on purpose: ruff's `TID251` bans
+`sentry_sdk.capture_exception` outside tests, and the logging integration's
+`event_level` is `None`, so no log line at any level becomes an event. Every
+event is a candidate for an alert, so a project that captures expected
+failures (a retry that gave up, a recorded third-party timeout, a validation
+the caller can fix) turns the issue stream into a second log that pages
+someone. The SDK's default `event_level` of ERROR would do the same with every
+future `logger.error`.
 
-The Sentry SDK is initialized whenever `SENTRY_DSN` is set (`core/observability.py`,
-called from `CoreConfig.ready`, not from the settings module: `core/settings/test.py`
-blanks the DSN only after `base.py` has run). Once a DSN is present, every `sentry_sdk.capture_exception`
-and every log line the logging integration is allowed to promote lands in the issue stream,
-and every issue is a candidate for an alert. A project that captures expected failures
-(a retry that gave up, a third-party call that timed out and was recorded, a validation
-the caller can fix) turns that stream into a second log, whose only distinguishing property
-is that it pages someone.
+An expected failure is a log line plus recorded state. Log it at the level it
+deserves, with the identifying fields in `extra`, and land the outcome where
+the domain keeps it (a status field, a row, a flag). The line ships to Sentry
+Logs, where it is queryable next to the issue stream. Capturing the failure at
+a lower severity or in a separate Sentry project changes nothing, because an
+event is an event to the alerting rules. A failure no state records is a gap
+in the domain model: record the state.
 
-## Decision
-
-**A Sentry error event means unexpected behaviour: an unhandled exception, reported by an
-SDK integration** (`DjangoIntegration` for web requests, `RqIntegration` for jobs). The app captures nothing on
-purpose, and the logging integration's `event_level` is `None`, so no log line at any level
-becomes an event either. The SDK's default of ERROR would make every future `logger.error` an
-alert by accident and duplicate the line as an event and a log.
-
-**An expected failure is a log line plus recorded state.** Log it at the level it deserves
-(`logger.error`, `logger.exception`, `logger.warning`) with the identifying fields in
-`extra`, and land the outcome where the domain keeps it (a status field, a row, a flag).
-The log line ships to Sentry Logs, where it is queryable next to the issue stream; the
-state is readable in the app, in admin and over the API. Capturing the failure at a lower
-severity or on a separate Sentry project changes nothing, because an event is an event to the
-alerting rules. A failure no state records is a gap in the domain model: record the state.
-
-Alerting on expected failures is a Sentry-side rule (a Logs query, an alert on a metric),
-not app code.
-
-## Consequences
-
-- The issue stream is reserved for bugs; anything in it is worth interrupting someone for.
-- Ruff's `TID251` bans `sentry_sdk.capture_exception` outside tests, so a deliberate capture fails lint.
-- Expected failures are watched where they are queryable: Sentry Logs and the recorded
-  state. Adding an alert on either changes a Sentry rule, not a deploy.
-- The recorded state carries the history for as long as the rows exist.
-- No `traces_sample_rate` and no session tracking: the Sentry bill is errors and logs.
+Alerting on expected failures is a Sentry-side rule (a Logs query, an alert on
+a metric), not app code.
