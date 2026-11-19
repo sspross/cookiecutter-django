@@ -80,7 +80,9 @@ test:
 	$(call run_step,mv .env ../env.generated)
 	$(call run_step,env -u SECRET_KEY -u DATABASE_URL make lint,All checks passed)
 	$(call run_step,env -u SECRET_KEY -u DATABASE_URL make precommit,Passed)
-	$(call run_step,echo DATABASE_URL=postgresql://nobody@127.0.0.1:1/unreachable > .env && PYTHONWARNINGS=error make lint,All checks passed)
+# makemigrations only warns when it cannot reach the database. The RuntimeWarning as an
+# error makes this step fail when lint connects to the database from .env.
+	$(call run_step,echo DATABASE_URL=postgresql://nobody@127.0.0.1:1/unreachable > .env && PYTHONWARNINGS=error::RuntimeWarning make lint,All checks passed)
 	$(call run_step,mv ../env.generated .env)
 	$(call run_step,make doctor,PASS  Engine)
 	$(call run_step,bash $(CURDIR)/tests/local_stack_smoke.sh,local stack smoke test passed)

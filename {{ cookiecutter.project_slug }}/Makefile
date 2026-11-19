@@ -23,8 +23,9 @@ test.live.record: frontend.build
 # The static checks only import the settings. They get fixed throwaway values, so the
 # result is the same with any .env, without one, and in CI. A value set here wins over
 # the shell environment and over .env.
-lint.types lint.migrations lint.deploy schema: export SECRET_KEY := static-check-secret-key-0123456789abcdefghijklmnopqrstuvwxyz
-lint.types lint.migrations lint.deploy schema: export DATABASE_URL := sqlite://:memory:
+STATIC_CHECK_TARGETS := lint.types lint.migrations lint.deploy schema
+$(STATIC_CHECK_TARGETS): export SECRET_KEY := static-check-secret-key-0123456789abcdefghijklmnopqrstuvwxyz
+$(STATIC_CHECK_TARGETS): export DATABASE_URL := sqlite://:memory:
 lint.deploy: export DEBUG := False
 lint.deploy: export ALLOWED_HOSTS := example.com
 lint.deploy: export HTTPS_ENFORCED := true
