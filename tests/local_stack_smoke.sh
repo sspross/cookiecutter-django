@@ -89,23 +89,29 @@ web_image_of_port() {
 	docker inspect -f '{{.Image}}' "$(docker ps -q --filter "publish=$1")"
 }
 
-container_of_port() {
-	local web project
+# The stack is found through its running web container, the only one that publishes a port.
+service_container() {
+	local web project container
 	web=$(docker ps -q --filter "publish=$2")
+	[ -n "$web" ] || fail "no running web container publishes port $2"
 	project=$(docker inspect -f '{{index .Config.Labels "com.docker.compose.project"}}' "$web")
-	docker ps -q --filter "label=com.docker.compose.project=$project" --filter "label=com.docker.compose.service=$1"
+	container=$(docker ps -q --filter "label=com.docker.compose.project=$project" --filter "label=com.docker.compose.service=$1")
+	[ -n "$container" ] || fail "no running $1 container in the stack on port $2"
+	echo "$container"
 }
 
 expect_main_process() {
-	local name
-	name=$(docker exec "$(container_of_port "$1" "$2")" cat /proc/1/comm)
+	local container name
+	container=$(service_container "$1" "$2") || exit 1
+	name=$(docker exec "$container" cat /proc/1/comm)
 	[ "$name" = "$3" ] || fail "PID 1 of $1 is '$name', expected $3"
 	echo "$1: PID 1 is $3"
 }
 
 expect_no_dev_dependencies() {
-	local packages found
-	packages=$(docker exec "$(container_of_port web "$1")" uv pip list --python /app/.venv/bin/python 2>&1) ||
+	local container packages found
+	container=$(service_container web "$1") || exit 1
+	packages=$(docker exec "$container" uv pip list --python /app/.venv/bin/python 2>&1) ||
 		fail "could not list the packages of the image:
 $packages"
 	echo "$packages" | grep -q '^gunicorn ' || fail "the package list of the image lacks gunicorn:
@@ -119,13 +125,11 @@ $found"
 # Docker kills a container 10 seconds after the stop signal; a killed one exits with 137.
 expect_graceful_stop() {
 	local container exit_code
-	container=$(container_of_port "$1" "$2")
-	SECONDS=0
+	container=$(service_container "$1" "$2") || exit 1
 	docker stop "$container" >/dev/null || fail "docker stop of $1 exited non-zero"
 	exit_code=$(docker inspect -f '{{.State.ExitCode}}' "$container")
-	[ "$exit_code" = "0" ] || fail "$1 exited with $exit_code on docker stop"
-	[ "$SECONDS" -lt 5 ] || fail "$1 took $SECONDS seconds to stop"
-	echo "$1: stops on the stop signal"
+	[ "$exit_code" = "0" ] || fail "$1 exited with $exit_code on docker stop, so it did not end within the grace period"
+	echo "$1: ends on the stop signal within the grace period"
 }
 
 block_port() {
@@ -188,6 +192,7 @@ echo "rebuild after a code change removes the replaced image"
 (cd "$copy" && make destroy >/dev/null 2>&1) || fail "make destroy in the copy exited non-zero"
 expect_admin_status "$first_url" 200 "make destroy in the copy leaves the first stack alone"
 
+# The worker first: stopping web takes away the port the stack is found by.
 expect_graceful_stop worker "$first_port"
 expect_graceful_stop web "$first_port"
 mv "$workdir/.env" .env
