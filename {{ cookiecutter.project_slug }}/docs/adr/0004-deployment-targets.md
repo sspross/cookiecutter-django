@@ -1,123 +1,20 @@
-# 0004 - Two deployment targets over one deployment contract
+# Two deployment targets over one deployment contract
 
-## Context
+Generated projects land on Appliku or on a docker-compose compatible host (a
+plain Docker host, Dokploy, Coolify). The template ships one contract the app
+owns (one image, the process scripts `web.sh`, `worker.sh` and `release.sh`,
+the `/healthz` probe, settings read from environment variables only) and two
+manifests that consume it, `appliku.yml` and `compose.yaml`. Two independent
+deployment descriptions would drift apart; this confines the difference to
+what is per platform, and moving between targets is a manifest swap.
 
-Generated projects do not all land on the same infrastructure. Some deploy to
-**Appliku**, a managed PaaS that reads `appliku.yml` and provisions Postgres,
-Redis, web/worker/release processes, env, and TLS. Others deploy as a
-docker-compose compatible stack: a Docker host behind a reverse proxy, or a PaaS
-that deploys a compose file straight from git (Dokploy, Coolify).
-
-Two independent deployment descriptions drift apart. Two manifests over a
-shared contract keep the drift confined to the part that genuinely differs per
-platform.
-
-## Decision
-
-The template ships one **deployment contract** and two manifests that consume
-it.
-
-The contract is the part the app owns, identical on both targets:
-
-- A `Dockerfile` building one image, running as the non-root `app` user. Its
-  `CMD` is `./web.sh`, so an orchestrator that cannot override the command still
-  gets a serving web process; every orchestrator that can override it picks the
-  entry point per process instead.
-- Three process scripts: `web.sh` (gunicorn, bound to `0.0.0.0:${PORT:-8000}`),
-  `worker.sh` (the forking RQ worker), `release.sh`. The image puts its virtual
-  environment on `PATH` and the scripts call `gunicorn` and `python` directly.
-  Inside the image nothing runs through `uv run`, which installs the dev
-  dependencies and stays PID 1 in front of the process.
-- `/healthz`, an anonymous JSON probe returning 200 when Postgres and Redis both
-  answer and 503 otherwise.
-- Settings driven entirely by environment variables (`core/settings/base.py`),
-  so nothing about a host is baked into the image.
-
-**Migrations and one-shot tasks belong in `release.sh`**, not in `web.sh`.
-`release.sh` runs once per deploy, before web and worker start, on both targets.
-
-The two manifests:
-
-- `appliku.yml` declares the `web`, `worker` and `release` processes, the
-  managed `db` and `redis` databases, the `media` volume, and the environment
-  wiring Appliku injects.
-- `compose.yaml` declares the same topology for a docker-compose compatible
-  host: `db` (postgres:17) and `redis` (redis:7) services with healthchecks,
-  a `release` service that runs to completion, `web` and `worker` on the same
-  built image, named volumes for Postgres data, Redis data and media, and the
-  web port published on loopback only.
+Migrations and one-shot tasks belong in `release.sh`, never in `web.sh`: it
+runs once per deploy, before web and worker start, on every target.
 
 Host provisioning, the reverse proxy and TLS termination are outside the
-template. `compose.yaml` publishes `127.0.0.1:8000` and expects something in
-front of it to terminate TLS and forward `X-Forwarded-Proto`, which
-`SECURE_PROXY_SSL_HEADER` trusts.
+template.
 
-### Releases and the image
-
-Every push to `main` is a release. The `image` workflow builds the
-`Dockerfile` on that commit and pushes it to GHCR tagged with the commit sha,
-so a deployable artefact exists outside the git history. Appliku ignores that
-image and builds from `main` itself. `docs/OPERATIONS.md` holds the flow.
-
-### The production compose file
-
-For a docker host that this repo deploys to itself, it carries a third
-manifest, `compose.prod.yaml`; ADR-0008 records that. It is derived from
-`compose.yaml`: the image pinned to the GHCR tag of the commit instead of
-`build: .`, no published `ports`, `web` on the ingress network instead, and
-the rest of the topology (the `release` service ordering, the healthchecks,
-the volumes) unchanged. `compose.yaml` stays the manifest for hosts that
-deploy compose straight from git (Dokploy, Coolify) and the shape
-`compose.prod.yaml` is kept coherent with.
-
-### The local overlay
-
-`make up` runs the app locally on the same topology, through `compose.yaml`
-plus the overlay `compose.local.yaml`. So `compose.yaml` is no longer the only
-compose shape used locally. Only `scripts/local-stack.sh` passes the overlay;
-a deployment never sees it. The overlay makes `.env` optional, gives the stack
-its own image name, replaces the published port and sets the local app
-settings, including `HTTPS_ENFORCED=false` so login works over plain HTTP while
-`DEBUG` stays off.
-
-Every worktree gets its own stack, so several can run side by side. The compose
-project name is the project slug plus a short hash of the worktree's absolute
-path, and the image is named after the project name. The web port is the first
-free one from 8000, kept while the stack runs. Browsers share `localhost`
-cookies across ports, so the session and CSRF cookie names carry the compose
-project name as a suffix. The port can change after `make down`, the project
-name cannot, so a session survives a restart on another port. The script
-supplies the values compose interpolates, such as `POSTGRES_PASSWORD`. Values
-set in the compose files win over `.env`, so a copied `.env.example` cannot
-change the local topology. The overlay sets `SENTRY_ENVIRONMENT=local`, so a
-`SENTRY_DSN` from `.env` never reports as production. The local superuser is
-created by `make up`, never by `release.sh`.
-
-Only `web` builds the image in the overlay; `release` and `worker` reuse it.
-After a rebuild, `make up` prunes the image it replaced, so a stack keeps one
-image.
-
-`make doctor` checks the Docker daemon, the Compose and Engine versions and the
-lockfiles. `make up` runs it first.
-
-## Consequences
-
-Positive:
-
-- A project picks its target without rewriting how it boots. The contract is
-  the same either way, so a move from one target to the other is a manifest
-  swap.
-- The process scripts stay the documentation of how each process starts,
-  readable without knowing either platform, while the `CMD` default keeps the
-  image runnable on a host that only knows how to start one container.
-
-Negative:
-
-- Both manifests have to stay coherent when the topology changes. Adding a
-  process (a `beat` process for scheduled jobs, say) or a backing service means
-  editing `appliku.yml` **and** `compose.yaml`, and a project that only uses one
-  of them will not notice the other rotting.
-- Neither manifest covers the host itself. A compose deployment still needs
-  someone to provision the machine, the proxy and the certificates.
-- A third manifest joins the coherence problem: `compose.prod.yaml` has to
-  follow `compose.yaml` when the topology changes, in the same pull request.
+The cost: the manifests have to stay coherent. Adding a process or a backing
+service means editing `appliku.yml`, `compose.yaml` and `compose.prod.yaml`
+(ADR-0008) in the same pull request, and a project that uses only one of them
+will not notice the others rotting.

@@ -29,6 +29,10 @@ deployment manifest:
 
 The image's `CMD` is `./web.sh`, which only matters on a host that cannot
 override the command; Appliku and compose both set the command per process.
+The image runs as the non-root `app` user and has its virtual environment on
+`PATH`. The scripts call `gunicorn` and `python` directly: nothing in the image
+runs through `uv run`, which installs the dev dependencies and stays PID 1 in
+front of the process.
 
 Backing services, provisioned by the deployment target (Appliku from
 `appliku.yml`, or the `db` and `redis` services in `compose.yaml`):
@@ -186,6 +190,13 @@ from this repo.
    the reverse proxy. An HTTP error status fails the job.
 6. On failure the job prints `docker compose ps` and the last 100 log lines of
    every service.
+
+Private repositories on GitHub Free have no environments, so secrets and
+variables live at the repository level and the `main` restriction is a
+condition in the job, not a GitHub setting. On GitHub Team the job gets
+`environment: production` and the secrets and variables move into that
+environment. Nothing else changes. Required reviewers stay out of reach: GitHub
+Team offers them on public repositories only.
 
 What a failed deploy leaves running:
 
@@ -425,7 +436,9 @@ external service are available on the current plan.
 Sentry, through `sentry-sdk` (`core/observability.py`, initialized from
 `CoreConfig.ready`). It is on when `SENTRY_DSN` is set and off when it is blank
 or unset: with no DSN the SDK is never initialized, so dev machines, CI and a
-deploy without Sentry are unchanged.
+deploy without Sentry are unchanged. It is initialized from `ready` and not
+from the settings module, because `core/settings/test.py` blanks the DSN only
+after `base.py` has run.
 
 - **What arrives as an error event**: an unhandled exception in a web
   request, plain Django view or django-ninja endpoint alike, reported by the
