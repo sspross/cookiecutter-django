@@ -26,6 +26,5 @@ jobs:
           node-version: '24'
       - run: uv sync --frozen
       - run: make frontend.install.ci
-      - run: make lint
       - run: uv run pre-commit run --all-files
       - run: uv run pre-commit run --all-files --hook-stage manual

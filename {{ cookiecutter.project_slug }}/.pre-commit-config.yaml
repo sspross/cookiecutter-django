@@ -82,6 +82,18 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: migrations
+        name: migrations (every model change has a migration)
+        entry: make lint.migrations
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: deploy-check
+        name: deploy-check (Django security settings)
+        entry: make lint.deploy
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: pip-audit
         name: pip-audit
         entry: uv run python scripts/pip_audit_fixable.py

@@ -9,7 +9,7 @@ Run these before declaring work complete:
 - `make test`: run the test suite; nothing ships if this is red.
 - `make lint`: static checks.
 - `make format`: apply formatting.
-- `make precommit`: full pre-commit pipeline. Together with `make lint` it covers every static check CI runs.
+- `make precommit`: full pre-commit pipeline. It covers every static check CI runs, all of `make lint` included.
 
 ## Test version
 
