@@ -1,8 +1,11 @@
 FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    UV_SYSTEM_PYTHON=1
+    PYTHONUNBUFFERED=1
+
+# Programs run from the virtual environment directly, never through `uv run`:
+# it would install the dev dependencies and stay PID 1 in front of the process.
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Debian package versions change with the base image, so apt pins would break the build.
 # hadolint ignore=DL3008
@@ -34,7 +37,7 @@ COPY .env.example .env
 RUN make frontend.install.ci
 RUN make frontend.build
 
-RUN uv run python manage.py collectstatic --noinput
+RUN python manage.py collectstatic --noinput
 
 # Never a runtime fallback: .env.example sets DEBUG=True and a placeholder SECRET_KEY.
 RUN rm -f .env

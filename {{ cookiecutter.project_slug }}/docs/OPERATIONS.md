@@ -204,7 +204,7 @@ On Appliku:
 2. Appliku builds the image from `Dockerfile`. The build installs dependencies,
    builds the Vite frontend, and runs `collectstatic`.
 3. Appliku runs the `release` process: `release.sh`, which is only
-   `uv run ./manage.py migrate`.
+   `python manage.py migrate`.
 4. The `web` and `worker` processes run the new image.
 
 **Unverified**: what a failed build or a failed release process does to the
@@ -232,7 +232,7 @@ one release (add columns nullable, drop them a release later).
 
 On Appliku, deploys and one-off commands are triggered from the dashboard or
 its CLI; see [docs.appliku.com/docs/cli-sdk](https://docs.appliku.com/docs/cli-sdk/).
-Run management commands as `uv run ./manage.py <command>`, the same entry point
+Run management commands as `python manage.py <command>`, the same entry point
 the process scripts use. **Unverified**: which environment a one-off command
 receives, whether it gets its own container or attaches to a running one, and
 how long it may run.
@@ -243,7 +243,7 @@ machine, so one-off commands run in the live `web` container with
 
 ```
 export DOCKER_HOST=ssh://<DEPLOY_HOST>
-docker exec -it {{ cookiecutter.project_slug }}-web-1 uv run ./manage.py showmigrations
+docker exec -it {{ cookiecutter.project_slug }}-web-1 python manage.py showmigrations
 docker compose -p {{ cookiecutter.project_slug }} ps
 docker compose -p {{ cookiecutter.project_slug }} logs web --tail 100
 ```
@@ -255,7 +255,7 @@ container can run from the checkout with
 the same values the workflow writes.
 
 On a generic compose host the equivalent is
-`docker compose run --rm web uv run ./manage.py <command>`, which starts a
+`docker compose run --rm web python manage.py <command>`, which starts a
 throwaway container from the same image with the same environment.
 
 ## SSO allowlist
@@ -301,7 +301,7 @@ shell, so a `VAR=value` prefix is treated as the executable. Wrap the command in
 with `--noinput`:
 
 ```
-sh -c "DJANGO_SUPERUSER_PASSWORD='<password>' uv run ./manage.py createsuperuser --noinput --username you@example.com --email you@example.com"
+sh -c "DJANGO_SUPERUSER_PASSWORD='<password>' python manage.py createsuperuser --noinput --username you@example.com --email you@example.com"
 ```
 
 Alternatively set `DJANGO_SUPERUSER_PASSWORD` as an app environment variable,
@@ -311,13 +311,13 @@ On a host deployed by the `deploy` workflow, interactive, from a device that
 may SSH to the host:
 
 ```
-DOCKER_HOST=ssh://<DEPLOY_HOST> docker exec -it {{ cookiecutter.project_slug }}-web-1 uv run ./manage.py createsuperuser
+DOCKER_HOST=ssh://<DEPLOY_HOST> docker exec -it {{ cookiecutter.project_slug }}-web-1 python manage.py createsuperuser
 ```
 
 On a generic compose host, interactive or with the same `--noinput` form:
 
 ```
-docker compose run --rm web uv run ./manage.py createsuperuser
+docker compose run --rm web python manage.py createsuperuser
 ```
 
 Then log in at `https://<your-domain>/admin/`.

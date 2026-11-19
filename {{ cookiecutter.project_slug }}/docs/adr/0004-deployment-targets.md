@@ -24,7 +24,10 @@ The contract is the part the app owns, identical on both targets:
   gets a serving web process; every orchestrator that can override it picks the
   entry point per process instead.
 - Three process scripts: `web.sh` (gunicorn, bound to `0.0.0.0:${PORT:-8000}`),
-  `worker.sh` (the forking RQ worker), `release.sh`.
+  `worker.sh` (the forking RQ worker), `release.sh`. The image puts its virtual
+  environment on `PATH` and the scripts call `gunicorn` and `python` directly.
+  Inside the image nothing runs through `uv run`, which installs the dev
+  dependencies and stays PID 1 in front of the process.
 - `/healthz`, an anonymous JSON probe returning 200 when Postgres and Redis both
   answer and 503 otherwise.
 - Settings driven entirely by environment variables (`core/settings/base.py`),

@@ -24,7 +24,7 @@ The template ships:
 - A `redis` backing service in every deployment manifest: Appliku's managed
   Redis in `appliku.yml`, the `redis:7` service in `compose.yaml` and
   `compose.prod.yaml`.
-- `worker.sh` script: `uv run python manage.py rqworker default`, the
+- `worker.sh` script: `python manage.py rqworker default`, the
   *forking* worker. It runs in production and in the local compose stack
   (`make up`), both in Linux containers, so macOS never forks. It raises
   `JobTimeoutException` inside a job that outruns `RQ_QUEUES`
