@@ -20,16 +20,35 @@ test.live.record: frontend.build
 	uv run pytest --video on --tracing on --output test-results $$dirs; \
 	echo "Artifacts in ./test-results. Drag trace.zip to https://trace.playwright.dev"
 
+# The static checks only import the settings. They get fixed throwaway values, so the
+# result is the same with any .env, without one, and in CI. A value set here wins over
+# the shell environment and over .env.
+STATIC_CHECK_TARGETS := lint.types lint.migrations lint.deploy schema
+$(STATIC_CHECK_TARGETS): export SECRET_KEY := static-check-secret-key-0123456789abcdefghijklmnopqrstuvwxyz
+$(STATIC_CHECK_TARGETS): export DATABASE_URL := sqlite://:memory:
+lint.deploy: export DEBUG := False
+lint.deploy: export ALLOWED_HOSTS := example.com
+lint.deploy: export HTTPS_ENFORCED := true
+
 lint:
 	uv run ruff check .
 	uv run tach check
-	uv run mypy .
+	@$(MAKE) --no-print-directory lint.types
 	uv run deptry .
 	uv run ast-grep scan
-	uv run python manage.py makemigrations --check --dry-run
-	DEBUG=False ALLOWED_HOSTS=example.com SECRET_KEY=deploy-check-secret-key-0123456789abcdefghijklmnopqrstuvwxyz uv run python manage.py check --deploy --tag security --fail-level WARNING
+	@$(MAKE) --no-print-directory lint.migrations
+	@$(MAKE) --no-print-directory lint.deploy
 	cd core/frontend && npm run lint
 	cd core/frontend && npm run typecheck
+
+lint.types:
+	uv run mypy .
+
+lint.migrations:
+	uv run python manage.py makemigrations --check --dry-run
+
+lint.deploy:
+	uv run python manage.py check --deploy --tag security --fail-level WARNING
 
 format:
 	uv run ruff format .

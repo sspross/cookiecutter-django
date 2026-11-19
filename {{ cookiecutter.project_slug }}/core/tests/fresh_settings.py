@@ -19,7 +19,7 @@ print(json.dumps({name: getattr(settings, name) for name in sys.argv[1:]}))
 def freshly_imported_production_settings(
     names: Iterable[str], unset: Iterable[str] = (), **overrides: str
 ) -> dict[str, object]:
-    cleared = set(unset)
+    cleared = {"HTTPS_ENFORCED", *unset}
     environment = {
         key: value for key, value in os.environ.items() if key not in cleared
     }

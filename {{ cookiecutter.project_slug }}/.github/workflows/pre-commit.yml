@@ -12,11 +12,6 @@ permissions:
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
-    # mypy's Django plugin, schema-fresh and manage.py import core/settings/base.py, which
-    # has no default for these two. A throwaway sqlite URL is enough.
-    env:
-      SECRET_KEY: ci-not-a-real-secret
-      DATABASE_URL: sqlite:///db.sqlite3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
