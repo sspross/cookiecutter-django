@@ -123,7 +123,7 @@ wait_until_web_is_healthy() {
 }
 
 ensure_local_superuser() {
-	compose exec -T web uv run python manage.py shell -c "
+	compose exec -T web python manage.py shell -c "
 from django.contrib.auth import get_user_model
 
 user, _ = get_user_model().objects.get_or_create(username='$LOGIN_USERNAME')
