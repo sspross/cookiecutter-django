@@ -17,7 +17,9 @@ NOT_ENFORCED = {
 
 
 def https_settings(**overrides: str) -> dict[str, object]:
-    return freshly_imported_production_settings(ENFORCED, **overrides)
+    return freshly_imported_production_settings(
+        ENFORCED, unset=["HTTPS_ENFORCED"], **overrides
+    )
 
 
 def test_https_is_enforced_by_default() -> None:

@@ -205,8 +205,6 @@ Other:
 
 - `freshly_imported_production_settings` imports the real settings in a new
   interpreter, because they are read from the environment once, at import time.
-  It drops `HTTPS_ENFORCED` from the inherited environment, so an exported
-  value does not change the result. A test sets it explicitly when it needs to.
 - The Google login tests sign the ID token with an arbitrary key: allauth skips
   the signature check for an ID token it fetched from Google's token endpoint
   itself, over TLS.
