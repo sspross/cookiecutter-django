@@ -45,6 +45,7 @@ dev = [
 
 [tool.ruff]
 line-length = 88
+extend-exclude = ["./prototypes"]
 target-version = "py313"
 
 [tool.ruff.lint]
@@ -89,7 +90,7 @@ plugins = ["mypy_django_plugin.main"]
 explicit_package_bases = true
 warn_unused_ignores = true
 strict = true
-exclude = ["^core/frontend/"]
+exclude = ["^core/frontend/", "^prototypes/"]
 
 [[tool.mypy.overrides]]
 module = ["allauth.*", "environ.*"]
@@ -131,6 +132,7 @@ timeout = 120
 extend_exclude = [
     ".*/tests/.*",
     "conftest.py",
+    "prototypes/.*",
 ]
 
 [tool.deptry.per_rule_ignores]

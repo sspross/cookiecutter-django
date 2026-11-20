@@ -20,6 +20,7 @@ To let the user try your work, run `make up` and report the printed URL. It buil
 - **Python tooling is `uv`**: `uv add`, `uv run`, etc. Never `pip`.
 - **Outside a `TYPE_CHECKING` guard, defer an import only for a genuine circular cycle.** Add `# noqa: PLC0415` with the cycle named on the same line, e.g. `# noqa: PLC0415 circular: jobs → services → models → jobs`.
 - **A `TYPE_CHECKING` import may cross a `tach` boundary for type hints, but must follow the runtime arrow.** See ADR-0005.
+- **A throwaway prototype lives in `prototypes/<name>/` on a `prototype/<name>` branch that is never merged.** ruff, mypy, deptry, ast-grep and the file-based pre-commit hooks skip `prototypes/`. gitleaks still scans staged prototype files, and pytest still collects tests there.
 - **Put units in names**: `TIMEOUT_SECONDS`, `MAX_SIZE_MB`, `DELAY_MS`.
 - **While iterating run only the tests you touched; run the full suite once at the end.**
 - **Never `--no-verify`, and never skip or delete a failing test to go green**: fix the underlying problem.
