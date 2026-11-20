@@ -45,7 +45,7 @@ dev = [
 
 [tool.ruff]
 line-length = 88
-extend-exclude = ["prototypes"]
+extend-exclude = ["./prototypes"]
 target-version = "py313"
 
 [tool.ruff.lint]
